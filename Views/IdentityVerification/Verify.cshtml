@@ -60,7 +60,7 @@
                                         <form asp-action="Verify" method="post" enctype="multipart/form-data" id="verificationForm">
 
                                             <!-- Face Verification Section -->
-                                            <div class="mb-5">
+                                            <div class="mb-9">
                                                 <div class="section-header mb-6 text-center">
                                                     <h3 class="text-3xl font-bold text-gray-800 mb-1">
                                                         Selfie Verification
@@ -82,74 +82,56 @@
                                                                         Open Camera
                                                                     </button>
                                                                 </div>
-
-                                                                <div id="capturedImageContainer" class="text-center" style="display: none;">
-                                                                    <div class="mb-3">
-                                                                        <img id="capturedImage" class="img-fluid border rounded shadow-sm" style="max-height: 250px;" />
-                                                                    </div>
-                                                                    <div class="alert alert-success p-3">
-                                                                        <i class="fas fa-check-circle me-2"></i> Photo captured successfully!
-                                                                    </div>
-                                                                    <button type="button" id="retakePhotoBtn" class="btn btn-outline-primary">
-                                                                        <i class="fas fa-redo me-2"></i>Retake Photo
-                                                                    </button>
-                                                                </div>
-
-                                                                <input asp-for="LiveFaceImageData" type="hidden" id="liveFaceImageData" />
-                                                                <span asp-validation-for="LiveFaceImageData" class="text-danger"></span>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
-
-                                            <!-- Document Data Display (for debugging) -->
-                                            @if (!string.IsNullOrEmpty(Model.IdDocumentType))
-                                            {
-                                                <div class="alert alert-info mb-4">
-                                                    <h6 class="alert-heading">Document Information:</h6>
+                                            <hr class="border-gray-300 mb-4">
+                                            <div class="text-center mb-5">
+                                                <h6 class="text-lg font-bold">Review Information</h6>
+                                            </div>
+                                            <div class="flex flex-col items-center text-center mb-3">
+                                                <h6 class="font-light mb-2">ID Information:</h6>
+                                                @if (!string.IsNullOrEmpty(Model.IdDocumentType))
+                                                {
                                                     <p class="mb-1"><strong>ID Type:</strong> @Model.IdDocumentType</p>
                                                     <p class="mb-1"><strong>ID Number:</strong> @Model.IdDocumentNumber</p>
                                                     <p class="mb-1"><strong>Expiry Date:</strong> @(Model.IdDocumentExpiryDate?.ToString("MMM dd, yyyy") ?? "No expiration date")</p>
-                                                    <p class="mb-0"><strong>No Expiration:</strong> @(Model.IdDocumentHasNoExpiration ? "Yes" : "No")</p>
-                                                </div>
-                                            }
-
-                                            <!-- Terms and Submit -->
-                                            <div class="mb-5">
-                                                <div class="section-header mb-4 text-center">
-                                                    <h3 class="text-2xl font-bold text-gray-800 mb-2">
-                                                        <i class="fas fa-check-circle me-3 text-[#62cff4]"></i>
-                                                        Final Step: Terms & Submission
-                                                    </h3>
-                                                    <p class="text-gray-600">Review terms and submit your verification</p>
-                                                </div>
-
-                                                <div class="card border-2 border-[#62cff4]/20 bg-gradient-to-br from-white to-[#62cff4]/5">
-                                                    <div class="card-body p-4">
-                                                        <div class="form-check mb-3">
-                                                            <input asp-for="AgreeToTerms" class="form-check-input" type="checkbox" required />
-                                                            <label asp-for="AgreeToTerms" class="form-check-label">
-                                                                I agree to the <a href="#" target="_blank">Terms and Conditions</a> and consent to identity verification
-                                                            </label>
-                                                            <span asp-validation-for="AgreeToTerms" class="text-danger"></span>
-                                                        </div>
-
-                                                        <div class="text-center">
-                                                            <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
-                                                                <i class="fas fa-paper-plane me-2"></i>
-                                                                Submit Verification
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                }
                                             </div>
 
-                                            <!-- Navigation Buttons -->
-                                            <div class="text-center">
-                                                <a href="@Url.Action("Document", "IdentityVerification")" class="btn btn-secondary btn-lg me-3">
-                                                    <i class="fas fa-arrow-left me-2"></i>Back to Document
-                                                </a>
+                                            <div class="flex flex-col items-center text-center mb-4">
+                                                <h6 class="font-light mb-2">Selfie Photo:</h6>
+                                                <div id="capturedImageContainer" class="text-center" style="display: none;">
+                                                    <div class="mb-1">
+                                                        <img id="capturedImage" class="img-fluid rounded shadow-sm" style="max-height: 250px;" />
+                                                    </div>
+                                                    <p class="font-light text-xs italic">Click "Open Camera" to retake</p>
+                                                </div>
+                                            </div>
+                                            <hr class="border-gray-300 mb-4">
+                                            <input asp-for="LiveFaceImageData" type="hidden" id="liveFaceImageData" />
+                                            <span asp-validation-for="LiveFaceImageData" class="text-danger"></span>
+
+                                            <!-- Terms and Submit -->
+                                            <div class="card-body">
+                                                <div class="form-check mb-5 flex items-center justify-center space-x-2">
+                                                    <input asp-for="AgreeToTerms" class="form-check-input w-4 h-4 text-[#41b8d5] bg-gray-100 border-gray-300 rounded-sm focus:ring-[#41b8d5] focus:ring-2" type="checkbox" required />
+                                                    <label asp-for="AgreeToTerms" class="form-check-label">
+                                                        <p class="text-sm font-light">I agree to submit my identity verification to confirm my account and continue using the website.</p>
+                                                    </label>
+                                                    <span asp-validation-for="AgreeToTerms" class="text-danger"></span>
+                                                </div>
+
+                                                <div class="text-end">
+                                                    <a href="@Url.Action("Document", "IdentityVerification")" class="btn btn-secondary btn-lg me-3">
+                                                        <i class="fas fa-arrow-left me-2"></i>Back
+                                                    </a>
+                                                    <button type="submit" class="btn text-white bg-[#41b8d5] focus:ring-4 focus:ring-[#6ce5e8] font-medium rounded-lg text-sm px-5 py-2.5 me-4 mb-2 focus:outline-none" id="submitBtn">
+                                                        Submit Verification
+                                                    </button>
+                                                </div>
                                             </div>
                                         </form>
                                     </div>
@@ -230,17 +212,11 @@
                                 <g id="SVGRepo_iconCarrier"><circle cx="32" cy="32" r="25"></circle><line x1="38.33" y1="21.87" x2="52.52" y2="46.27"></line><line x1="12.09" y1="16.88" x2="26.89" y2="42.33"></line><line x1="44.32" y1="32.16" x2="29.72" y2="56.9"></line><line x1="35.43" y1="7.23" x2="20.91" y2="32.05"></line><line x1="38.22" y1="42.5" x2="9.23" y2="42.33"></line><line x1="54.9" y1="21.95" x2="26.92" y2="21.78"></line></g>
                             </svg>
                         </button>
-                        <button type="button" id="retakePhoto" class="btn btn-warning btn-lg" style="display: none;" hidden>
-                            <i class="fas fa-redo me-2"></i>Retake
-                        </button>
                     </div>
 
                     <!-- Success message and controls for captured photo -->
                     <div id="captureSuccessControls" style="display: none;">
-                        <div class="alert alert-success p-3 mb-3">
-                            <i class="fas fa-check-circle me-2"></i> Photo captured successfully!
-                        </div>
-                        <div class="flex flex-wrap justify-center gap-2">
+                        <div class="flex flex-wrap justify-center gap-4">
                             <button type="button" id="usePhoto" class="btn btn-primary btn-lg">
                                 <i class="fas fa-check me-2"></i>Use This Photo
                             </button>
