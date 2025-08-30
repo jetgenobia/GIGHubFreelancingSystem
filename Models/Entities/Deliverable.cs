@@ -5,7 +5,7 @@ namespace Freelancing.Models.Entities
         public Guid Id { get; set; }
         public Guid ContractId { get; set; }
         public Contract Contract { get; set; }
-        public Guid SubmittedByUserId { get; set; }
+        public string SubmittedByUserId { get; set; }
         public UserAccount SubmittedByUser { get; set; }
         
         // Deliverable Details
@@ -22,7 +22,7 @@ namespace Freelancing.Models.Entities
         
         // Review Information
         public string? ReviewComments { get; set; }
-        public Guid? ReviewedByUserId { get; set; }
+        public string? ReviewedByUserId { get; set; }
         public UserAccount? ReviewedByUser { get; set; }
         
         // Version Control

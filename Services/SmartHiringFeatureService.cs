@@ -7,7 +7,7 @@ namespace Freelancing.Services
 {
     public interface ISmartHiringFeatureService
     {
-        Task<MLFeatures> ExtractFeaturesAsync(Guid projectId, Guid freelancerId);
+        Task<MLFeatures> ExtractFeaturesAsync(Guid projectId, string freelancerId);
         Task<List<SmartHiringTrainingData>> PrepareTrainingDataAsync();
         Task ExportTrainingDataToCsvAsync(string filePath);
     }
@@ -21,7 +21,7 @@ namespace Freelancing.Services
             _context = context;
         }
 
-        public async Task<MLFeatures> ExtractFeaturesAsync(Guid projectId, Guid freelancerId)
+        public async Task<MLFeatures> ExtractFeaturesAsync(Guid projectId, string freelancerId)
         {
             // Get project details
             var project = await _context.Projects
@@ -79,7 +79,7 @@ namespace Freelancing.Services
             return (float)matchingSkills / requiredSkills.Count;
         }
 
-        private async Task<float> CalculateAverageRating(Guid freelancerId)
+        private async Task<float> CalculateAverageRating(string freelancerId)
         {
             var ratings = await _context.FreelancerFeedbacks
                 .Where(f => f.FreelancerId == freelancerId)
@@ -89,7 +89,7 @@ namespace Freelancing.Services
             return ratings.Any() ? (float)ratings.Average() : 3.0f; // Default neutral rating
         }
 
-        private async Task<float> CalculateRecommendationRate(Guid freelancerId)
+        private async Task<float> CalculateRecommendationRate(string freelancerId)
         {
             var feedbacks = await _context.FreelancerFeedbacks
                 .Where(f => f.FreelancerId == freelancerId)
@@ -102,7 +102,7 @@ namespace Freelancing.Services
             return (float)recommendCount / feedbacks.Count;
         }
 
-        private async Task<float> CalculateCompletionRate(Guid freelancerId)
+        private async Task<float> CalculateCompletionRate(string freelancerId)
         {
             var acceptedBids = await _context.Biddings
                 .Where(b => b.UserId == freelancerId && b.IsAccepted)
@@ -116,7 +116,7 @@ namespace Freelancing.Services
             return (float)completedProjects / acceptedBids.Count;
         }
 
-        private async Task<float> CalculateBidSuccessRate(Guid freelancerId)
+        private async Task<float> CalculateBidSuccessRate(string freelancerId)
         {
             var totalBids = await _context.Biddings
                 .Where(b => b.UserId == freelancerId)
@@ -132,14 +132,14 @@ namespace Freelancing.Services
             return (float)acceptedBids / totalBids;
         }
 
-        private async Task<int> CalculateCategoryExperience(Guid freelancerId, string category)
+        private async Task<int> CalculateCategoryExperience(string freelancerId, string category)
         {
             return await _context.Biddings
                 .Where(b => b.UserId == freelancerId && b.IsAccepted && b.Project.Category == category)
                 .CountAsync();
         }
 
-        private async Task<float> CalculateAverageResponseTime(Guid freelancerId)
+        private async Task<float> CalculateAverageResponseTime(string freelancerId)
         {
             // This would require tracking bid submission times vs project creation times
             // For now, return a default value based on bid history
@@ -151,7 +151,7 @@ namespace Freelancing.Services
             return Math.Max(1.0f, 24.0f - (bidCount * 0.5f)); // Hours
         }
 
-        private async Task<float> CalculatePortfolioQuality(Guid freelancerId)
+        private async Task<float> CalculatePortfolioQuality(string freelancerId)
         {
             var bids = await _context.Biddings
                 .Where(b => b.UserId == freelancerId)
@@ -186,7 +186,7 @@ namespace Freelancing.Services
             return Math.Min(score / Math.Max(bids.Count, 1), 10.0f); // Normalize to max 10
         }
 
-        private async Task<float> CalculateBudgetMatchScore(Guid projectId, Guid freelancerId)
+        private async Task<float> CalculateBudgetMatchScore(Guid projectId, string freelancerId)
         {
             var project = await _context.Projects.FindAsync(projectId);
             var bid = await _context.Biddings
@@ -206,7 +206,7 @@ namespace Freelancing.Services
             return 0.5f; // Default if budget parsing fails
         }
 
-        private async Task<float> CalculateProposedDeliveryTime(Guid projectId, Guid freelancerId)
+        private async Task<float> CalculateProposedDeliveryTime(Guid projectId, string freelancerId)
         {
             var bid = await _context.Biddings
                 .FirstOrDefaultAsync(b => b.ProjectId == projectId && b.UserId == freelancerId);
@@ -257,7 +257,7 @@ namespace Freelancing.Services
             return Math.Min(complexity, 10.0f); // Cap at 10
         }
 
-        private async Task<float> CalculateClientHistoryScore(Guid clientId, Guid freelancerId)
+        private async Task<float> CalculateClientHistoryScore(string clientId, string freelancerId)
         {
             var pastProjects = await _context.Projects
                 .Where(p => p.UserId == clientId && p.AcceptedBid.UserId == freelancerId)
@@ -271,7 +271,7 @@ namespace Freelancing.Services
             return (float)successfulProjects / pastProjects.Count;
         }
 
-        private async Task<bool> HasPastCollaboration(Guid clientId, Guid freelancerId)
+        private async Task<bool> HasPastCollaboration(string clientId, string freelancerId)
         {
             return await _context.Projects
                 .AnyAsync(p => p.UserId == clientId && p.AcceptedBid.UserId == freelancerId);
@@ -285,7 +285,7 @@ namespace Freelancing.Services
             return requiredSkills.Intersect(freelancerSkills).Count();
         }
 
-        private async Task<float> CalculateWorkloadFactor(Guid freelancerId)
+        private async Task<float> CalculateWorkloadFactor(string freelancerId)
         {
             var activeProjects = await _context.Projects
                 .Where(p => p.AcceptedBid.UserId == freelancerId && p.Status == "Active")

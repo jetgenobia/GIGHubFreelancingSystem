@@ -8,11 +8,11 @@ namespace Freelancing.Services
     {
         Task<List<MentorshipSession>> GetSessionsAsync(Guid matchId);
         Task<MentorshipSession?> GetSessionAsync(Guid sessionId);
-        Task<(bool ok, string? error, MentorshipSession? session)> CreateSessionAsync(Guid matchId, Guid createdByUserId, DateTime startUtc, string? title, string? notes, string? timeZone);
-        Task<(bool ok, string? error)> AcceptAsync(Guid sessionId, Guid userId);
-        Task<(bool ok, string? error)> DeclineAsync(Guid sessionId, Guid userId);
-        Task<(bool ok, string? error)> CancelAsync(Guid sessionId, Guid userId);
-        Task<(bool ok, string? error)> RescheduleAsync(Guid sessionId, Guid userId, DateTime newStartUtc, string? notes);
+        Task<(bool ok, string? error, MentorshipSession? session)> CreateSessionAsync(Guid matchId, string createdByUserId, DateTime startUtc, string? title, string? notes, string? timeZone);
+        Task<(bool ok, string? error)> AcceptAsync(Guid sessionId, string userId);
+        Task<(bool ok, string? error)> DeclineAsync(Guid sessionId, string userId);
+        Task<(bool ok, string? error)> CancelAsync(Guid sessionId, string userId);
+        Task<(bool ok, string? error)> RescheduleAsync(Guid sessionId, string userId, DateTime newStartUtc, string? notes);
     }
 
     public class MentorshipSchedulingService : IMentorshipSchedulingService
@@ -39,7 +39,7 @@ namespace Freelancing.Services
 
         public async Task<(bool ok, string? error, MentorshipSession? session)> CreateSessionAsync(
             Guid matchId,
-            Guid createdByUserId,
+            string createdByUserId,
             DateTime startUtc,
             string? title,
             string? notes,
@@ -99,7 +99,7 @@ namespace Freelancing.Services
             return (true, null, entity);
         }
 
-        public async Task<(bool ok, string? error)> AcceptAsync(Guid sessionId, Guid userId)
+        public async Task<(bool ok, string? error)> AcceptAsync(Guid sessionId, string userId)
         {
             var session = await _context.Set<MentorshipSession>()
                 .Include(s => s.MentorshipMatch)
@@ -132,7 +132,7 @@ namespace Freelancing.Services
             return (true, null);
         }
 
-        public async Task<(bool ok, string? error)> DeclineAsync(Guid sessionId, Guid userId)
+        public async Task<(bool ok, string? error)> DeclineAsync(Guid sessionId, string userId)
         {
             var session = await _context.Set<MentorshipSession>()
                 .Include(s => s.MentorshipMatch)
@@ -149,7 +149,7 @@ namespace Freelancing.Services
             return (true, null);
         }
 
-        public async Task<(bool ok, string? error)> CancelAsync(Guid sessionId, Guid userId)
+        public async Task<(bool ok, string? error)> CancelAsync(Guid sessionId, string userId)
         {
             var session = await _context.Set<MentorshipSession>()
                 .Include(s => s.MentorshipMatch)
@@ -165,7 +165,7 @@ namespace Freelancing.Services
             return (true, null);
         }
 
-        public async Task<(bool ok, string? error)> RescheduleAsync(Guid sessionId, Guid userId, DateTime newStartUtc, string? notes)
+        public async Task<(bool ok, string? error)> RescheduleAsync(Guid sessionId, string userId, DateTime newStartUtc, string? notes)
         {
             if (newStartUtc < DateTime.Now) return (false, "Start date and time must be now or later");
 

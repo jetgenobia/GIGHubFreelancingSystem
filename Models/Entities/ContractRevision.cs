@@ -10,7 +10,7 @@ namespace Freelancing.Models.Entities
         public string RevisionContent { get; set; } // HTML content of this revision
         public string? RevisionNotes { get; set; } // Notes about what changed
         
-        public Guid CreatedByUserId { get; set; }
+        public string CreatedByUserId { get; set; }
         public UserAccount CreatedByUser { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow.ToLocalTime();
         

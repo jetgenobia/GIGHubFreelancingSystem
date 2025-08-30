@@ -189,7 +189,7 @@
 
                 <!-- Sign Button -->
                 @{
-                    var currentUserId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!);
+                    var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                     var isCurrentUserClient = Model.ClientId == currentUserId;
                     var isCurrentUserFreelancer = Model.FreelancerId == currentUserId;
                     var canCurrentUserSign = (isCurrentUserClient && !Model.ClientHasSigned) || (isCurrentUserFreelancer && !Model.FreelancerHasSigned);

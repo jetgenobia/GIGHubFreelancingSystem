@@ -20,8 +20,8 @@ namespace Freelancing.Controllers
         [HttpGet]
         public async Task<IActionResult> EditSkills(string searchTerm, List<Guid> selectedSkillIds)
         {
-            var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
             // Get ALL skills for skill name lookups
@@ -62,8 +62,8 @@ namespace Freelancing.Controllers
         [HttpPost]
         public async Task<IActionResult> EditSkills(EditSkills viewModel)
         {
-            var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
             try

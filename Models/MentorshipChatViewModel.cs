@@ -7,7 +7,7 @@ namespace Freelancing.Models
         public Guid MatchId { get; set; }
         public string Status { get; set; }
         public UserAccount Partner { get; set; }
-        public Guid CurrentUserId { get; set; }
+        public string CurrentUserId { get; set; }
         public List<ChatMessageViewModel> Messages { get; set; } = new();
         public bool IsCurrentUserMentor { get; set; }
     }
@@ -15,7 +15,7 @@ namespace Freelancing.Models
     public class ChatMessageViewModel
     {
         public Guid Id { get; set; }
-        public Guid SenderId { get; set; }
+        public string SenderId { get; set; }
         public string SenderName { get; set; }
         public string Message { get; set; }
         public string MessageType { get; set; }
@@ -31,7 +31,7 @@ namespace Freelancing.Models
     {
         public Guid MatchId { get; set; }
         public UserAccount Partner { get; set; }
-        public Guid CurrentUserId { get; set; }
+        public string CurrentUserId { get; set; }
         public bool IsCurrentUserMentor { get; set; }
     }
 

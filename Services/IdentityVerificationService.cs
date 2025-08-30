@@ -40,11 +40,10 @@ namespace Freelancing.Services
             }
         }
 
-        public async Task<VerificationResultViewModel> VerifyIdentityAsync(IdentityVerificationViewModel model, Guid userId)
+        public async Task<VerificationResultViewModel> VerifyIdentityAsync(IdentityVerificationViewModel model, string userId)
         {
             try
             {
-                var userIdString = userId.ToString();
                 var result = new VerificationResultViewModel
                 {
                     Success = true,
@@ -92,11 +91,10 @@ namespace Freelancing.Services
         }
 
         // New method for completing verification with stored document data
-        public async Task<VerificationResultViewModel> CompleteVerificationAsync(string liveFaceImageData, Guid userId, string idDocumentType, string idDocumentNumber, DateTime? idDocumentExpiryDate, bool idDocumentHasNoExpiration, bool idDocumentVerified, float idDocumentConfidence)
+        public async Task<VerificationResultViewModel> CompleteVerificationAsync(string liveFaceImageData, string userId, string idDocumentType, string idDocumentNumber, DateTime? idDocumentExpiryDate, bool idDocumentHasNoExpiration, bool idDocumentVerified, float idDocumentConfidence)
         {
             try
             {
-                var userIdString = userId.ToString();
                 var result = new VerificationResultViewModel
                 {
                     Success = true,
@@ -146,14 +144,13 @@ namespace Freelancing.Services
             }
         }
 
-        public async Task<(bool verified, string message, float confidence)> VerifyIdDocumentAsync(IFormFile documentImage, string idDocumentType, string idDocumentNumber, DateTime? idDocumentExpiryDate, bool idDocumentHasNoExpiration, Guid userId)
+        public async Task<(bool verified, string message, float confidence)> VerifyIdDocumentAsync(IFormFile documentImage, string idDocumentType, string idDocumentNumber, DateTime? idDocumentExpiryDate, bool idDocumentHasNoExpiration, string userId)
         {
             try
             {
                 // Save and encrypt the document image
                 var imageBytes = await GetImageBytesAsync(documentImage);
-                var userIdString = userId.ToString();
-                var encryptedImage = _encryptionService.EncryptDocumentImage(imageBytes, userIdString);
+                var encryptedImage = _encryptionService.EncryptDocumentImage(imageBytes, userId);
                 
                 // Process with Google Cloud Vision API using REST API
                 if (!string.IsNullOrEmpty(_googleCloudApiKey))
@@ -238,7 +235,7 @@ namespace Freelancing.Services
             }
         }
 
-        public async Task<(bool verified, string message, float confidence)> VerifyLiveFaceAsync(string base64ImageData, Guid userId)
+        public async Task<(bool verified, string message, float confidence)> VerifyLiveFaceAsync(string base64ImageData, string userId)
         {
             try
             {
@@ -246,8 +243,7 @@ namespace Freelancing.Services
                 var imageBytes = Convert.FromBase64String(base64ImageData.Replace("data:image/jpeg;base64,", ""));
                 
                 // Encrypt the face image
-                var userIdString = userId.ToString();
-                var encryptedImage = _encryptionService.EncryptDocumentImage(imageBytes, userIdString);
+                var encryptedImage = _encryptionService.EncryptDocumentImage(imageBytes, userId);
 
                 // Process with Google Cloud Vision API using REST API
                 if (!string.IsNullOrEmpty(_googleCloudApiKey))
@@ -333,10 +329,8 @@ namespace Freelancing.Services
             }
         }
 
-        private async Task SaveVerificationDataAsync(IdentityVerificationViewModel model, Guid userId, VerificationResultViewModel result)
+        private async Task SaveVerificationDataAsync(IdentityVerificationViewModel model, string userId, VerificationResultViewModel result)
         {
-            var userIdString = userId.ToString();
-            
             // Create or update verification record
             var verification = await _context.IdentityVerifications
                 .FirstOrDefaultAsync(v => v.UserAccountId == userId);
@@ -350,8 +344,8 @@ namespace Freelancing.Services
                     Status = "PENDING",
                     CreatedAt = DateTime.UtcNow.ToLocalTime(),
                     UpdatedAt = DateTime.UtcNow.ToLocalTime(),
-                    CreatedBy = userIdString,
-                    UpdatedBy = userIdString
+                    CreatedBy = userId,
+                    UpdatedBy = userId
                 };
                 _context.IdentityVerifications.Add(verification);
             }
@@ -360,9 +354,9 @@ namespace Freelancing.Services
             if (model.IdDocumentImage != null)
             {
                 var imageBytes = await GetImageBytesAsync(model.IdDocumentImage);
-                verification.EncryptedIdDocumentImage = _encryptionService.EncryptDocumentImage(imageBytes, userIdString);
+                verification.EncryptedIdDocumentImage = _encryptionService.EncryptDocumentImage(imageBytes, userId);
                 verification.IdDocumentType = model.IdDocumentType;
-                verification.EncryptedIdDocumentNumber = _encryptionService.EncryptIdentityData(model.IdDocumentNumber, userIdString);
+                verification.EncryptedIdDocumentNumber = _encryptionService.EncryptIdentityData(model.IdDocumentNumber, userId);
                 // If user checked "no expiration", set a far future date; otherwise use the selected date
                 verification.IdDocumentExpiryDate = model.IdDocumentHasNoExpiration 
                     ? DateTime.UtcNow.ToLocalTime().AddYears(100) // Set to 100 years in future for "no expiration"
@@ -374,7 +368,7 @@ namespace Freelancing.Services
             {
                 // Document data was already processed in a previous step
                 verification.IdDocumentType = model.IdDocumentType;
-                verification.EncryptedIdDocumentNumber = _encryptionService.EncryptIdentityData(model.IdDocumentNumber, userIdString);
+                verification.EncryptedIdDocumentNumber = _encryptionService.EncryptIdentityData(model.IdDocumentNumber, userId);
                 verification.IdDocumentExpiryDate = model.IdDocumentHasNoExpiration 
                     ? DateTime.UtcNow.ToLocalTime().AddYears(100) // Set to 100 years in future for "no expiration"
                     : model.IdDocumentExpiryDate;
@@ -385,7 +379,7 @@ namespace Freelancing.Services
             if (!string.IsNullOrEmpty(model.LiveFaceImageData))
             {
                 var imageBytes = Convert.FromBase64String(model.LiveFaceImageData.Replace("data:image/jpeg;base64,", ""));
-                verification.EncryptedFaceImage = _encryptionService.EncryptDocumentImage(imageBytes, userIdString);
+                verification.EncryptedFaceImage = _encryptionService.EncryptDocumentImage(imageBytes, userId);
                 verification.FaceVerified = result.FaceVerified;
                 verification.FaceConfidence = result.FaceConfidence;
             }
@@ -404,7 +398,7 @@ namespace Freelancing.Services
             }
 
             verification.UpdatedAt = DateTime.UtcNow.ToLocalTime();
-            verification.UpdatedBy = userIdString;
+            verification.UpdatedBy = userId;
 
             await _context.SaveChangesAsync();
         }
@@ -416,15 +410,13 @@ namespace Freelancing.Services
             return memoryStream.ToArray();
         }
 
-        public async Task<VerificationStatusViewModel?> GetVerificationStatusAsync(Guid userId)
+        public async Task<VerificationStatusViewModel?> GetVerificationStatusAsync(string userId)
         {
             var verification = await _context.IdentityVerifications
                 .FirstOrDefaultAsync(v => v.UserAccountId == userId);
 
             if (verification == null)
                 return null;
-
-            var userIdString = userId.ToString();
             
             return new VerificationStatusViewModel
             {
@@ -444,7 +436,7 @@ namespace Freelancing.Services
             };
         }
 
-        public async Task<bool> IsUserVerifiedAsync(Guid userId)
+        public async Task<bool> IsUserVerifiedAsync(string userId)
         {
             var verification = await _context.IdentityVerifications
                 .FirstOrDefaultAsync(v => v.UserAccountId == userId);
@@ -452,17 +444,17 @@ namespace Freelancing.Services
             return verification?.Status == "APPROVED";
         }
 
-        public async Task<bool> CanUserPostProjectAsync(Guid userId)
+        public async Task<bool> CanUserPostProjectAsync(string userId)
         {
             return await IsUserVerifiedAsync(userId);
         }
 
-        public async Task<bool> CanUserBidAsync(Guid userId)
+        public async Task<bool> CanUserBidAsync(string userId)
         {
             return await IsUserVerifiedAsync(userId);
         }
 
-        public async Task<IdentityVerification?> GetLatestVerificationAsync(Guid userId)
+        public async Task<IdentityVerification?> GetLatestVerificationAsync(string userId)
         {
             return await _context.IdentityVerifications
                 .FirstOrDefaultAsync(v => v.UserAccountId == userId);

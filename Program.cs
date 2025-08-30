@@ -2,7 +2,6 @@ using Freelancing.Data;
 using Freelancing.Hubs;
 using Freelancing.Models.Entities;
 using Freelancing.Services;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -23,9 +22,52 @@ builder.Services.AddSession(options =>
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("Freelancing")));
 
-builder.Services.AddScoped<IPasswordHasher<UserAccount>, PasswordHasher<UserAccount>>();
+// Configure Identity
+builder.Services.AddIdentity<UserAccount, IdentityRole>(options =>
+{
+    // Password settings
+    options.Password.RequireDigit = true;
+    options.Password.RequireLowercase = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequiredLength = 8;
+    
+    // Lockout settings
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Lockout.AllowedForNewUsers = true;
+    
+    // User settings
+    options.User.RequireUniqueEmail = true;
+    options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
+    
+    // Sign in settings
+    options.SignIn.RequireConfirmedEmail = true;
+    options.SignIn.RequireConfirmedPhoneNumber = false;
+})
+.AddEntityFrameworkStores<ApplicationDbContext>()
+.AddDefaultTokenProviders();
 
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie();
+// Configure custom claims factory
+builder.Services.AddScoped<IUserClaimsPrincipalFactory<UserAccount>, CustomClaimsFactory>();
+
+// Configure cookie settings
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/Account/Login";
+    options.LogoutPath = "/Account/LogOut";
+    options.AccessDeniedPath = "/Account/AccessDenied";
+    options.SlidingExpiration = true;
+    options.ExpireTimeSpan = TimeSpan.FromHours(2);
+});
+
+// Remove old password hasher and authentication - now handled by Identity
+
+// Add email service
+builder.Services.AddScoped<IEmailService, EmailService>();
+
+// Add role seeder service
+builder.Services.AddScoped<IRoleSeederService, RoleSeederService>();
 
 builder.Services.AddScoped<IMentorshipMatchingService, MentorshipMatchingService>();
 
@@ -103,6 +145,11 @@ app.MapControllerRoute(
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    
+    // Seed roles
+    var roleSeeder = scope.ServiceProvider.GetRequiredService<IRoleSeederService>();
+    await roleSeeder.SeedRolesAsync();
+    
     await Freelancing.SeedGoals.SeedGoalsData(context);
     await Freelancing.SeedUserSkills.SeedUserSkillsData(context);
     await Freelancing.SeedContractTemplates.SeedAsync(context);

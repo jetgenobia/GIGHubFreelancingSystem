@@ -101,7 +101,7 @@ namespace Freelancing.Controllers
 
                 // Send notification to freelancer
                 var freelancerId = await GetFreelancerIdFromProjectAsync(model.ProjectId);
-                if (freelancerId != Guid.Empty)
+                if (!string.IsNullOrEmpty(freelancerId))
                 {
                     // Get project name from database to ensure it's not null
                     var project = await _context.Projects.FindAsync(model.ProjectId);
@@ -486,9 +486,9 @@ namespace Freelancing.Controllers
 
         #region Helper Methods
 
-        private Guid GetCurrentUserId()
+        private string GetCurrentUserId()
         {
-            return Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+            return User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
         }
 
         private string GetClientIpAddress()
@@ -496,7 +496,7 @@ namespace Freelancing.Controllers
             return HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
         }
 
-        private bool CanUserAccessContract(Contract contract, Guid userId)
+        private bool CanUserAccessContract(Contract contract, string userId)
         {
             return contract.Project.UserId == userId || contract.Bidding.UserId == userId;
         }
@@ -523,13 +523,13 @@ namespace Freelancing.Controllers
                 .ToList();
         }
 
-        private async Task<Guid> GetFreelancerIdFromProjectAsync(Guid projectId)
+        private async Task<string> GetFreelancerIdFromProjectAsync(Guid projectId)
         {
             var project = await _context.Projects
                 .Include(p => p.AcceptedBid)
                 .FirstOrDefaultAsync(p => p.Id == projectId);
 
-            return project?.AcceptedBid?.UserId ?? Guid.Empty;
+            return project?.AcceptedBid?.UserId ?? string.Empty;
         }
 
         private async Task UpdateContractTermsAsync(Guid contractId, CreateContractViewModel model)
@@ -715,7 +715,7 @@ namespace Freelancing.Controllers
             );
         }
 
-        private async Task NotifyPartialSignatureAsync(Contract contract, Guid signerUserId)
+        private async Task NotifyPartialSignatureAsync(Contract contract, string signerUserId)
         {
             var isClientSigner = contract.Project.UserId == signerUserId;
             var recipientId = isClientSigner ? contract.Bidding.UserId : contract.Project.UserId;
@@ -759,7 +759,7 @@ namespace Freelancing.Controllers
             );
         }
 
-        private async Task NotifyPartialCompletionAsync(Contract contract, Guid completerId, bool isClientCompleter)
+        private async Task NotifyPartialCompletionAsync(Contract contract, string completerId, bool isClientCompleter)
         {
             var recipientId = isClientCompleter ? contract.Bidding.UserId : contract.Project.UserId;
             var completerName = isClientCompleter ? 

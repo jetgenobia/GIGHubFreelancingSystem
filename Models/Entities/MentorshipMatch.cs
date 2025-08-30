@@ -7,11 +7,11 @@ namespace Freelancing.Models.Entities
         public Guid Id { get; set; }
 
         [Required]
-        public Guid MentorId { get; set; }
+        public string MentorId { get; set; }
         public UserAccount Mentor { get; set; }
 
         [Required]
-        public Guid MenteeId { get; set; }
+        public string MenteeId { get; set; }
         public UserAccount Mentee { get; set; }
 
         public Guid MentorMentorshipId { get; set; }

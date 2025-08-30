@@ -3,7 +3,7 @@
     public class Bidding
     {
         public Guid Id { get; set; }
-        public Guid UserId { get; set; }
+        public string UserId { get; set; }
         public UserAccount User { get; set; }
         public Guid ProjectId { get; set; }
         public Project Project { get; set; }

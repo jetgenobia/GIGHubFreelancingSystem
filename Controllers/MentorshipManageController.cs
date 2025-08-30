@@ -606,9 +606,9 @@ namespace Freelancing.Controllers
             return View(reviews);
         }
 
-        private Guid GetCurrentUserId()
+        private string GetCurrentUserId()
         {
-            return Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            return User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
         }
     }
 }

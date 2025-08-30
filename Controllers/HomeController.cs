@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using Freelancing.Data;
 using Freelancing.Models;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 

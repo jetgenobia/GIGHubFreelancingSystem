@@ -26,9 +26,9 @@
                                     {
                                         @foreach (var match in Model.ActiveMatches)
                                         {
-                                            var partner = match.MentorId == Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "") ? match.Mentee : match.Mentor;
-                                            var partnerRole = match.MentorId == Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "") ? "Mentee" : "Mentor";
-                                            var isCurrentUserMentor = match.MentorId == Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "");
+                                            var partner = match.MentorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ? match.Mentee : match.Mentor;
+                                            var partnerRole = match.MentorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ? "Mentee" : "Mentor";
+                                            var isCurrentUserMentor = match.MentorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
                                             <div class="row align-items-center p-3 border rounded mb-3">
                                                 <div class="col-md-2 text-center">
@@ -98,8 +98,8 @@
                                     {
                                         @foreach (var match in Model.CompletedMatches)
                                         {
-                                            var partner = match.MentorId == Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "") ? match.Mentee : match.Mentor;
-                                            var partnerRole = match.MentorId == Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "") ? "Mentee" : "Mentor";
+                                            var partner = match.MentorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ? match.Mentee : match.Mentor;
+                                            var partnerRole = match.MentorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ? "Mentee" : "Mentor";
 
                                             <div class="row align-items-center p-3 border rounded mb-3">
                                                 <div class="col-md-2 text-center">
@@ -165,8 +165,8 @@
                                     {
                                         @foreach (var match in Model.CancelledMatches)
                                         {
-                                            var partner = match.MentorId == Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "") ? match.Mentee : match.Mentor;
-                                            var partnerRole = match.MentorId == Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "") ? "Mentee" : "Mentor";
+                                            var partner = match.MentorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ? match.Mentee : match.Mentor;
+                                            var partnerRole = match.MentorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ? "Mentee" : "Mentor";
 
                                             <div class="row align-items-center p-3 border rounded mb-3">
                                                 <div class="col-md-2 text-center">

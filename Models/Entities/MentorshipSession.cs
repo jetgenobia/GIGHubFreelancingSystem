@@ -11,7 +11,7 @@ namespace Freelancing.Models.Entities
         public MentorshipMatch MentorshipMatch { get; set; }
 
         [Required]
-        public Guid CreatedByUserId { get; set; }
+        public string CreatedByUserId { get; set; }
 
         [Required]
         public DateTime ScheduledStartUtc { get; set; }

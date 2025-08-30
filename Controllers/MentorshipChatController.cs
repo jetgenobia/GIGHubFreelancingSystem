@@ -91,7 +91,7 @@ namespace Freelancing.Controllers
             return Json(new { success = true, messages = messages.OrderBy(m => m.SentAt) });
         }
 
-        private async Task<List<ChatMessageViewModel>> GetDecryptedMessages(Guid matchId, Guid userId, string encryptionKey)
+        private async Task<List<ChatMessageViewModel>> GetDecryptedMessages(Guid matchId, string userId, string encryptionKey)
         {
             var messages = await _context.MentorshipChatMessages
                 .Where(mcm => mcm.MentorshipMatchId == matchId && !mcm.IsDeleted)
@@ -135,7 +135,7 @@ namespace Freelancing.Controllers
             return decryptedMessages;
         }
 
-        private async Task<List<dynamic>> GetDecryptedMessagesPage(Guid matchId, Guid userId, string encryptionKey, int page, int pageSize)
+        private async Task<List<dynamic>> GetDecryptedMessagesPage(Guid matchId, string userId, string encryptionKey, int page, int pageSize)
         {
             var messages = await _context.MentorshipChatMessages
                 .Where(mcm => mcm.MentorshipMatchId == matchId && !mcm.IsDeleted)
@@ -353,7 +353,7 @@ namespace Freelancing.Controllers
             }
         }
 
-        private async Task MarkMessagesAsRead(Guid matchId, Guid userId)
+        private async Task MarkMessagesAsRead(Guid matchId, string userId)
         {
             var unreadMessages = await _context.MentorshipChatMessages
                 .Where(mcm => mcm.MentorshipMatchId == matchId &&
@@ -372,10 +372,10 @@ namespace Freelancing.Controllers
             }
         }
 
-        private Guid GetCurrentUserId()
+        private string GetCurrentUserId()
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
             {
                 throw new InvalidOperationException("Invalid user ID");
             }

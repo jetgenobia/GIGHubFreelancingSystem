@@ -9,8 +9,8 @@ namespace Freelancing.Services
     public interface ISmartHiringService
     {
         Task<List<SmartHiringPrediction>> GetBestFreelancersAsync(Guid projectId);
-        Task<SmartHiringPrediction> GetFreelancerScoreAsync(Guid projectId, Guid freelancerId);
-        Task RecordHiringOutcomeAsync(Guid projectId, Guid freelancerId, bool wasSuccessful);
+        Task<SmartHiringPrediction> GetFreelancerScoreAsync(Guid projectId, string freelancerId);
+        Task RecordHiringOutcomeAsync(Guid projectId, string freelancerId, bool wasSuccessful);
         Task<SmartHiringInsights> GetProjectInsightsAsync(Guid projectId);
         void ClearPredictionCache(); // Add cache clearing method
         string GetCacheStatus(); // Add cache status method for debugging
@@ -83,7 +83,7 @@ namespace Freelancing.Services
                         // Add default prediction to avoid missing bidders
                         predictions.Add(new SmartHiringPrediction
                         {
-                            FreelancerId = bid.UserId,
+                            FreelancerId = bid.UserId.ToString(),
                             FreelancerName = $"{bid.User.FirstName} {bid.User.LastName}",
                             MatchScore = 0.5f,
                             Confidence = 0.1f,
@@ -106,7 +106,7 @@ namespace Freelancing.Services
             }
         }
 
-        public async Task<SmartHiringPrediction> GetFreelancerScoreAsync(Guid projectId, Guid freelancerId)
+        public async Task<SmartHiringPrediction> GetFreelancerScoreAsync(Guid projectId, string freelancerId)
         {
             try
             {
@@ -131,7 +131,7 @@ namespace Freelancing.Services
 
                 return new SmartHiringPrediction
                 {
-                    FreelancerId = freelancerId,
+                    FreelancerId = freelancerId.ToString(),
                     FreelancerName = $"{freelancer.FirstName} {freelancer.LastName}",
                     FreelancerPhoto = freelancer.Photo,
                     MatchScore = score,
@@ -149,7 +149,7 @@ namespace Freelancing.Services
             }
         }
 
-        private async Task<float> UseLocalRandomForestAsync(MLFeatures features, Guid projectId, Guid freelancerId)
+        private async Task<float> UseLocalRandomForestAsync(MLFeatures features, Guid projectId, string freelancerId)
         {
             try
             {
@@ -414,7 +414,7 @@ namespace Freelancing.Services
             return concerns.Take(2).ToList(); // Limit to top 2
         }
 
-        public async Task RecordHiringOutcomeAsync(Guid projectId, Guid freelancerId, bool wasSuccessful)
+        public async Task RecordHiringOutcomeAsync(Guid projectId, string freelancerId, bool wasSuccessful)
         {
             try
             {
@@ -422,7 +422,7 @@ namespace Freelancing.Services
                 {
                     Id = Guid.NewGuid(),
                     ProjectId = projectId,
-                    FreelancerId = freelancerId,
+                    FreelancerId = freelancerId.ToString(),
                     WasSuccessful = wasSuccessful,
                     RecordedAt = DateTime.UtcNow
                 };
@@ -498,7 +498,7 @@ namespace Freelancing.Services
     // Supporting classes
     public class SmartHiringPrediction
     {
-        public Guid FreelancerId { get; set; }
+        public string FreelancerId { get; set; }
         public string FreelancerName { get; set; } = string.Empty;
         public string? FreelancerPhoto { get; set; }
         public float MatchScore { get; set; }
@@ -537,7 +537,7 @@ namespace Freelancing.Services
     {
         public Guid Id { get; set; }
         public Guid ProjectId { get; set; }
-        public Guid FreelancerId { get; set; }
+        public string FreelancerId { get; set; }
         public bool WasSuccessful { get; set; }
         public DateTime RecordedAt { get; set; }
     }

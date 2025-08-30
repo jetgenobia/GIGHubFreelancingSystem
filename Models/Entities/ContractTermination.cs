@@ -10,7 +10,7 @@ namespace Freelancing.Models.Entities
         public string TerminationReason { get; set; } = string.Empty;
         public string TerminationDetails { get; set; } = string.Empty;
         public DateTime RequestedAt { get; set; } = DateTime.UtcNow.ToLocalTime();
-        public Guid RequestedByUserId { get; set; }
+        public string RequestedByUserId { get; set; }
         public string RequestedByUserRole { get; set; } = string.Empty; // "Client" or "Freelancer"
         
         // Termination Status

@@ -6,7 +6,7 @@ namespace Freelancing.Services
 {
     public interface IMentorshipMatchingService
     {
-        Task<List<UserAccount>> FindPotentialMentorsAsync(Guid menteeId);
+        Task<List<UserAccount>> FindPotentialMentorsAsync(string menteeId);
         Task<bool> FixExistingMentorshipMatchesAsync();
     }
 
@@ -20,7 +20,7 @@ namespace Freelancing.Services
         }
 
         // Find potential mentors for a mentee based on 100% skill match
-        public async Task<List<UserAccount>> FindPotentialMentorsAsync(Guid menteeId)
+        public async Task<List<UserAccount>> FindPotentialMentorsAsync(string menteeId)
         {
             // Get mentee's skills
             var menteeSkills = await _context.UserAccountSkills
@@ -56,7 +56,7 @@ namespace Freelancing.Services
             return potentialMentors;
         }
         // Create a mentorship match
-        public async Task<bool> CreateMatchAsync(Guid mentorId, Guid menteeId)
+        public async Task<bool> CreateMatchAsync(string mentorId, string menteeId)
         {
             // Verify both users are in mentorship program with correct roles
             var mentor = await _context.PeerMentorships
@@ -69,7 +69,7 @@ namespace Freelancing.Services
 
             // Check if match already exists
             var existingMatch = await _context.MentorshipMatches
-                .FirstOrDefaultAsync(mm => mm.MentorId == mentorId && mm.MenteeId == menteeId);
+                .FirstOrDefaultAsync(pm => pm.MentorId == mentorId && pm.MenteeId == menteeId);
 
             if (existingMatch != null)
                 return false;
@@ -109,7 +109,7 @@ namespace Freelancing.Services
         }
 
         // Get all matches for a user (either as mentor or mentee)
-        public async Task<List<MentorshipMatch>> GetUserMatchesAsync(Guid userId)
+        public async Task<List<MentorshipMatch>> GetUserMatchesAsync(string userId)
         {
             var matches = await _context.MentorshipMatches
                 .Include(mm => mm.Mentor)

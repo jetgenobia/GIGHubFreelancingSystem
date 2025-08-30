@@ -10,7 +10,7 @@ namespace Freelancing.Models.Entities
         public Guid ChatRoomId { get; set; }
 
         [Required]
-        public Guid SenderId { get; set; }
+        public string SenderId { get; set; }
 
         [Required]
         [MaxLength(2000)]
@@ -40,10 +40,10 @@ namespace Freelancing.Models.Entities
         public Guid Id { get; set; }
         
         [Required]
-        public Guid User1Id { get; set; }
+        public string User1Id { get; set; }
         
         [Required]
-        public Guid User2Id { get; set; }
+        public string User2Id { get; set; }
         
 
         

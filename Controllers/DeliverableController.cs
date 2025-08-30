@@ -27,8 +27,8 @@ namespace Freelancing.Controllers
         public async Task<IActionResult> Index(Guid id)
         {
             // Get current user information
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdString, out Guid currentUserId))
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(currentUserId))
                 return Unauthorized();
 
             var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
@@ -84,8 +84,8 @@ namespace Freelancing.Controllers
             try
             {
                 // Get current user
-                var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (!Guid.TryParse(userIdString, out Guid currentUserId))
+                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(currentUserId))
                     return Unauthorized();
 
                 // Verify contract exists and user is the freelancer
@@ -207,8 +207,8 @@ namespace Freelancing.Controllers
         {
             try
             {
-                var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (!Guid.TryParse(userIdString, out Guid currentUserId))
+                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(currentUserId))
                     return Unauthorized();
 
                 var deliverable = await _context.Deliverables
@@ -254,7 +254,7 @@ namespace Freelancing.Controllers
                 TempData["Message"] = "Deliverable approved successfully!";
                 return RedirectToAction("Index", new { id = deliverable.ContractId });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 TempData["ErrorMessage"] = "An error occurred while approving the deliverable. Please try again.";
                 return RedirectToAction("Index", new { id = deliverableId });
@@ -267,8 +267,8 @@ namespace Freelancing.Controllers
         {
             try
             {
-                var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (!Guid.TryParse(userIdString, out Guid currentUserId))
+                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(currentUserId))
                     return Unauthorized();
 
                 var deliverable = await _context.Deliverables
@@ -320,7 +320,7 @@ namespace Freelancing.Controllers
                 TempData["Message"] = "Revision requested successfully!";
                 return RedirectToAction("Index", new { id = deliverable.ContractId });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 TempData["ErrorMessage"] = "An error occurred while requesting revision. Please try again.";
                 return RedirectToAction("Index", new { id = deliverableId });

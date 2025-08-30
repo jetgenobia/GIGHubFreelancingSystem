@@ -18,8 +18,8 @@ namespace Freelancing.Controllers
         [HttpGet]
         public async Task<IActionResult> GetNotifications()
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
             var notifications = await _notificationService.GetUserNotificationsAsync(userId, 10);
@@ -29,8 +29,8 @@ namespace Freelancing.Controllers
         [HttpGet]
         public async Task<IActionResult> GetUnreadCount()
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
             var count = await _notificationService.GetUnreadNotificationCountAsync(userId);
@@ -47,8 +47,8 @@ namespace Freelancing.Controllers
         [HttpPost]
         public async Task<IActionResult> MarkAllAsRead()
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
             await _notificationService.MarkAllNotificationsAsReadAsync(userId);
@@ -59,8 +59,8 @@ namespace Freelancing.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateEncryptedNotification(string title, string message, string type = "encrypted")
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
             // Create an encrypted notification
@@ -83,8 +83,8 @@ namespace Freelancing.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateRegularNotification(string title, string message, string type = "regular")
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
             // Create a regular notification (not encrypted)

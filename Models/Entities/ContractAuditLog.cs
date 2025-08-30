@@ -6,7 +6,7 @@ namespace Freelancing.Models.Entities
         public Guid ContractId { get; set; }
         public Contract Contract { get; set; }
         
-        public Guid UserId { get; set; }
+        public string UserId { get; set; }
         public UserAccount User { get; set; }
         
         public string Action { get; set; } // "Created", "Modified", "Signed", "Viewed", "Downloaded"

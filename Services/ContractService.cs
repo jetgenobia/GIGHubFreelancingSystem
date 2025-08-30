@@ -192,7 +192,7 @@ namespace Freelancing.Services
                 .FirstOrDefaultAsync(c => c.Id == contractId);
         }
 
-        public async Task<Contract> UpdateContractContentAsync(Guid contractId, string newContent, Guid userId)
+        public async Task<Contract> UpdateContractContentAsync(Guid contractId, string newContent, string userId)
         {
             var contract = await GetContractByIdAsync(contractId);
             if (contract == null)
@@ -276,7 +276,7 @@ namespace Freelancing.Services
             return content;
         }
 
-        public async Task<Contract> SignContractAsync(Guid contractId, Guid userId, string signatureType, string signatureData, string ipAddress, string userAgent)
+        public async Task<Contract> SignContractAsync(Guid contractId, string userId, string signatureType, string signatureData, string ipAddress, string userAgent)
         {
             var contract = await GetContractByIdAsync(contractId);
             if (contract == null)
@@ -354,7 +354,7 @@ namespace Freelancing.Services
             return contract?.ClientSignedAt.HasValue == true && contract?.FreelancerSignedAt.HasValue == true;
         }
 
-        public async Task<bool> CanUserSignContractAsync(Guid contractId, Guid userId)
+        public async Task<bool> CanUserSignContractAsync(Guid contractId, string userId)
         {
             var contract = await GetContractByIdAsync(contractId);
             if (contract == null) return false;
@@ -396,7 +396,7 @@ namespace Freelancing.Services
             return $"/uploads/contracts/{fileName}";
         }
 
-        public async Task LogContractActionAsync(Guid contractId, Guid userId, string action, string? details = null, string? ipAddress = null, string? userAgent = null)
+        public async Task LogContractActionAsync(Guid contractId, string userId, string action, string? details = null, string? ipAddress = null, string? userAgent = null)
         {
             var auditLog = new ContractAuditLog
             {
@@ -430,7 +430,7 @@ namespace Freelancing.Services
             return contract.DocumentHash == currentHash;
         }
 
-        public async Task UpdateContractStatusAsync(Guid contractId, string newStatus, Guid userId)
+        public async Task UpdateContractStatusAsync(Guid contractId, string newStatus, string userId)
         {
             var contract = await _context.Contracts.FindAsync(contractId);
             if (contract == null)
@@ -445,7 +445,7 @@ namespace Freelancing.Services
             await LogContractActionAsync(contractId, userId, "StatusChanged", $"Status changed from {oldStatus} to {newStatus}");
         }
 
-        public async Task<List<Contract>> GetContractsByUserIdAsync(Guid userId, string? status = null)
+        public async Task<List<Contract>> GetContractsByUserIdAsync(string userId, string? status = null)
         {
             var query = _context.Contracts
                 .Include(c => c.Project)
@@ -475,7 +475,7 @@ namespace Freelancing.Services
                 .ToListAsync();
         }
 
-        public async Task<ContractRevision> CreateContractRevisionAsync(Guid contractId, string newContent, string revisionNotes, Guid userId)
+        public async Task<ContractRevision> CreateContractRevisionAsync(Guid contractId, string newContent, string revisionNotes, string userId)
         {
             var contract = await _context.Contracts
                 .Include(c => c.Revisions)

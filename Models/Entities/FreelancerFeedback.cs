@@ -12,7 +12,7 @@ namespace Freelancing.Models.Entities
         public Bidding AcceptBidding { get; set; }
 
         [Required]
-        public Guid FreelancerId { get; set; }
+        public string FreelancerId { get; set; }
         public UserAccount Freelancer { get; set; }
 
         [Required]

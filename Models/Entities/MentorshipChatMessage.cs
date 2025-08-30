@@ -10,7 +10,7 @@ namespace Freelancing.Models.Entities
         public Guid MentorshipMatchId { get; set; }
 
         [Required]
-        public Guid SenderId { get; set; }
+        public string SenderId { get; set; }
 
         [Required]
         [MaxLength(2000)]

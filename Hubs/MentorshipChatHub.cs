@@ -92,7 +92,7 @@ namespace Freelancing.Hubs
         }
 
         // Add method to update notification count
-        public static async Task UpdateNotificationCount(IHubContext<MentorshipChatHub> hubContext, Guid userId, int count)
+        public static async Task UpdateNotificationCount(IHubContext<MentorshipChatHub> hubContext, string userId, int count)
         {
             string connectionId = null;
             lock (_lockObject)
@@ -108,7 +108,7 @@ namespace Freelancing.Hubs
 
         public async Task JoinMentorshipRoom(string mentorshipMatchId)
         {
-            var userId = Guid.Parse(Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             // Verify user is part of this mentorship match
             var match = await _context.MentorshipMatches
@@ -182,7 +182,7 @@ namespace Freelancing.Hubs
                     return;
                 }
 
-                var userId = Guid.Parse(userIdClaim);
+                var userId = userIdClaim;
                 var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id == userId);
                 if (user == null)
                 {
@@ -231,7 +231,7 @@ namespace Freelancing.Hubs
                 var messageToSend = new
                 {
                     Id = chatMessage.Id.ToString(),
-                    SenderId = userId.ToString(),
+                    SenderId = userId,
                     SenderName = fullName,
                     Message = message, // Send original message for display
                     MessageType = messageType,
@@ -261,7 +261,7 @@ namespace Freelancing.Hubs
                     return;
                 }
 
-                var userId = Guid.Parse(userIdClaim);
+                var userId = userIdClaim;
                 var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id == userId);
                 if (user == null)
                 {
@@ -325,7 +325,7 @@ namespace Freelancing.Hubs
                 var fileMessageToSend = new
                 {
                     Id = chatMessage.Id.ToString(),
-                    SenderId = userId.ToString(),
+                    SenderId = userId,
                     SenderName = fullName,
                     Message = fileName, // Send original filename for display
                     FileName = fileName,
@@ -381,7 +381,7 @@ namespace Freelancing.Hubs
                     return;
                 }
 
-                var userId = Guid.Parse(userIdClaim);
+                var userId = userIdClaim;
                 var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id == userId);
                 if (user == null)
                 {
@@ -408,7 +408,7 @@ namespace Freelancing.Hubs
                 await Clients.Caller.SendAsync("CallRequested", new
                 {
                     MentorshipMatchId = mentorshipMatchId,
-                    CallerId = userId.ToString(),
+                    CallerId = userId,
                     CallerName = fullName ?? "Unknown User",
                     CallerPhoto = !string.IsNullOrEmpty(user.Photo) ? user.Photo : "https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497"
                 });
@@ -416,7 +416,7 @@ namespace Freelancing.Hubs
                 // Send to mentorship room (for users currently in chat)
                 await Clients.OthersInGroup(roomName).SendAsync("IncomingVideoCall", new
                 {
-                    CallerId = userId.ToString(),
+                    CallerId = userId,
                     CallerName = fullName ?? "Unknown User",
                     CallerPhoto = !string.IsNullOrEmpty(user.Photo) ? user.Photo : "https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497",
                     MentorshipMatchId = mentorshipMatchId
@@ -428,7 +428,7 @@ namespace Freelancing.Hubs
                 
                 await Clients.Group(partnerRoomName).SendAsync("IncomingVideoCall", new
                 {
-                    CallerId = userId.ToString(),
+                    CallerId = userId,
                     CallerName = fullName ?? "Unknown User",
                     CallerPhoto = !string.IsNullOrEmpty(user.Photo) ? user.Photo : "https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497",
                     MentorshipMatchId = mentorshipMatchId
@@ -451,7 +451,7 @@ namespace Freelancing.Hubs
                     return;
                 }
 
-                var userId = Guid.Parse(userIdClaim);
+                var userId = userIdClaim;
 
                 // Verify access to this mentorship match
                 var match = await _context.MentorshipMatches
@@ -471,12 +471,12 @@ namespace Freelancing.Hubs
                 await Clients.User(callerId).SendAsync("CallAccepted", new
                 {
                     MentorshipMatchId = mentorshipMatchId,
-                    AccepterId = userId.ToString()
+                    AccepterId = userId
                 });
 
                 await Clients.Group(roomName).SendAsync("VideoCallAccepted", new
                 {
-                    AccepterId = userId.ToString(),
+                    AccepterId = userId,
                     CallerId = callerId,
                     MentorshipMatchId = mentorshipMatchId
                 });
@@ -498,7 +498,7 @@ namespace Freelancing.Hubs
                     return;
                 }
 
-                var userId = Guid.Parse(userIdClaim);
+                var userId = userIdClaim;
 
                 // Verify access to this mentorship match
                 var match = await _context.MentorshipMatches
@@ -518,7 +518,7 @@ namespace Freelancing.Hubs
                 await Clients.User(callerId).SendAsync("CallDeclined", new
                 {
                     MentorshipMatchId = mentorshipMatchId,
-                    DeclinerId = userId.ToString()
+                    DeclinerId = userId
                 });
 
                 await Clients.Group(roomName).SendAsync("VideoCallDeclined", new
@@ -543,7 +543,7 @@ namespace Freelancing.Hubs
                     return;
                 }
 
-                var userId = Guid.Parse(userIdClaim);
+                var userId = userIdClaim;
 
                 // Verify access to this mentorship match
                 var match = await _context.MentorshipMatches
@@ -583,7 +583,7 @@ namespace Freelancing.Hubs
                     return;
                 }
 
-                var userId = Guid.Parse(userIdClaim);
+                var userId = userIdClaim;
 
                 // Verify access to this mentorship match
                 var match = await _context.MentorshipMatches
@@ -618,7 +618,7 @@ namespace Freelancing.Hubs
                     return;
                 }
 
-                var userId = Guid.Parse(userIdClaim);
+                var userId = userIdClaim;
 
                 // Verify access to this mentorship match
                 var match = await _context.MentorshipMatches
@@ -653,7 +653,7 @@ namespace Freelancing.Hubs
                     return;
                 }
 
-                var userId = Guid.Parse(userIdClaim);
+                var userId = userIdClaim;
 
                 // Verify access to this mentorship match
                 var match = await _context.MentorshipMatches
@@ -679,7 +679,7 @@ namespace Freelancing.Hubs
 
         public async Task MarkMessagesAsRead(string mentorshipMatchId)
         {
-            var userId = Guid.Parse(Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             var messages = await _context.MentorshipChatMessages
                 .Where(mcm => mcm.MentorshipMatchId.ToString() == mentorshipMatchId &&
@@ -712,7 +712,7 @@ namespace Freelancing.Hubs
                     return; // Don't send error for typing indicator
                 }
 
-                var userId = Guid.Parse(userIdClaim);
+                var userId = userIdClaim;
                 var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id == userId);
                 if (user == null)
                 {
@@ -724,7 +724,7 @@ namespace Freelancing.Hubs
 
                 await Clients.OthersInGroup(roomName).SendAsync("TypingIndicator", new
                 {
-                    UserId = userId.ToString(),
+                    UserId = userId,
                     UserName = fullName,
                     IsTyping = isTyping
                 });

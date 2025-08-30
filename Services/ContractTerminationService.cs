@@ -14,7 +14,7 @@ namespace Freelancing.Services
             _context = context;
         }
 
-        public async Task<ContractTermination> CreateTerminationRequestAsync(Guid contractId, Guid userId, string reason, string details, decimal finalPayment, string? settlementNotes)
+        public async Task<ContractTermination> CreateTerminationRequestAsync(Guid contractId, string userId, string reason, string details, decimal finalPayment, string? settlementNotes)
         {
             var contract = await _context.Contracts
                 .Include(c => c.Project)
@@ -89,7 +89,7 @@ namespace Freelancing.Services
                 .FirstOrDefaultAsync(ct => ct.ContractId == contractId && ct.Status != "Cancelled");
         }
 
-        public async Task<List<ContractTermination>> GetTerminationsByUserIdAsync(Guid userId, string? status = null)
+        public async Task<List<ContractTermination>> GetTerminationsByUserIdAsync(string userId, string? status = null)
         {
             var query = _context.ContractTerminations
                 .Include(ct => ct.Contract)
@@ -110,7 +110,7 @@ namespace Freelancing.Services
             return await query.OrderByDescending(ct => ct.RequestedAt).ToListAsync();
         }
 
-        public async Task<ContractTermination> SignTerminationAsync(Guid terminationId, Guid userId, string signatureType, string signatureData, string ipAddress, string userAgent)
+        public async Task<ContractTermination> SignTerminationAsync(Guid terminationId, string userId, string signatureType, string signatureData, string ipAddress, string userAgent)
         {
             var termination = await GetTerminationByIdAsync(terminationId);
             if (termination == null)
@@ -168,7 +168,7 @@ namespace Freelancing.Services
             return termination?.ClientSignedAt.HasValue == true && termination?.FreelancerSignedAt.HasValue == true;
         }
 
-        public async Task<bool> CanUserSignTerminationAsync(Guid terminationId, Guid userId)
+        public async Task<bool> CanUserSignTerminationAsync(Guid terminationId, string userId)
         {
             var termination = await GetTerminationByIdAsync(terminationId);
             if (termination == null)
@@ -192,7 +192,7 @@ namespace Freelancing.Services
             return true;
         }
 
-        public async Task UpdateTerminationStatusAsync(Guid terminationId, string newStatus, Guid userId)
+        public async Task UpdateTerminationStatusAsync(Guid terminationId, string newStatus, string userId)
         {
             var termination = await _context.ContractTerminations.FindAsync(terminationId);
             if (termination == null)
@@ -204,7 +204,7 @@ namespace Freelancing.Services
             await LogTerminationActionAsync(terminationId, userId, "StatusUpdated", $"Status updated to {newStatus}");
         }
 
-        public async Task CancelTerminationAsync(Guid terminationId, Guid userId)
+        public async Task CancelTerminationAsync(Guid terminationId, string userId)
         {
             var termination = await GetTerminationByIdAsync(terminationId);
             if (termination == null)
@@ -231,7 +231,7 @@ namespace Freelancing.Services
             return "";
         }
 
-        public async Task LogTerminationActionAsync(Guid terminationId, Guid userId, string action, string? details = null, string? ipAddress = null, string? userAgent = null)
+        public async Task LogTerminationActionAsync(Guid terminationId, string userId, string action, string? details = null, string? ipAddress = null, string? userAgent = null)
         {
             var auditLog = new ContractTerminationAuditLog
             {
@@ -260,7 +260,7 @@ namespace Freelancing.Services
             return true;
         }
 
-        public async Task ExecuteTerminationAsync(Guid terminationId, Guid userId)
+        public async Task ExecuteTerminationAsync(Guid terminationId, string userId)
         {
             var termination = await GetTerminationByIdAsync(terminationId);
             if (termination == null)
@@ -276,7 +276,7 @@ namespace Freelancing.Services
             await LogTerminationActionAsync(terminationId, userId, "Executed", "Termination executed - contract terminated");
         }
 
-        public async Task TerminateContractAsync(Guid terminationId, Guid userId)
+        public async Task TerminateContractAsync(Guid terminationId, string userId)
         {
             var termination = await GetTerminationByIdAsync(terminationId);
             if (termination == null)

@@ -21,7 +21,7 @@ namespace Freelancing.Models
         public string RequestedByRole { get; set; } = string.Empty;
         
         // User Information
-        public Guid CurrentUserId { get; set; }
+        public string CurrentUserId { get; set; }
         public bool IsClient { get; set; }
         public bool IsFreelancer { get; set; }
         public bool CanSign { get; set; }

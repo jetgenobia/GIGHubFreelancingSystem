@@ -6,7 +6,7 @@ namespace Freelancing.Models
     public class CreateMatchRequest
     {
         [Required]
-        public Guid PartnerId { get; set; }
+        public string PartnerId { get; set; }
 
         [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters")]
         [Display(Name = "Additional Notes")]

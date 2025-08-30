@@ -91,22 +91,9 @@ namespace Freelancing.Controllers
                         _context.UserAccounts.Update(existingUser);
                     }
                     await _context.SaveChangesAsync();
-                    var claims = new List<Claim>
-                    {
-                        new Claim(ClaimTypes.NameIdentifier, existingUser.Id.ToString()),
-                        new Claim(ClaimTypes.Name, existingUser.UserName),
-                        new Claim(ClaimTypes.Email, existingUser.Email),
-                        new Claim(ClaimTypes.GivenName, existingUser.FirstName),
-                        new Claim(ClaimTypes.Surname, existingUser.LastName),
-                        new Claim("FullName", $"{existingUser.FirstName} {existingUser.LastName}"),
-                        new Claim(ClaimTypes.Role, existingUser.Role ?? string.Empty),
-                        new Claim("Photo", existingUser.Photo ?? string.Empty),
-                        new Claim("MentorshipId", account.Id.ToString())
-                    };
-                    var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                    var claimsPrincipal = new ClaimsPrincipal(claimsIdentity);
-                    // Sign in the user again with updated claims
-                    await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, claimsPrincipal);
+                    
+                    // Refresh the user's claims to include the new MentorshipId
+                    await RefreshUserClaimsAsync(existingUser, account);
 
                     // Create a notification for successful GigBuddies registration
                     await _notificationService.CreateNotificationAsync(
@@ -118,7 +105,8 @@ namespace Freelancing.Controllers
                         "/PeerMentorship/Dashboard"
                     );
 
-                    return RedirectToAction("RegistrationSuccess");
+                    // Redirect to landing page instead of registration success
+                    return RedirectToAction("Landing");
                 }
                 catch (DbUpdateException ex)
                 {
@@ -186,6 +174,101 @@ namespace Freelancing.Controllers
                 return NotFound();
 
             return View(mentorship);
+        }
+
+        /// <summary>
+        /// Refreshes the user's claims to include the new MentorshipId without requiring logout
+        /// </summary>
+        private async Task RefreshUserClaimsAsync(UserAccount user, PeerMentorship mentorship)
+        {
+            if (User.Identity == null)
+                return;
+                
+            var identity = (ClaimsIdentity)User.Identity;
+
+            // Update or add MentorshipId claim
+            var existingMentorshipIdClaim = identity.FindFirst("MentorshipId");
+            if (existingMentorshipIdClaim != null)
+            {
+                identity.RemoveClaim(existingMentorshipIdClaim);
+            }
+            identity.AddClaim(new Claim("MentorshipId", mentorship.Id.ToString()));
+
+            // Update or add FullName claim
+            var existingFullNameClaim = identity.FindFirst("FullName");
+            if (existingFullNameClaim != null)
+            {
+                identity.RemoveClaim(existingFullNameClaim);
+            }
+            var fullName = $"{user.FirstName ?? string.Empty} {user.LastName ?? string.Empty}";
+            identity.AddClaim(new Claim("FullName", fullName));
+
+            // Update or add Role claim
+            var existingRoleClaim = identity.FindFirst(ClaimTypes.Role);
+            if (existingRoleClaim != null)
+            {
+                identity.RemoveClaim(existingRoleClaim);
+            }
+            identity.AddClaim(new Claim(ClaimTypes.Role, user.Role ?? string.Empty));
+
+            // Update or add Photo claim
+            var existingPhotoClaim = identity.FindFirst("Photo");
+            if (existingPhotoClaim != null)
+            {
+                identity.RemoveClaim(existingPhotoClaim);
+            }
+            identity.AddClaim(new Claim("Photo", user.Photo ?? string.Empty));
+
+            // Create new principal and sign in
+            var principal = new ClaimsPrincipal(identity);
+            await HttpContext.SignInAsync(principal);
+        }
+
+        /// <summary>
+        /// Public method to refresh user claims if needed
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> RefreshClaims()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            var user = await _context.UserAccounts
+                .Include(u => u.Mentorship)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null)
+                return NotFound();
+
+            if (user.Mentorship != null)
+            {
+                await RefreshUserClaimsAsync(user, user.Mentorship);
+                return Json(new { success = true, message = "Claims refreshed successfully" });
+            }
+
+            return Json(new { success = false, message = "No mentorship found for this user" });
+        }
+
+        /// <summary>
+        /// Helper method to check if user has mentorship access
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> HasMentorshipAccess()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Json(new { hasAccess = false });
+
+            var user = await _context.UserAccounts
+                .Include(u => u.Mentorship)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null)
+                return Json(new { hasAccess = false });
+
+            var hasAccess = user.Mentorship != null;
+            return Json(new { hasAccess = hasAccess });
         }
     }
 }

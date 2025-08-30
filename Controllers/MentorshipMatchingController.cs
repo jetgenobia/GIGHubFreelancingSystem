@@ -26,8 +26,8 @@ namespace Freelancing.Controllers
         // Main matching page - shows potential matches and existing matches
         public async Task<IActionResult> AvailableMentors()
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
             // Check if user is registered in mentorship program
@@ -69,10 +69,10 @@ namespace Freelancing.Controllers
             return View(viewModel);
         }
         [HttpGet]
-        public async Task<IActionResult> CreateRequest(Guid id)
+        public async Task<IActionResult> CreateRequest(string id)
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
             // Get the potential mentor/partner
@@ -198,8 +198,8 @@ namespace Freelancing.Controllers
                 return View(model);
             }
 
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
             // Check for existing matches
@@ -311,8 +311,8 @@ namespace Freelancing.Controllers
 
         private async Task ReloadCreateRequestModel(CreateMatchRequest model)
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(userId))
             {
                 model.Partner = await _context.UserAccounts
                     .Include(ua => ua.UserAccountSkills)
@@ -327,7 +327,7 @@ namespace Freelancing.Controllers
             }
         }
 
-        private async Task CreateMentorshipRequestNotification(Guid mentorId, string? menteeName)
+        private async Task CreateMentorshipRequestNotification(string mentorId, string? menteeName)
         {
             await _notificationService.CreateNotificationAsync(
                 mentorId,
@@ -400,7 +400,7 @@ namespace Freelancing.Controllers
             return View(dashboardModel);
         }
 
-        private async Task<int> GetCompletedGoalsCountAsync(Guid userId)
+        private async Task<int> GetCompletedGoalsCountAsync(string userId)
         {
             // Get all active and completed mentorship matches for the user as mentee
             var mentorshipMatches = await _context.MentorshipMatches
@@ -421,9 +421,9 @@ namespace Freelancing.Controllers
             return completedGoals;
         }
 
-        private Guid GetCurrentUserId()
+        private string GetCurrentUserId()
         {
-            return Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            return User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
         }
         public async Task<IActionResult> MentorDashboard()
         {
@@ -496,15 +496,15 @@ namespace Freelancing.Controllers
             return View(dashboardModel);
         }
 
-        private Guid GetUserId()
+        private string GetUserId()
         {
-            return Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            return User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
         }
         [HttpGet]
         public async Task<IActionResult> PendingRequests()
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
             var pendingRequests = await _context.MentorshipMatches
@@ -522,8 +522,8 @@ namespace Freelancing.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> PendingRequests(Guid matchId, string response)
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
             var mentorshipMatch = await _context.MentorshipMatches
@@ -590,8 +590,8 @@ namespace Freelancing.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> FinishMentorship(Guid matchId)
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
             var mentorshipMatch = await _context.MentorshipMatches

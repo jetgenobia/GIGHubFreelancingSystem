@@ -15,7 +15,7 @@ namespace Freelancing.Models.Entities
         public Goal Goal { get; set; }
 
         [Required]
-        public Guid CompletedByUserId { get; set; }
+        public string CompletedByUserId { get; set; }
         public UserAccount CompletedByUser { get; set; }
 
         [Required]

@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication;
+﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Freelancing.Data;
@@ -47,8 +46,8 @@ namespace Freelancing.Controllers
         public async Task<IActionResult> Dashboard(string message = null)
         {
             // Get the user ID from the claims to filter projects by the logged-in user.
-            var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
             // Fetch projects associated with the logged-in user, including accepted bids.
             var projects = await dbContext.Projects
@@ -136,8 +135,8 @@ namespace Freelancing.Controllers
             
             if (ModelState.IsValid)
             {
-                var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                if (Guid.TryParse(userIdString, out Guid userId))
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (!string.IsNullOrEmpty(userId))
                 {
                     List<string> imagePaths = new List<string>();
                     
@@ -466,8 +465,8 @@ namespace Freelancing.Controllers
             }
 
             // Get user ID
-            var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
             // Fetch user account
@@ -477,9 +476,9 @@ namespace Freelancing.Controllers
 
             // Check for existing username/email
             var existingUserWithUsername = await dbContext.UserAccounts
-                .FirstOrDefaultAsync(u => u.UserName == viewModel.UserName && u.Id != userId);
+                .FirstOrDefaultAsync(u => u.UserName == viewModel.UserName && u.Id.ToString() != userId);
             var existingUserWithEmail = await dbContext.UserAccounts
-                .FirstOrDefaultAsync(u => u.Email == viewModel.Email && u.Id != userId);
+                .FirstOrDefaultAsync(u => u.Email == viewModel.Email && u.Id.ToString() != userId);
 
             if (existingUserWithEmail != null)
             {
@@ -608,6 +607,9 @@ namespace Freelancing.Controllers
         // Updated method to refresh claims
         private async Task RefreshUserClaims(UserAccount userAccount)
         {
+            if (User.Identity == null)
+                return;
+                
             var identity = (ClaimsIdentity)User.Identity;
 
             // Update FullName claim
@@ -616,7 +618,7 @@ namespace Freelancing.Controllers
             {
                 identity.RemoveClaim(existingFullNameClaim);
             }
-            var fullName = $"{userAccount.FirstName} {userAccount.LastName}";
+            var fullName = $"{userAccount.FirstName ?? string.Empty} {userAccount.LastName ?? string.Empty}";
             identity.AddClaim(new Claim("FullName", fullName));
 
             // Update Email claim
@@ -625,7 +627,7 @@ namespace Freelancing.Controllers
             {
                 identity.RemoveClaim(existingEmailClaim);
             }
-            identity.AddClaim(new Claim(ClaimTypes.Email, userAccount.Email));
+            identity.AddClaim(new Claim(ClaimTypes.Email, userAccount.Email ?? string.Empty));
 
             // Update Username claim
             var existingUsernameClaim = identity.FindFirst(ClaimTypes.Name);
@@ -633,7 +635,7 @@ namespace Freelancing.Controllers
             {
                 identity.RemoveClaim(existingUsernameClaim);
             }
-            identity.AddClaim(new Claim(ClaimTypes.Name, userAccount.UserName));
+            identity.AddClaim(new Claim(ClaimTypes.Name, userAccount.UserName ?? string.Empty));
 
             // Update Photo claim
             var existingPhotoClaim = identity.FindFirst("Photo");
@@ -644,7 +646,7 @@ namespace Freelancing.Controllers
             identity.AddClaim(new Claim("Photo", userAccount.Photo ?? string.Empty));
 
             var principal = new ClaimsPrincipal(identity);
-            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+            await HttpContext.SignInAsync(principal);
         }
     }
 }

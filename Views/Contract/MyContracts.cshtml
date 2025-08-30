@@ -131,7 +131,7 @@
                             <!-- Contract Actions -->
                             <div class="px-4 py-3 bg-gray-50 border-t border-gray-200">
                                 @{
-                                    var currentUserId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!);
+                                    var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                                     var isCurrentUserClient = contract.ClientId == currentUserId;
                                     var isCurrentUserFreelancer = contract.FreelancerId == currentUserId;
                                     var needsCurrentUserSignature = (isCurrentUserClient && !contract.ClientHasSigned) || 

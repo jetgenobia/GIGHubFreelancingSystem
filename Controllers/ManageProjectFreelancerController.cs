@@ -25,8 +25,8 @@ namespace Freelancing.Controllers
         // GET: ManageProjectFreelancer
         public async Task<IActionResult> Index()
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized();
             }
@@ -107,8 +107,8 @@ namespace Freelancing.Controllers
         // GET: ManageProjectFreelancer/Details/5
         public async Task<IActionResult> Details(Guid id)
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized();
             }
@@ -215,8 +215,8 @@ namespace Freelancing.Controllers
         [HttpPost]
         public async Task<IActionResult> MarkAsCompleted(Guid id)
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized();
             }
@@ -253,8 +253,8 @@ namespace Freelancing.Controllers
         // GET: ManageProjectFreelancer/Feedback/5
         public async Task<IActionResult> Feedback(Guid id)
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized();
             }

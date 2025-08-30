@@ -4,7 +4,7 @@ namespace Freelancing.Models
 {
     public class MentorshipRegistration
     {
-        public Guid UserId { get; set; }
+        public string UserId { get; set; }
         [Required(ErrorMessage = "First name is required.")]
         public string FirstName { get; set; }
         [Required(ErrorMessage = "Last name is required.")]

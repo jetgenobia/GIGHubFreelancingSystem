@@ -30,8 +30,8 @@ namespace Freelancing.Controllers
         // GET: ManageProjectClient
         public async Task<IActionResult> Index()
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized();
             }
@@ -110,8 +110,9 @@ namespace Freelancing.Controllers
         // GET: ManageProjectClient/Details/5
         public async Task<IActionResult> Details(Guid id)
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdString, out Guid userId))
+
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized();
             }
@@ -217,8 +218,8 @@ namespace Freelancing.Controllers
         [HttpPost]
         public async Task<IActionResult> MarkAsCompleted(Guid id)
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized();
             }
@@ -242,8 +243,8 @@ namespace Freelancing.Controllers
         [HttpPost]
         public async Task<IActionResult> MarkAsCompletedFreelancer(Guid id)
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized();
             }
@@ -298,8 +299,8 @@ namespace Freelancing.Controllers
         // GET: ManageProjectClient/Feedback/5
         public async Task<IActionResult> Feedback(Guid id)
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized();
             }
@@ -368,8 +369,8 @@ namespace Freelancing.Controllers
                 return View(model);
             }
 
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized();
             }
@@ -438,8 +439,8 @@ namespace Freelancing.Controllers
         // GET: ManageProjectClient/SmartHiring/5
         public async Task<IActionResult> SmartHiring(Guid id)
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized();
             }
@@ -489,10 +490,10 @@ namespace Freelancing.Controllers
         }
 
         // GET: ManageProjectClient/BidderDetails/5?freelancerId=guid
-        public async Task<IActionResult> BidderDetails(Guid id, Guid freelancerId)
+        public async Task<IActionResult> BidderDetails(Guid id, string freelancerId)
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized();
             }
@@ -563,8 +564,8 @@ namespace Freelancing.Controllers
         [HttpPost]
         public async Task<IActionResult> AcceptBid(Guid bidId)
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized();
             }

@@ -2,7 +2,7 @@
 {
     public class UserAccountSkill
     {
-        public Guid UserAccountId { get; set; }
+        public string UserAccountId { get; set; }
         public Guid UserSkillId { get; set; }
 
         public virtual UserAccount UserAccount { get; set; }

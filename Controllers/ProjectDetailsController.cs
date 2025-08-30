@@ -81,7 +81,7 @@ namespace Freelancing.Controllers
 
         // GET: ProjectDetails/GetClientDetails/5
         [HttpGet]
-        public async Task<IActionResult> GetClientDetails(Guid clientId)
+        public async Task<IActionResult> GetClientDetails(string clientId)
         {
             var client = await dbContext.UserAccounts
                 .Include(u => u.UserAccountSkills)
@@ -124,7 +124,7 @@ namespace Freelancing.Controllers
 
         // GET: ProjectDetails/GetFreelancerDetails/5
         [HttpGet]
-        public async Task<IActionResult> GetFreelancerDetails(Guid freelancerId)
+        public async Task<IActionResult> GetFreelancerDetails(string freelancerId)
         {
             var freelancer = await dbContext.UserAccounts
                 .Include(u => u.UserAccountSkills)

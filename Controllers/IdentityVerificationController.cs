@@ -86,7 +86,7 @@ namespace Freelancing.Controllers
             try
             {
                 var userId = GetCurrentUserId();
-                if (userId == Guid.Empty)
+                if (string.IsNullOrEmpty(userId))
                 {
                     return RedirectToAction("Login", "Account");
                 }
@@ -240,7 +240,7 @@ namespace Freelancing.Controllers
             try
             {
                 var userId = GetCurrentUserId();
-                if (userId == Guid.Empty)
+                if (string.IsNullOrEmpty(userId))
                 {
                     return RedirectToAction("Login", "Account");
                 }
@@ -323,7 +323,7 @@ namespace Freelancing.Controllers
             try
             {
                 var userId = GetCurrentUserId();
-                if (userId == Guid.Empty)
+                if (string.IsNullOrEmpty(userId))
                 {
                     return RedirectToAction("Login", "Account");
                 }
@@ -344,7 +344,7 @@ namespace Freelancing.Controllers
             try
             {
                 var userId = GetCurrentUserId();
-                if (userId == Guid.Empty)
+                if (string.IsNullOrEmpty(userId))
                 {
                     return Json(new { success = false, message = "User not authenticated" });
                 }
@@ -374,7 +374,7 @@ namespace Freelancing.Controllers
             try
             {
                 var userId = GetCurrentUserId();
-                if (userId == Guid.Empty)
+                if (string.IsNullOrEmpty(userId))
                 {
                     return Json(new { success = false, message = "User not authenticated" });
                 }
@@ -390,14 +390,14 @@ namespace Freelancing.Controllers
             }
         }
 
-        private Guid GetCurrentUserId()
+        private string GetCurrentUserId()
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (Guid.TryParse(userIdClaim, out Guid userId))
+            if (string.IsNullOrEmpty(userIdClaim))
             {
-                return userId;
+                return string.Empty;
             }
-            return Guid.Empty;
+            return userIdClaim;
         }
     }
 

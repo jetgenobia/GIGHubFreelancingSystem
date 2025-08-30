@@ -73,12 +73,12 @@ namespace Freelancing.Hubs
         }
 
         // Add method to update notification count
-        public static async Task UpdateNotificationCount(IHubContext<ChatHub> hubContext, Guid userId, int count)
+        public static async Task UpdateNotificationCount(IHubContext<ChatHub> hubContext, string userId, int count)
         {
             string connectionId = null;
             lock (_lockObject)
             {
-                UserConnections.TryGetValue(userId.ToString(), out connectionId);
+                UserConnections.TryGetValue(userId, out connectionId);
             }
             
             if (!string.IsNullOrEmpty(connectionId))
@@ -91,7 +91,7 @@ namespace Freelancing.Hubs
         {
             try
             {
-                var userId = Guid.Parse(Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
                 // Verify user is part of this chat room
                 var chatRoom = await _context.ChatRooms
@@ -175,7 +175,7 @@ namespace Freelancing.Hubs
                     return;
                 }
 
-                var userId = Guid.Parse(userIdClaim);
+                var userId = userIdClaim;
                 var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id == userId);
                 if (user == null)
                 {
@@ -193,19 +193,19 @@ namespace Freelancing.Hubs
                 // Check if this is a new chat (chatRoomId is "new" and targetUserId is provided)
                 if (chatRoomId == "new" && !string.IsNullOrEmpty(targetUserId))
                 {
-                    var targetUserGuid = Guid.Parse(targetUserId);
+                    var targetUserIdString = targetUserId;
                     
                     // Check if a chat room already exists between these users
                     chatRoom = await _context.ChatRooms
                         .FirstOrDefaultAsync(cr => 
-                            ((cr.User1Id == userId && cr.User2Id == targetUserGuid) || 
-                             (cr.User1Id == targetUserGuid && cr.User2Id == userId)) && 
+                            ((cr.User1Id == userId && cr.User2Id == targetUserIdString) || 
+                             (cr.User1Id == targetUserIdString && cr.User2Id == userId)) && 
                             cr.RoomType == "General" && cr.IsActive);
 
                     if (chatRoom == null)
                     {
                         // Create new chat room
-                        var targetUser = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id == targetUserGuid);
+                        var targetUser = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id == targetUserIdString);
                         if (targetUser == null)
                         {
                             await Clients.Caller.SendAsync("Error", "Target user not found");
@@ -216,7 +216,7 @@ namespace Freelancing.Hubs
                         {
                             Id = Guid.NewGuid(),
                             User1Id = userId,
-                            User2Id = targetUserGuid,
+                            User2Id = targetUserIdString,
                             RoomType = "General",
                             CreatedAt = DateTime.UtcNow.ToLocalTime(),
                             LastActivityAt = DateTime.UtcNow.ToLocalTime(),
@@ -237,7 +237,7 @@ namespace Freelancing.Hubs
                         string targetUserConnectionId = null;
                         lock (_lockObject)
                         {
-                            UserConnections.TryGetValue(targetUserGuid.ToString(), out targetUserConnectionId);
+                            UserConnections.TryGetValue(targetUserIdString, out targetUserConnectionId);
                         }
                         
                         if (!string.IsNullOrEmpty(targetUserConnectionId))
@@ -315,7 +315,7 @@ namespace Freelancing.Hubs
                 var messageObject = new
                 {
                     Id = chatMessage.Id.ToString(),
-                    SenderId = userId.ToString(),
+                    SenderId = userId,
                     SenderName = fullName,
                     Message = message, // Send decrypted message to clients
                     MessageType = messageType,
@@ -377,7 +377,7 @@ namespace Freelancing.Hubs
                     return;
                 }
 
-                var userId = Guid.Parse(userIdClaim);
+                var userId = userIdClaim;
                 var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id == userId);
                 if (user == null)
                 {
@@ -467,7 +467,7 @@ namespace Freelancing.Hubs
                 var fileMessageObject = new
                 {
                     Id = chatMessage.Id.ToString(),
-                    SenderId = userId.ToString(),
+                    SenderId = userId,
                     SenderName = fullName,
                     FileName = fileName, // Send original filename to clients
                     FileUrl = fileUrl,
@@ -509,7 +509,7 @@ namespace Freelancing.Hubs
                     return;
                 }
 
-                var userId = Guid.Parse(userIdClaim);
+                var userId = userIdClaim;
 
                 // Verify access to this chat room
                 var chatRoom = await _context.ChatRooms
@@ -560,7 +560,7 @@ namespace Freelancing.Hubs
                     return;
                 }
 
-                var userId = Guid.Parse(userIdClaim);
+                var userId = userIdClaim;
 
                 // Verify access to this chat room
                 var chatRoom = await _context.ChatRooms
@@ -594,7 +594,7 @@ namespace Freelancing.Hubs
                     return;
                 }
 
-                var userId = Guid.Parse(userIdClaim);
+                var userId = userIdClaim;
                 var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id == userId);
                 if (user == null)
                 {
@@ -611,7 +611,7 @@ namespace Freelancing.Hubs
                     await Clients.Caller.SendAsync("CallRequested", new
                     {
                         ChatRoomId = chatRoomId,
-                        CallerId = userId.ToString(),
+                        CallerId = userId,
                         CallerName = fullName ?? "Unknown User",
                         CallerPhoto = !string.IsNullOrEmpty(user.Photo) ? user.Photo : "https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497",
                         IsTemporary = true
@@ -637,7 +637,7 @@ namespace Freelancing.Hubs
                 await Clients.Caller.SendAsync("CallRequested", new
                 {
                     ChatRoomId = chatRoomId,
-                    CallerId = userId.ToString(),
+                    CallerId = userId,
                     CallerName = fullName ?? "Unknown User",
                     CallerPhoto = !string.IsNullOrEmpty(user.Photo) ? user.Photo : "https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497"
                 });
@@ -645,7 +645,7 @@ namespace Freelancing.Hubs
                 // Send to chat room (for users currently in chat)
                 await Clients.OthersInGroup(roomName).SendAsync("IncomingVideoCall", new
                 {
-                    CallerId = userId.ToString(),
+                    CallerId = userId,
                     CallerName = fullName ?? "Unknown User",
                     CallerPhoto = !string.IsNullOrEmpty(user.Photo) ? user.Photo : "https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497",
                     ChatRoomId = chatRoomId
@@ -680,14 +680,14 @@ namespace Freelancing.Hubs
                     return;
                 }
 
-                var userId = Guid.Parse(userIdClaim);
+                var userId = userIdClaim;
 
                 // Check if this is a temporary chat room ID
                 if (chatRoomId.StartsWith("temp_"))
                 {
                     // For temporary chat rooms, we need to create a real chat room
                     // Get the caller's user info to create the chat room
-                    var caller = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id.ToString() == callerId);
+                    var caller = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id == callerId);
                     if (caller == null)
                     {
                         await Clients.Caller.SendAsync("Error", "Caller not found");
@@ -698,7 +698,7 @@ namespace Freelancing.Hubs
                     var newChatRoom = new ChatRoom
                     {
                         Id = Guid.NewGuid(),
-                        User1Id = Guid.Parse(callerId),
+                        User1Id = callerId,
                         User2Id = userId,
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
@@ -711,7 +711,7 @@ namespace Freelancing.Hubs
                     await Clients.User(callerId).SendAsync("CallAccepted", new
                     {
                         ChatRoomId = newChatRoom.Id.ToString(),
-                        AccepterId = userId.ToString(),
+                        AccepterId = userId,
                         IsTemporary = false
                     });
 
@@ -719,7 +719,7 @@ namespace Freelancing.Hubs
                     await Clients.Caller.SendAsync("CallAccepted", new
                     {
                         ChatRoomId = newChatRoom.Id.ToString(),
-                        AccepterId = userId.ToString(),
+                        AccepterId = userId,
                         IsTemporary = false
                     });
                     return;
@@ -743,12 +743,12 @@ namespace Freelancing.Hubs
                 await Clients.User(callerId).SendAsync("CallAccepted", new
                 {
                     ChatRoomId = chatRoomId,
-                    AccepterId = userId.ToString()
+                    AccepterId = userId
                 });
 
                 await Clients.Group(roomName).SendAsync("VideoCallAccepted", new
                 {
-                    AccepterId = userId.ToString(),
+                    AccepterId = userId,
                     CallerId = callerId,
                     ChatRoomId = chatRoomId
                 });
@@ -770,7 +770,7 @@ namespace Freelancing.Hubs
                     return;
                 }
 
-                var userId = Guid.Parse(userIdClaim);
+                var userId = userIdClaim;
 
                 // Check if this is a temporary chat room ID
                 if (chatRoomId.StartsWith("temp_"))
@@ -779,7 +779,7 @@ namespace Freelancing.Hubs
                     await Clients.User(callerId).SendAsync("CallDeclined", new
                     {
                         ChatRoomId = chatRoomId,
-                        DeclinerId = userId.ToString(),
+                        DeclinerId = userId,
                         IsTemporary = true
                     });
                     return;
@@ -803,7 +803,7 @@ namespace Freelancing.Hubs
                 await Clients.User(callerId).SendAsync("CallDeclined", new
                 {
                     ChatRoomId = chatRoomId,
-                    DeclinerId = userId.ToString()
+                    DeclinerId = userId
                 });
 
                 await Clients.Group(roomName).SendAsync("VideoCallDeclined", new
@@ -828,7 +828,7 @@ namespace Freelancing.Hubs
                     return;
                 }
 
-                var userId = Guid.Parse(userIdClaim);
+                var userId = userIdClaim;
 
                 // Verify access to this chat room
                 var chatRoom = await _context.ChatRooms
@@ -868,7 +868,7 @@ namespace Freelancing.Hubs
                     return;
                 }
 
-                var userId = Guid.Parse(userIdClaim);
+                var userId = userIdClaim;
 
                 // Verify access to this chat room
                 var chatRoom = await _context.ChatRooms
@@ -903,7 +903,7 @@ namespace Freelancing.Hubs
                     return;
                 }
 
-                var userId = Guid.Parse(userIdClaim);
+                var userId = userIdClaim;
 
                 // Verify access to this chat room
                 var chatRoom = await _context.ChatRooms
@@ -938,7 +938,7 @@ namespace Freelancing.Hubs
                     return;
                 }
 
-                var userId = Guid.Parse(userIdClaim);
+                var userId = userIdClaim;
 
                 // Verify access to this chat room
                 var chatRoom = await _context.ChatRooms

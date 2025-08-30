@@ -7,7 +7,7 @@ namespace Freelancing.Models.Entities
         public Guid Id { get; set; }
         
         [Required]
-        public Guid UserAccountId { get; set; }
+        public string UserAccountId { get; set; }
         public UserAccount UserAccount { get; set; }
         
         // ID Document Verification

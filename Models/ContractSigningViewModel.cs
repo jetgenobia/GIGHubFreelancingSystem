@@ -17,7 +17,7 @@ namespace Freelancing.Models
         public string DeliveryTimeline { get; set; }
         
         // Current user context
-        public Guid CurrentUserId { get; set; }
+        public string CurrentUserId { get; set; }
         public bool IsClient { get; set; }
         public bool IsFreelancer { get; set; }
         public bool CanSign { get; set; }

@@ -373,9 +373,9 @@ namespace Freelancing.Controllers
             }
         }
 
-        private Guid GetCurrentUserId()
+        private string GetCurrentUserId()
         {
-            return Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+            return User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
         }
 
         private string GetClientIpAddress()
@@ -383,17 +383,17 @@ namespace Freelancing.Controllers
             return HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
         }
 
-        private bool CanUserAccessContract(Contract contract, Guid userId)
+        private bool CanUserAccessContract(Contract contract, string userId)
         {
             return contract.Project.UserId == userId || contract.Bidding.UserId == userId;
         }
 
-        private bool CanUserAccessTermination(ContractTermination termination, Guid userId)
+        private bool CanUserAccessTermination(ContractTermination termination, string userId)
         {
             return termination.Contract.Project.UserId == userId || termination.Contract.Bidding.UserId == userId;
         }
 
-        private TerminationViewModel MapToTerminationViewModel(ContractTermination termination, Guid userId)
+        private TerminationViewModel MapToTerminationViewModel(ContractTermination termination, string userId)
         {
             return new TerminationViewModel
             {

@@ -19,7 +19,7 @@ namespace Freelancing.Services
             _encryptionService = encryptionService;
         }
 
-        public async Task<Notification> CreateNotificationAsync(Guid userId, string title, string message, string type, string? iconSvg = null, string? relatedUrl = null, bool encryptContent = false)
+        public async Task<Notification> CreateNotificationAsync(string userId, string title, string message, string type, string? iconSvg = null, string? relatedUrl = null, bool encryptContent = false)
         {
             var notification = new Notification
             {
@@ -62,7 +62,7 @@ namespace Freelancing.Services
             return notification;
         }
 
-        public async Task<List<Notification>> GetUserNotificationsAsync(Guid userId, int count = 10)
+        public async Task<List<Notification>> GetUserNotificationsAsync(string userId, int count = 10)
         {
             var notifications = await _context.Notifications
                 .Where(n => n.UserId == userId)
@@ -80,7 +80,7 @@ namespace Freelancing.Services
             return decryptedNotifications;
         }
 
-        public async Task<int> GetUnreadNotificationCountAsync(Guid userId)
+        public async Task<int> GetUnreadNotificationCountAsync(string userId)
         {
             return await _context.Notifications
                 .CountAsync(n => n.UserId == userId && !n.IsRead);
@@ -101,7 +101,7 @@ namespace Freelancing.Services
             }
         }
 
-        public async Task MarkAllNotificationsAsReadAsync(Guid userId)
+        public async Task MarkAllNotificationsAsReadAsync(string userId)
         {
             var unreadNotifications = await _context.Notifications
                 .Where(n => n.UserId == userId && !n.IsRead)

@@ -29,9 +29,9 @@ namespace Freelancing.Models
         public string? DocumentPath { get; set; }
         
         // User Access
-        public Guid ClientId { get; set; }
-        public Guid FreelancerId { get; set; }
-        public Guid RequestedByUserId { get; set; }
+        public string ClientId { get; set; }
+        public string FreelancerId { get; set; }
+        public string RequestedByUserId { get; set; }
         public bool CanUserSign { get; set; }
         public bool CanUserCancel { get; set; }
         public bool CanUserDownload { get; set; }

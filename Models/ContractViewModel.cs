@@ -19,7 +19,7 @@ namespace Freelancing.Models
         public string ProjectCategory { get; set; }
         
         // Client Information
-        public Guid ClientId { get; set; }
+        public string ClientId { get; set; }
         public string ClientName { get; set; }
         public string ClientEmail { get; set; }
         public string? ClientPhoto { get; set; }
@@ -29,7 +29,7 @@ namespace Freelancing.Models
         public bool ClientHasSigned => ClientSignedAt.HasValue;
         
         // Freelancer Information
-        public Guid FreelancerId { get; set; }
+        public string FreelancerId { get; set; }
         public string FreelancerName { get; set; }
         public string FreelancerEmail { get; set; }
         public string? FreelancerPhoto { get; set; }

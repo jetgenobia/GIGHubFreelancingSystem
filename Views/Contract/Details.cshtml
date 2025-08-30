@@ -172,7 +172,7 @@
 
                 <!-- Sign Button -->
                 @{
-                    var currentUserId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!);
+                    var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                     var isCurrentUserClient = Model.ClientId == currentUserId;
                     var isCurrentUserFreelancer = Model.FreelancerId == currentUserId;
                     var canCurrentUserSign = (isCurrentUserClient && !Model.ClientHasSigned) || (isCurrentUserFreelancer && !Model.FreelancerHasSigned);
@@ -356,7 +356,7 @@
                             <div class="flex justify-center items-center">
                                 @if (Model.CanShowFinishButton)
                                 {
-                                    var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!);
+                                    var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                                     var isClient = Model.ClientId == userId;
                                     var isFreelancer = Model.FreelancerId == userId;
                                     var hasMarkedComplete = (isClient && Model.ClientMarkedComplete) || (isFreelancer && Model.FreelancerMarkedComplete);

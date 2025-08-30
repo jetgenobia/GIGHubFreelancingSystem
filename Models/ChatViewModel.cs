@@ -8,10 +8,10 @@ namespace Freelancing.Models
         public string RoomName { get; set; }
         public string RoomType { get; set; }
         public UserAccount Partner { get; set; }
-        public Guid CurrentUserId { get; set; }
+        public string CurrentUserId { get; set; }
         public List<ChatMessageViewModel> Messages { get; set; } = new();
         public MentorshipMatch MentorshipMatch { get; set; } // For mentorship chats
-        public Guid? TargetUserId { get; set; } // For creating new chat rooms
+        public string? TargetUserId { get; set; } // For creating new chat rooms
     }
 
     public class ChatListItemViewModel
@@ -30,7 +30,7 @@ namespace Freelancing.Models
     public class ProjectVideoCallViewModel
     {
         public string ChatRoomId { get; set; }
-        public Guid CurrentUserId { get; set; }
+        public string CurrentUserId { get; set; }
         public UserAccount Partner { get; set; }
         public string PartnerName => $"{Partner?.FirstName} {Partner?.LastName}";
     }

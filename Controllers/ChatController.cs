@@ -28,7 +28,7 @@ namespace Freelancing.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index(Guid? chatRoomId = null, Guid? targetUserId = null)
+        public async Task<IActionResult> Index(Guid? chatRoomId = null, string? targetUserId = null)
         {
             var userId = GetCurrentUserId();
 
@@ -104,7 +104,7 @@ namespace Freelancing.Controllers
             }
 
             // If no specific chat room is selected and no target user is specified, select the first one
-            if (!chatRoomId.HasValue && !targetUserId.HasValue && chatList.Any())
+            if (!chatRoomId.HasValue && string.IsNullOrEmpty(targetUserId) && chatList.Any())
             {
                 chatRoomId = chatList.First().ChatRoomId;
             }
@@ -139,11 +139,11 @@ namespace Freelancing.Controllers
                     await MarkMessagesAsRead(chatRoomId.Value, userId);
                 }
             }
-            else if (targetUserId.HasValue)
+            else if (!string.IsNullOrEmpty(targetUserId))
             {
                 // Handle case where we want to start a new chat with a target user
                 var targetUser = await _context.UserAccounts
-                    .FirstOrDefaultAsync(u => u.Id == targetUserId.Value);
+                    .FirstOrDefaultAsync(u => u.Id == targetUserId);
 
                 if (targetUser != null)
                 {
@@ -155,7 +155,7 @@ namespace Freelancing.Controllers
                         Partner = targetUser,
                         CurrentUserId = userId,
                         Messages = new List<ChatMessageViewModel>(),
-                        TargetUserId = targetUserId.Value // Store target user ID for creating chat room later
+                        TargetUserId = targetUserId // Store target user ID for creating chat room later
                     };
                 }
             }
@@ -190,7 +190,7 @@ namespace Freelancing.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> StartChat(Guid targetUserId)
+        public async Task<IActionResult> StartChat(string targetUserId)
         {
             var currentUserId = GetCurrentUserId();
             
@@ -392,17 +392,17 @@ namespace Freelancing.Controllers
             }
         }
 
-        private Guid GetCurrentUserId()
+        private string GetCurrentUserId()
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
             {
                 throw new UnauthorizedAccessException("User not authenticated");
             }
             return userId;
         }
 
-        private async Task<List<ChatMessageViewModel>> GetDecryptedMessages(Guid chatRoomId, Guid userId, string encryptionKey)
+        private async Task<List<ChatMessageViewModel>> GetDecryptedMessages(Guid chatRoomId, string userId, string encryptionKey)
         {
             var messages = await _context.ChatMessages
                 .Where(cm => cm.ChatRoomId == chatRoomId && !cm.IsDeleted)
@@ -452,7 +452,7 @@ namespace Freelancing.Controllers
             return decryptedMessages;
         }
 
-        private async Task<List<dynamic>> GetDecryptedMessagesPage(Guid chatRoomId, Guid userId, string encryptionKey, int page, int pageSize)
+        private async Task<List<dynamic>> GetDecryptedMessagesPage(Guid chatRoomId, string userId, string encryptionKey, int page, int pageSize)
         {
             var messages = await _context.ChatMessages
                 .Where(cm => cm.ChatRoomId == chatRoomId && !cm.IsDeleted)
@@ -504,7 +504,7 @@ namespace Freelancing.Controllers
             return decryptedMessages;
         }
 
-        private async Task MarkMessagesAsRead(Guid chatRoomId, Guid userId)
+        private async Task MarkMessagesAsRead(Guid chatRoomId, string userId)
         {
             var unreadMessages = await _context.ChatMessages
                 .Where(m => m.ChatRoomId == chatRoomId && 
@@ -555,14 +555,14 @@ namespace Freelancing.Controllers
 
             // If no chat room found or no chatRoomId provided, try to find by targetUserId
             var targetUserId = Request.Query["targetUserId"].ToString();
-            if (!string.IsNullOrEmpty(targetUserId) && Guid.TryParse(targetUserId, out Guid targetUserGuid))
+            if (!string.IsNullOrEmpty(targetUserId))
             {
                 var existingChatRoom = await _context.ChatRooms
                     .Include(cr => cr.User1)
                     .Include(cr => cr.User2)
                     .FirstOrDefaultAsync(cr => 
-                        ((cr.User1Id == userId && cr.User2Id == targetUserGuid) || 
-                         (cr.User1Id == targetUserGuid && cr.User2Id == userId)) && 
+                        ((cr.User1Id == userId && cr.User2Id == targetUserId) || 
+                         (cr.User1Id == targetUserId && cr.User2Id == userId)) && 
                         cr.RoomType == "General" && cr.IsActive);
 
                 if (existingChatRoom != null)
@@ -578,14 +578,14 @@ namespace Freelancing.Controllers
                 }
 
                 // If no existing chat room, create a temporary one for the video call
-                var targetUser = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id == targetUserGuid);
+                var targetUser = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id == targetUserId);
                 if (targetUser != null)
                 {
                     var tempChatRoom = new ChatRoom
                     {
                         Id = Guid.NewGuid(),
                         User1Id = userId,
-                        User2Id = targetUserGuid,
+                        User2Id = targetUserId,
                         RoomType = "General",
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
