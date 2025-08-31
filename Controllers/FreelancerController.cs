@@ -468,6 +468,13 @@ namespace Freelancing.Controllers
             var user = await dbContext.UserAccounts
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
+            // Check for completed mentorship relationships
+            var completedAsMentor = await dbContext.MentorshipMatches
+                .AnyAsync(mm => mm.MentorId == userId && mm.Status == "Completed");
+
+            var completedAsMentee = await dbContext.MentorshipMatches
+                .AnyAsync(mm => mm.MenteeId == userId && mm.Status == "Completed");
+
             // Create view model
             var viewModel = new EditAccount
             {
@@ -477,7 +484,9 @@ namespace Freelancing.Controllers
                 UserName = userAccount.UserName,
                 Photo = userAccount.Photo,
                 SavedSkills = savedSkills,
-                TotalSkillsCount = savedSkills.Count
+                TotalSkillsCount = savedSkills.Count,
+                HasCompletedMentorshipAsMentor = completedAsMentor,
+                HasCompletedMentorshipAsMentee = completedAsMentee
             };
 
             return View(viewModel);
@@ -660,6 +669,13 @@ namespace Freelancing.Controllers
                 .OrderBy(s => s.Name)
                 .ToListAsync();
 
+            // Check for completed mentorship relationships
+            var completedAsMentor = await dbContext.MentorshipMatches
+                .AnyAsync(mm => mm.MentorId == userId && mm.Status == "Completed");
+
+            var completedAsMentee = await dbContext.MentorshipMatches
+                .AnyAsync(mm => mm.MenteeId == userId && mm.Status == "Completed");
+
             return new EditAccount
             {
                 FirstName = userAccount.FirstName ?? string.Empty,
@@ -668,7 +684,9 @@ namespace Freelancing.Controllers
                 UserName = userAccount.UserName ?? string.Empty,
                 Photo = userAccount.Photo ?? string.Empty,
                 SavedSkills = savedSkills,
-                TotalSkillsCount = savedSkills.Count
+                TotalSkillsCount = savedSkills.Count,
+                HasCompletedMentorshipAsMentor = completedAsMentor,
+                HasCompletedMentorshipAsMentee = completedAsMentee
             };
         }
 

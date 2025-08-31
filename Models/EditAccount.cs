@@ -12,5 +12,7 @@ namespace Freelancing.Models
         public List<UserSkill> SavedSkills { get; set; } = new List<UserSkill>();
         public Guid UserId { get; set; }
         public int TotalSkillsCount { get; set; }
+        public bool HasCompletedMentorshipAsMentor { get; set; } // True if user has completed mentorship as a mentor
+        public bool HasCompletedMentorshipAsMentee { get; set; } // True if user has completed mentorship as a mentee
     }
 }

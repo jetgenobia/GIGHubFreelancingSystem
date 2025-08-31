@@ -1,112 +1,135 @@
 ﻿@{
-	Layout = "_LayoutFreelancer";
-	ViewData["Title"] = "Account Details";
+    Layout = "_LayoutFreelancer";
+    ViewData["Title"] = "Account Details";
 }
 @model Freelancing.Models.EditAccount
 
 <div class="p-4 sm:ml-64">
-	<div class="p-4 mt-20">
-		<div class="mt-4">
-			<div class="block w-full p-6">
-				<h2 class="mb-4 text-2xl font-bold text-gray-900">Manage Account</h2>
-				<form id="EditAccount" asp-action="EditAccount" method="post" class="p-4 md:p-5" enctype="multipart/form-data">
-					@if (!string.IsNullOrEmpty(ViewBag.Message as string))
-					{
-						<div class="mt-2 flex items-center p-4 mb-4 text-sm text-green-800 border border-green-300 rounded-lg bg-green-50" role="alert">
-							<svg class="shrink-0 inline w-4 h-4 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-								<path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z" />
-							</svg>
-							<span class="sr-only">Success</span>
-							<div>
-								@ViewBag.Message
-							</div>
-						</div>
-					}
-					@if (!ViewData.ModelState.IsValid)
-					{
-						<div class="mt-2 p-4 mb-4 text-sm text-red-800 border border-red-300 rounded-lg bg-red-50" role="alert">
-							<div class="flex items-center mb-2">
-								<svg class="shrink-0 inline w-4 h-4 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-									<path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
-								</svg>
-								<span class="font-medium">Edit failed!</span>
-							</div>
+    <div class="p-4 mt-20">
+        <div class="mt-4">
+            <div class="block w-full p-6">
+                <h2 class="mb-4 text-2xl font-bold text-gray-900">Manage Account</h2>
+                <form id="EditAccount" asp-action="EditAccount" method="post" class="p-4 md:p-5" enctype="multipart/form-data">
+                    @if (!string.IsNullOrEmpty(ViewBag.Message as string))
+                    {
+                        <div class="mt-2 flex items-center p-4 mb-4 text-sm text-green-800 border border-green-300 rounded-lg bg-green-50" role="alert">
+                            <svg class="shrink-0 inline w-4 h-4 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z" />
+                            </svg>
+                            <span class="sr-only">Success</span>
+                            <div>
+                                @ViewBag.Message
+                            </div>
+                        </div>
+                    }
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="mt-2 p-4 mb-4 text-sm text-red-800 border border-red-300 rounded-lg bg-red-50" role="alert">
+                            <div class="flex items-center mb-2">
+                                <svg class="shrink-0 inline w-4 h-4 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
+                                </svg>
+                                <span class="font-medium">Edit failed!</span>
+                            </div>
 
-							<ul class="list-disc list-inside space-y-1">
-								@foreach (var modelError in ViewData.ModelState.Values.SelectMany(v => v.Errors))
-								{
-									<li>@modelError.ErrorMessage</li>
-								}
-							</ul>
-						</div>
-					}
-					<input type="hidden" asp-for="Photo" />
-					<div class="grid gap-4 mb-4 grid-cols-2">
-						<div class="col-span-2 mb-2">
-							<label for="PhotoFile" class="block mb-2 text-sm font-medium text-gray-900">Profile Photo</label>
-							<div class="flex items-center">
-								@if (!string.IsNullOrEmpty(Model.Photo))
-								{
-									<img id="currentPhoto" class="w-25 h-25 rounded-full" src="@Model.Photo" alt="user photo">
-								}
-								else
-								{
-									<img id="currentPhoto" class="w-25 h-25 rounded-full" src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497" alt="user photo">
-								}
-								<div>
-									<input type="file" id="photoFile" name="PhotoFile" accept="image/*" class="form-control hidden">
-									<button type="button" onclick="document.getElementById('photoFile').click()"
-											class="inline-flex items-center text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-3 py-2.5 ms-3 me-2">
-										Choose Photo
-									</button>
-									<span id="fileName1" class="ml-3 text-sm text-gray-600"></span>
-								</div>
-							</div>
-							<p class="mt-1 text-sm text-gray-500">Upload a new profile photo (optional)</p>
-						</div>
+                            <ul class="list-disc list-inside space-y-1">
+                                @foreach (var modelError in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                                {
+                                    <li>@modelError.ErrorMessage</li>
+                                }
+                            </ul>
+                        </div>
+                    }
+                    <input type="hidden" asp-for="Photo" />
+                    <div class="grid gap-4 mb-4 grid-cols-2">
+                        <div class="col-span-2 mb-2">
+                            <label for="PhotoFile" class="block mb-2 text-sm font-medium text-gray-900">Profile Photo</label>
+                            <div class="flex inline-flex items-start space-y-4">
+                                <div class="relative inline-block">
+                                    <!-- Profile Image -->
+                                    @if (!string.IsNullOrEmpty(Model.Photo))
+                                    {
+                                        <img id="currentPhoto"
+                                             class="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
+                                             src="@Model.Photo"
+                                             alt="user photo">
+                                    }
+                                    else
+                                    {
+                                        <img id="currentPhoto"
+                                             class="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
+                                             src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497"
+                                             alt="user photo">
+                                    }
+                                    <input type="file" id="photoFile" name="PhotoFile" accept="image/*" class="form-control hidden">
+                                    <button type="button"
+                                            onclick="document.getElementById('photoFile').click()"
+                                            class="absolute bottom-0 right-0 bg-gray-200 hover:bg-gray-300 text-white rounded-full p-2 shadow-lg transition-colors duration-200 border-2 border-white">
+                                        <svg viewBox="0 -2 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:sketch="http://www.bohemiancoding.com/sketch/ns" fill="#000000" class="w-4 h-4">
+                                            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                            <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                            <g id="SVGRepo_iconCarrier"> <title>camera</title> <desc>Created with Sketch Beta.</desc> <defs> </defs> <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd" sketch:type="MSPage"> <g id="Icon-Set-Filled" sketch:type="MSLayerGroup" transform="translate(-258.000000, -467.000000)" fill="#000000"> <path d="M286,471 L283,471 L282,469 C281.411,467.837 281.104,467 280,467 L268,467 C266.896,467 266.53,467.954 266,469 L265,471 L262,471 C259.791,471 258,472.791 258,475 L258,491 C258,493.209 259.791,495 262,495 L286,495 C288.209,495 290,493.209 290,491 L290,475 C290,472.791 288.209,471 286,471 Z M274,491 C269.582,491 266,487.418 266,483 C266,478.582 269.582,475 274,475 C278.418,475 282,478.582 282,483 C282,487.418 278.418,491 274,491 Z M274,477 C270.687,477 268,479.687 268,483 C268,486.313 270.687,489 274,489 C277.313,489 280,486.313 280,483 C280,479.687 277.313,477 274,477 L274,477 Z" id="camera" sketch:type="MSShapeGroup"> </path> </g> </g> </g>
+                                        </svg>
+                                    </button>
+                                    <span id="fileName1" class="mtext-sm text-gray-600 hidden"></span>
+                                </div>
+                                <div class="ms-4 flex inline-flex items-center justify-center mt-10 space-x-2">
+                                    @if (Model.HasCompletedMentorshipAsMentor)
+                                    {
+                                        <img class="w-12 h-12" src="https://ik.imagekit.io/6txj3mofs/mentor(1).png" alt="Mentor Badge" title="Completed Mentor" />
+                                    }
+                                    @if (Model.HasCompletedMentorshipAsMentee)
+                                    {
+                                        <img class="w-12 h-12" src="https://ik.imagekit.io/6txj3mofs/mentee.png" alt="Mentee Badge" title="Completed Mentee" />
+                                    }
+                                    @if (!Model.HasCompletedMentorshipAsMentor && !Model.HasCompletedMentorshipAsMentee)
+                                    {
+                                        
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-span-2 sm:col-span-1">
+                            <label asp-for="FirstName" class="block mb-2 text-sm font-medium text-gray-900">First Name</label>
+                            <input asp-for="FirstName" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" required>
+                        </div>
 
-						<div class="col-span-2 sm:col-span-1">
-							<label asp-for="FirstName" class="block mb-2 text-sm font-medium text-gray-900">First Name</label>
-							<input asp-for="FirstName" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" required>
-						</div>
+                        <div class="col-span-2 sm:col-span-1">
+                            <label asp-for="LastName" class="block mb-2 text-sm font-medium text-gray-900">Last Name</label>
+                            <input asp-for="LastName" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" required>
+                        </div>
 
-						<div class="col-span-2 sm:col-span-1">
-							<label asp-for="LastName" class="block mb-2 text-sm font-medium text-gray-900">Last Name</label>
-							<input asp-for="LastName" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" required>
-						</div>
+                        <div class="col-span-2 sm:col-span-1">
+                            <label asp-for="Email" class="block mb-2 text-sm font-medium text-gray-900">Email</label>
+                            <input asp-for="Email" type="email" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" required>
+                        </div>
 
-						<div class="col-span-2 sm:col-span-1">
-							<label asp-for="Email" class="block mb-2 text-sm font-medium text-gray-900">Email</label>
-							<input asp-for="Email" type="email" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" required>
-						</div>
-
-						<div class="col-span-2 sm:col-span-1">
-							<label asp-for="UserName" class="block mb-2 text-sm font-medium text-gray-900">Username</label>
-							<input asp-for="UserName" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" required>
-						</div>
-					</div>
-					<label asp-for="SavedSkills" class="block mb-2 text-sm font-medium text-gray-900">Skills</label>
-					<div class="flex">
-						@foreach (var skill in Model.SavedSkills)
-						{
-							<div class="inline-flex items-center">
-								<button type="button"
-										class="py-2.5 px-5 me-2 mb-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100">
-									@skill.Name
-								</button>
-							</div>
-						}
-						<a class="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2" asp-area="" asp-controller="Skill" asp-action="EditSkills">
-							Add Skills
-						</a>
-					</div>
-
-					<button type="submit"
-							class="mt-5 text-white inline-flex items-center bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center">
-						Save Changes
-					</button>
-				</form>
-			</div>
-		</div>
-	</div>
+                        <div class="col-span-2 sm:col-span-1">
+                            <label asp-for="UserName" class="block mb-2 text-sm font-medium text-gray-900">Username</label>
+                            <input asp-for="UserName" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" required>
+                        </div>
+                    </div>
+                    <label asp-for="SavedSkills" class="block mb-2 text-sm font-medium text-gray-900">Skills</label>
+                    <div class="flex">
+                        <a class="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2" asp-area="" asp-controller="Skill" asp-action="EditSkills">
+                            Add Skills
+                        </a>
+                        @foreach (var skill in Model.SavedSkills)
+                        {
+                            <div class="inline-flex items-center">
+                                <button type="button"
+                                        class="py-2.5 px-5 me-2 mb-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100">
+                                    @skill.Name
+                                </button>
+                            </div>
+                        }
+                    </div>
+                    <button type="submit"
+                            class="mt-5 text-white inline-flex items-center bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center">
+                        Save Changes
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
