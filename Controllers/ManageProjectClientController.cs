@@ -201,6 +201,15 @@ namespace Freelancing.Controllers
             // Pass AcceptBidId for feedback functionality
             ViewBag.AcceptBidId = project.AcceptedBidId;
 
+            // Check mentorship completion status for freelancer
+            var completedAsMentor = await dbContext.MentorshipMatches
+                .AnyAsync(mm => mm.MentorId == freelancer.Id && mm.Status == "Completed");
+
+            var completedAsMentee = await dbContext.MentorshipMatches
+                .AnyAsync(mm => mm.MenteeId == freelancer.Id && mm.Status == "Completed");
+
+            ViewBag.MentorshipData = (completedAsMentor, completedAsMentee);
+
             // Pass through any success/error messages from contract operations
             if (TempData["Message"] != null)
             {

@@ -102,6 +102,31 @@ namespace Freelancing.Controllers
 
             if (projects == null)
                 return NotFound();
+
+            // Add mentorship completion data for each bidder
+            if (projects.Biddings != null)
+            {
+                foreach (var bid in projects.Biddings)
+                {
+                    if (bid.User != null)
+                    {
+                        // Check if user has completed mentorship as mentor
+                        var completedAsMentor = await dbContext.MentorshipMatches
+                            .AnyAsync(mm => mm.MentorId == bid.User.Id && mm.Status == "Completed");
+
+                        // Check if user has completed mentorship as mentee
+                        var completedAsMentee = await dbContext.MentorshipMatches
+                            .AnyAsync(mm => mm.MenteeId == bid.User.Id && mm.Status == "Completed");
+
+                        // Store this data in ViewBag for the view to access
+                        if (ViewBag.MentorshipData == null)
+                            ViewBag.MentorshipData = new Dictionary<string, (bool, bool)>();
+
+                        ViewBag.MentorshipData[bid.User.Id] = (completedAsMentor, completedAsMentee);
+                    }
+                }
+            }
+
             return View(projects);
         }
         // Displays the form to create a new project.
@@ -384,6 +409,31 @@ namespace Freelancing.Controllers
 
             if (projects == null)
                 return NotFound();
+
+            // Add mentorship completion data for each bidder
+            if (projects.Biddings != null)
+            {
+                foreach (var bid in projects.Biddings)
+                {
+                    if (bid.User != null)
+                    {
+                        // Check if user has completed mentorship as mentor
+                        var completedAsMentor = await dbContext.MentorshipMatches
+                            .AnyAsync(mm => mm.MentorId == bid.User.Id && mm.Status == "Completed");
+
+                        // Check if user has completed mentorship as mentee
+                        var completedAsMentee = await dbContext.MentorshipMatches
+                            .AnyAsync(mm => mm.MenteeId == bid.User.Id && mm.Status == "Completed");
+
+                        // Store this data in ViewBag for the view to access
+                        if (ViewBag.MentorshipData == null)
+                            ViewBag.MentorshipData = new Dictionary<string, (bool, bool)>();
+
+                        ViewBag.MentorshipData[bid.User.Id] = (completedAsMentor, completedAsMentee);
+                    }
+                }
+            }
+
             return View(projects);
         }
         // Accepts a bid for a specific project, marking it as the accepted bid and updating the project accordingly.
@@ -435,6 +485,40 @@ namespace Freelancing.Controllers
 
             return RedirectToAction("ManageBid", new { id = projectId });
         }
+
+        [HttpGet]
+        public async Task<IActionResult> Profile(string? id = null)
+        {
+            // Get the current user's ID
+            var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(currentUserId))
+                return Unauthorized();
+
+            // If no id is provided, show current user's profile
+            var targetUserId = string.IsNullOrEmpty(id) ? currentUserId : id;
+
+            // Get client profile with all related data
+            var client = await dbContext.UserAccounts
+                .Include(u => u.Projects)
+                .ThenInclude(p => p.Biddings)
+                .FirstOrDefaultAsync(u => u.Id == targetUserId);
+
+            if (client == null)
+                return NotFound();
+
+            // Get client's projects
+            var projects = await dbContext.Projects
+                .Where(p => p.UserId == targetUserId)
+                .OrderByDescending(p => p.CreatedAt)
+                .Take(10)
+                .ToListAsync();
+
+            ViewBag.Projects = projects;
+            ViewBag.IsOwnProfile = (currentUserId == targetUserId);
+
+            return View(client);
+        }
+
         [HttpGet]
         public async Task<IActionResult> EditAccount()
         {

@@ -1,0 +1,215 @@
+﻿@using Freelancing.Models.Entities
+@model Freelancing.Models.Entities.UserAccount
+@{
+    Layout = User.IsInRole("Client") ? "_LayoutClient" : "_LayoutFreelancer";
+    ViewData["Title"] = $"{Model.FirstName} {Model.LastName} - Client Profile";
+    var userIsClient = User.IsInRole("Client");
+    var userIsFreelancer = User.IsInRole("Freelancer");
+    var projects = ViewBag.Projects as List<Project> ?? new List<Project>();
+}
+
+<div class="p-4 sm:ml-64">
+    <div class="p-4 mt-20">
+        <div class="mt-4">
+            <div class="min-h-screen">
+                <!-- Header Section -->
+                <div class="bg-white shadow">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                        <div class="flex flex-col md:flex-row items-start space-y-6 md:space-y-0 md:space-x-8">
+                            <!-- Profile Picture -->
+                            <div class="flex-shrink-0">
+                                @if (!string.IsNullOrEmpty(Model.Photo))
+                                {
+                                    <img src="@Model.Photo" alt="Profile Picture" class="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg">
+                                }
+                                else
+                                {
+                                    <img src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497" alt="Default Profile Picture" class="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg">
+                                }
+                            </div>
+
+                            <!-- Profile Info -->
+                            <div class="flex-1 min-w-0 mt-2">
+                                <div class="flex items-center space-x-4 mb-1">
+                                    <h1 class="text-3xl font-bold text-gray-900">@Model.FirstName @Model.LastName</h1>
+
+                                    <!-- Client Badge -->
+                                    <div class="flex items-center space-x-2 bg-purple-50 px-3 py-1 rounded-full">
+                                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                        </svg>
+                                        <span class="text-sm font-medium text-purple-700">Client</span>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                                    @if (!string.IsNullOrEmpty(Model.UserName))
+                                    {
+                                        <div class="flex items-center space-x-2">
+                                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"></path>
+                                            </svg>
+                                            <span>@Model.UserName</span>
+                                        </div>
+                                    }
+                                </div>
+
+                                <!-- Action Buttons -->
+                                <div class="flex flex-wrap gap-3 mt-4">
+                                    @await Html.PartialAsync("_ChatButton", Model.Id)
+                                    <button class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                                        </svg>
+                                        Follow
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Content -->
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <!-- Left Column -->
+                        <div class="lg:col-span-2 space-y-8">
+                            <!-- About Section -->
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <h2 class="text-xl font-semibold text-gray-900 mb-4">About</h2>
+                                <p class="text-gray-600">
+                                    <span class="text-gray-400 italic">No bio available</span>
+                                </p>
+                            </div>
+
+                            <!-- Projects Section -->
+                            @if (projects.Any())
+                            {
+                                <div class="bg-white rounded-lg shadow p-6">
+                                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Projects Posted</h2>
+                                    <div class="space-y-4">
+                                        @foreach (var project in projects)
+                                        {
+                                            <div class="flex items-start justify-between">
+                                                <div class="flex-1">
+                                                    <div class="flex inline-flex">
+                                                        <h3 class="font-medium text-gray-900 text-lg italic">@project.ProjectName</h3>
+                                                        @if (!string.IsNullOrEmpty(project.Status))
+                                                        {
+                                                            var statusColor = project.Status switch
+                                                            {
+                                                                "Active" => "bg-green-100 text-green-800",
+                                                                "Completed" => "bg-blue-100 text-blue-800",
+                                                                "Cancelled" => "bg-red-100 text-red-800",
+                                                                _ => "bg-gray-100 text-gray-800"
+                                                            };
+                                                            <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium @statusColor italic">
+                                                                @project.Status
+                                                            </span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 italic">
+                                                                Open
+                                                            </span>
+                                                        }
+                                                    </div>
+                                                    <p class="text-sm text-gray-600 mt-1 line-clamp-2">@project.ProjectDescription</p>
+                                                    <div class="flex items-center space-x-4 mt-3 text-sm text-gray-500">
+                                                        <span class="flex items-center">
+                                                            Budget: ₱@project.Budget
+                                                        </span>
+                                                        <span class="flex items-center">
+                                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                                                            </svg>
+                                                            @project.Category
+                                                        </span>
+                                                        <span class="flex items-center">
+                                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                                            </svg>
+                                                            @project.CreatedAt.ToString("MMM yyyy")
+                                                        </span>
+                                                    </div>
+
+                                                    <!-- Project Status -->
+                                                    <div class="mt-1">
+                                                        <a href="@Url.Action("Project", userIsClient ? "Client" : "Freelancer", new { id = project.Id })">
+                                                            <button class="mt-2 inline-flex items-center px-3 py-1 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                                                View Details
+                                                            </button>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <hr class="border-gray-300 mb-4">
+                                        }
+                                    </div>
+
+                                    @if (projects.Count >= 10)
+                                    {
+                                        <div class="mt-6 text-center">
+                                            <p class="text-sm text-gray-500">Showing latest 10 projects</p>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="bg-white rounded-lg shadow p-6">
+                                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Projects Posted</h2>
+                                    <div class="text-center py-8">
+                                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 00-2 2v2h2V5z"></path>
+                                        </svg>
+                                        <h3 class="mt-2 text-sm font-medium text-gray-900">No projects yet</h3>
+                                        <p class="mt-1 text-sm text-gray-500">This client hasn't posted any projects yet.</p>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Right Column -->
+                        <div class="space-y-6">
+                            <!-- Stats Card -->
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Statistics</h3>
+                                <div class="space-y-4">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Total Projects</span>
+                                        <span class="font-semibold text-gray-900">@projects.Count</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Active Projects</span>
+                                        <span class="font-semibold text-gray-900">@projects.Count(p => p.Status == "Active")</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Completed Projects</span>
+                                        <span class="font-semibold text-gray-900">@projects.Count(p => p.Status == "Completed")</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Client Information -->
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Client Information</h3>
+                                <div class="space-y-3">
+                                    @if (!string.IsNullOrEmpty(Model.Email))
+                                    {
+                                        <div class="flex items-center space-x-3">
+                                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                            </svg>
+                                            <span class="text-gray-600">@Model.Email</span>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

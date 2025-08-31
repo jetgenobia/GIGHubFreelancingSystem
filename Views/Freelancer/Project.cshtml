@@ -268,8 +268,18 @@
                         }
 						
 						<!-- Action Buttons -->
-						<div class="flex flex-wrap gap-3 mt-6">
-							@await Html.PartialAsync("_ChatButton", Model.User.Id) 
+						<div class="flex inline-flex items-start justify-center space-x-3">
+							<div class="mt-6">
+								@await Html.PartialAsync("_ChatButton", Model.User.Id)
+							</div>
+							<a href="@Url.Action("Client", "Profile", new { id = Model.User.Id })"
+							   class="mt-6 inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 transition-colors duration-200"
+							   title="View Profile">
+								<svg class="w-4 h-4 mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+									<path fill-rule="evenodd" d="M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm-2 9a4 4 0 0 0-4 4v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1a4 4 0 0 0-4-4h-4Z" clip-rule="evenodd" />
+								</svg>
+								View Profile
+							</a>
 						</div>
 					</div>
 				</div>
@@ -302,8 +312,43 @@
 							{
 								<img src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497" alt="Default Profile Picture" class="w-32 h-32 rounded-full object-cover border-4 border-gray-200 shadow-lg">
 							}
+							@{
+								var mentorshipData = ViewBag.MentorshipData as Dictionary<string, (bool, bool)>;
+								var userMentorshipData = mentorshipData?.GetValueOrDefault(bid.User.Id.ToString(), (false, false));
+								var hasCompletedAsMentor = userMentorshipData?.Item1 ?? false;
+								var hasCompletedAsMentee = userMentorshipData?.Item2 ?? false;
+							}
+
+							@if (hasCompletedAsMentor || hasCompletedAsMentee)
+							{
+								<div class="mt-4">
+									<div class="flex items-center justify-center space-x-2">
+										@if (hasCompletedAsMentor)
+										{
+											<div class="flex items-center justify-center space-x-2">
+												<img class="w-8 h-8" data-tooltip-target="tooltip-bottom" data-tooltip-placement="bottom"
+													 src="https://ik.imagekit.io/6txj3mofs/mentor(1).png" alt="Mentor Badge" />
+												<div id="tooltip-bottom" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip">
+													Badge for completing a mentorship as a mentor
+													<div class="tooltip-arrow" data-popper-arrow></div>
+												</div>
+											</div>
+										}
+										@if (hasCompletedAsMentee)
+										{
+											<div class="flex items-center justify-center space-x-2">
+												<img class="w-8 h-8" data-tooltip-target="tooltip-bottom" data-tooltip-placement="bottom"
+													 src="https://ik.imagekit.io/6txj3mofs/mentee.png" alt="Mentee Badge" />
+												<div id="tooltip-bottom" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip">
+													Badge for completing a mentorship as a mentee
+													<div class="tooltip-arrow" data-popper-arrow></div>
+												</div>
+											</div>
+										}
+									</div>
+								</div>
+							}
 						</div>
-						
 						<!-- Profile Information -->
 						<div class="flex-1 min-w-0">
 							<h3 class="text-2xl font-bold text-gray-900 mb-2">@(bid.User?.FirstName) @(bid.User?.LastName)</h3>
@@ -342,10 +387,18 @@
                                     </div>
                                 </div>
                             }
-							
-							<!-- Action Buttons -->
-							<div class="flex flex-wrap gap-3 mt-6">
-								@await Html.PartialAsync("_ChatButton", bid.User.Id)
+							<div class="flex inline-flex items-start justify-center space-x-3">
+								<div class="mt-6">
+									@await Html.PartialAsync("_ChatButton", bid.User.Id)
+								</div>
+								<a href="@Url.Action("Freelancer", "Profile", new { id = bid.User.Id })"
+								   class="mt-6 inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 transition-colors duration-200"
+								   title="View Profile">
+									<svg class="w-4 h-4 mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+										<path fill-rule="evenodd" d="M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm-2 9a4 4 0 0 0-4 4v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1a4 4 0 0 0-4-4h-4Z" clip-rule="evenodd" />
+									</svg>
+									View Profile
+								</a>
 							</div>
 						</div>
 					</div>
