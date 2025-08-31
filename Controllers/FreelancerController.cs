@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication;
+﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +10,7 @@ using System;
 using Microsoft.CodeAnalysis;
 using System.Security.Claims;
 using System.Text.Json;
+using Microsoft.AspNetCore.Identity;
 
 namespace Freelancing.Controllers
 {
@@ -20,11 +20,15 @@ namespace Freelancing.Controllers
     {
         private readonly ApplicationDbContext dbContext;
         private readonly INotificationService notificationService;
-        
-        public FreelancerController(ApplicationDbContext context, INotificationService notificationService)
+        private readonly UserManager<UserAccount> _userManager;
+        private readonly SignInManager<UserAccount> _signInManager;
+
+        public FreelancerController(ApplicationDbContext context, INotificationService notificationService, UserManager<UserAccount> userManager, SignInManager<UserAccount> signInManager)
         {
             this.dbContext = context;
             this.notificationService = notificationService;
+            this._userManager = userManager;
+            this._signInManager = signInManager;
         }
 
         // Helper method to generate unique filename while preserving original name
@@ -91,7 +95,7 @@ namespace Freelancing.Controllers
         }
         // Displays the details of a specific project, including its bids and the user who posted it.
         [HttpGet]
-        public async Task<IActionResult> Project(Guid Id)
+        public async Task<IActionResult> Project(Guid id)
         {
             var projects = await dbContext.Projects
                 .Include(p => p.User)
@@ -101,7 +105,7 @@ namespace Freelancing.Controllers
                 .ThenInclude(uas => uas.UserSkill)
                 .Include(p => p.ProjectSkills)
                 .ThenInclude(ps => ps.UserSkill)
-                .FirstOrDefaultAsync(p => p.Id == Id);
+                .FirstOrDefaultAsync(p => p.Id == id);
 
             if (projects == null)
                 return NotFound();
@@ -109,9 +113,9 @@ namespace Freelancing.Controllers
         }
         // Allows a freelancer to place a bid on a project. If the freelancer has already placed a bid, it redirects them with a message.
         [HttpGet]
-        public async Task<IActionResult> Bid(Guid Id)
+        public async Task<IActionResult> Bid(Guid id)
         {
-            var project = await dbContext.Projects.FindAsync(Id);
+            var project = await dbContext.Projects.FindAsync(id);
             if (project == null)
             {
                 return NotFound();
@@ -156,7 +160,7 @@ namespace Freelancing.Controllers
 
             // Handle file uploads for previous works
             var uploadedFilePaths = new List<string>();
-            
+
             // Process newly uploaded files
             if (viewModel.Bidding.PreviousWorksFiles != null && viewModel.Bidding.PreviousWorksFiles.Any())
             {
@@ -203,7 +207,7 @@ namespace Freelancing.Controllers
                     }
                 }
             }
-            
+
 
 
             var bidding = new Bidding
@@ -222,19 +226,19 @@ namespace Freelancing.Controllers
 
             // Get the freelancer's information for the notification
             var freelancer = await dbContext.UserAccounts.FindAsync(userId);
-            
+
             // Create notification for the project owner
             var notificationTitle = "New Bid Received";
             var notificationMessage = $"You received a new bid from {freelancer?.FirstName} {freelancer?.LastName} on your project '{project.ProjectName}'";
             var notificationIconSvg = "<svg viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><g id=\"SVGRepo_bgCarrier\" stroke-width=\"0\"></g><g id=\"SVGRepo_tracerCarrier\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></g><g id=\"SVGRepo_iconCarrier\"> <path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M17.4964 21.9284C17.844 21.7894 18.1491 21.6495 18.4116 21.5176C18.9328 22.4046 19.8969 23 21 23C22.6569 23 24 21.6568 24 20V14C24 12.3431 22.6569 11 21 11C19.5981 11 18.4208 11.9616 18.0917 13.2612C17.8059 13.3614 17.5176 13.4549 17.2253 13.5384C16.3793 13.7801 15.3603 13.9999 14.5 13.9999C13.2254 13.9999 10.942 13.5353 9.62034 13.2364C8.61831 13.0098 7.58908 13.5704 7.25848 14.5622L6.86313 15.7483C5.75472 15.335 4.41275 14.6642 3.47619 14.1674C2.42859 13.6117 1.09699 14.0649 0.644722 15.1956L0.329309 15.9841C0.0210913 16.7546 0.215635 17.6654 0.890813 18.2217C1.66307 18.8581 3.1914 20.0378 5.06434 21.063C6.91913 22.0782 9.21562 22.9999 11.5 22.9999C14.1367 22.9999 16.1374 22.472 17.4964 21.9284ZM20 20C20 20.5523 20.4477 21 21 21C21.5523 21 22 20.5523 22 20V14C22 13.4477 21.5523 13 21 13C20.4477 13 20 13.4477 20 14V20ZM14.5 15.9999C12.9615 15.9999 10.4534 15.4753 9.17918 15.1872C9.17918 15.1872 8.84483 16.1278 8.7959 16.2745L12.6465 17.2776C13.1084 17.3979 13.372 17.8839 13.2211 18.3367C13.0935 18.7194 12.7092 18.9536 12.3114 18.8865C11.0903 18.6805 8.55235 18.2299 7.25848 17.8365C5.51594 17.3066 3.71083 16.5559 2.53894 15.9342C2.53894 15.9342 2.22946 16.6189 2.19506 16.7049C2.92373 17.3031 4.32792 18.3799 6.0246 19.3086C7.76488 20.2611 9.70942 20.9999 11.5 20.9999C15.023 20.9999 17.1768 19.9555 18 19.465V15.3956C16.8681 15.7339 15.6865 15.9999 14.5 15.9999Z\" fill=\"#0F0F0F\"></path> <path d=\"M12 1C11.4477 1 11 1.44772 11 2V7.58564L9.7071 6.29278C9.3166 5.9024 8.68342 5.9024 8.29292 6.29278C7.90235 6.68341 7.90235 7.31646 8.29292 7.70709L11.292 10.7063C11.6823 11.0965 12.3149 11.0968 12.7055 10.707L15.705 7.71368C16.0955 7.3233 16.0955 6.69 15.705 6.29962C15.3145 5.90899 14.6813 5.90899 14.2908 6.29962L13 7.59034V2C13 1.44772 12.5523 1 12 1Z\" fill=\"#0F0F0F\"></path> </g></svg>";
             var relatedUrl = $"/Client/ManageBid/{project.Id}";
-            
+
             await notificationService.CreateNotificationAsync(
-                project.UserId, 
-                notificationTitle, 
-                notificationMessage, 
-                "bid", 
-                notificationIconSvg, 
+                project.UserId,
+                notificationTitle,
+                notificationMessage,
+                "bid",
+                notificationIconSvg,
                 relatedUrl
             );
 
@@ -323,7 +327,7 @@ namespace Freelancing.Controllers
                     if (existingFilePaths.Contains(filePath))
                     {
                         existingFilePaths.Remove(filePath);
-                        
+
                         // Delete the physical file
                         var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", filePath.TrimStart('/'));
                         if (System.IO.File.Exists(fullPath))
@@ -342,7 +346,7 @@ namespace Freelancing.Controllers
                 }
 
                 var uploadedFilePaths = new List<string>();
-                
+
                 if (viewModel.Bidding.PreviousWorksFiles != null && viewModel.Bidding.PreviousWorksFiles.Any())
                 {
                     var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".svg", ".pdf", ".doc", ".docx", ".txt", ".zip", ".mp4", ".mov", ".avi" };
@@ -492,16 +496,16 @@ namespace Freelancing.Controllers
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
-            // Fetch user account
-            var userAccount = await dbContext.UserAccounts.FindAsync(userId);
+            // Fetch user account using UserManager instead of DbContext
+            var userAccount = await _userManager.FindByIdAsync(userId);
             if (userAccount == null)
                 return NotFound();
 
-            // Check for existing username/email
-            var existingUserWithUsername = await dbContext.UserAccounts
-                .FirstOrDefaultAsync(u => u.UserName == viewModel.UserName && u.Id.ToString() != userId);
-            var existingUserWithEmail = await dbContext.UserAccounts
-                .FirstOrDefaultAsync(u => u.Email == viewModel.Email && u.Id.ToString() != userId);
+            // Check for existing username/email (excluding current user)
+            var existingUserWithUsername = await _userManager.Users
+                .FirstOrDefaultAsync(u => u.UserName == viewModel.UserName && u.Id != userId);
+            var existingUserWithEmail = await _userManager.Users
+                .FirstOrDefaultAsync(u => u.Email == viewModel.Email && u.Id != userId);
 
             if (existingUserWithEmail != null)
             {
@@ -517,33 +521,17 @@ namespace Freelancing.Controllers
 
             // Track if any changes were made
             bool hasChanges = false;
-            bool nameChanged = false;
-            bool photoChanged = false;
 
             // Check and update user account fields only if they changed
             if (userAccount.FirstName != viewModel.FirstName)
             {
                 userAccount.FirstName = viewModel.FirstName;
                 hasChanges = true;
-                nameChanged = true;
             }
 
             if (userAccount.LastName != viewModel.LastName)
             {
                 userAccount.LastName = viewModel.LastName;
-                hasChanges = true;
-                nameChanged = true;
-            }
-
-            if (userAccount.Email != viewModel.Email)
-            {
-                userAccount.Email = viewModel.Email;
-                hasChanges = true;
-            }
-
-            if (userAccount.UserName != viewModel.UserName)
-            {
-                userAccount.UserName = viewModel.UserName;
                 hasChanges = true;
             }
 
@@ -589,6 +577,7 @@ namespace Freelancing.Controllers
                         }
                         catch
                         {
+                            // Ignore file deletion errors
                         }
                     }
                 }
@@ -602,20 +591,53 @@ namespace Freelancing.Controllers
                 userAccount.Photo = $"/uploads/profiles/{fileName}";
                 viewModel.Photo = userAccount.Photo;
                 hasChanges = true;
-                photoChanged = true;
             }
 
-            // Only save if there were actual changes
+            // Update email if changed
+            if (userAccount.Email != viewModel.Email)
+            {
+                var emailResult = await _userManager.SetEmailAsync(userAccount, viewModel.Email);
+                if (!emailResult.Succeeded)
+                {
+                    foreach (var error in emailResult.Errors)
+                    {
+                        ModelState.AddModelError("Email", error.Description);
+                    }
+                    return View(viewModel);
+                }
+                hasChanges = true;
+            }
+
+            // Update username if changed
+            if (userAccount.UserName != viewModel.UserName)
+            {
+                var usernameResult = await _userManager.SetUserNameAsync(userAccount, viewModel.UserName);
+                if (!usernameResult.Succeeded)
+                {
+                    foreach (var error in usernameResult.Errors)
+                    {
+                        ModelState.AddModelError("UserName", error.Description);
+                    }
+                    return View(viewModel);
+                }
+                hasChanges = true;
+            }
+
+            // Save other changes using UserManager
             if (hasChanges)
             {
-                dbContext.Entry(userAccount).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
-                await dbContext.SaveChangesAsync();
-
-                // Refresh the authentication cookie with updated claims if name, email, username, or photo changed
-                if (nameChanged || photoChanged)
+                var updateResult = await _userManager.UpdateAsync(userAccount);
+                if (!updateResult.Succeeded)
                 {
-                    await RefreshUserClaims(userAccount);
+                    foreach (var error in updateResult.Errors)
+                    {
+                        ModelState.AddModelError("", error.Description);
+                    }
+                    return View(viewModel);
                 }
+
+                // Refresh the user claims after successful update
+                await RefreshUserClaims(userAccount);
 
                 ViewBag.Message = "Account updated successfully!";
             }
@@ -624,6 +646,8 @@ namespace Freelancing.Controllers
                 ViewBag.Message = "No changes were detected.";
             }
 
+            // Reload the user to get the most up-to-date information
+            userAccount = await _userManager.FindByIdAsync(userId);
             var finalViewModel = await PopulateEditAccountViewModel(userId, userAccount);
             return View(finalViewModel);
         }
@@ -648,50 +672,9 @@ namespace Freelancing.Controllers
             };
         }
 
-        // Updated method to refresh claims
         private async Task RefreshUserClaims(UserAccount userAccount)
         {
-            if (User.Identity == null)
-                return;
-                
-            var identity = (ClaimsIdentity)User.Identity;
-
-            // Update FullName claim
-            var existingFullNameClaim = identity.FindFirst("FullName");
-            if (existingFullNameClaim != null)
-            {
-                identity.RemoveClaim(existingFullNameClaim);
-            }
-            var fullName = $"{userAccount.FirstName ?? string.Empty} {userAccount.LastName ?? string.Empty}";
-            identity.AddClaim(new Claim("FullName", fullName));
-
-            // Update Email claim
-            var existingEmailClaim = identity.FindFirst(ClaimTypes.Email);
-            if (existingEmailClaim != null)
-            {
-                identity.RemoveClaim(existingEmailClaim);
-            }
-            identity.AddClaim(new Claim(ClaimTypes.Email, userAccount.Email ?? string.Empty));
-
-            // Update Username claim
-            var existingUsernameClaim = identity.FindFirst(ClaimTypes.Name);
-            if (existingUsernameClaim != null)
-            {
-                identity.RemoveClaim(existingUsernameClaim);
-            }
-            identity.AddClaim(new Claim(ClaimTypes.Name, userAccount.UserName ?? string.Empty));
-
-            // Update Photo claim
-            var existingPhotoClaim = identity.FindFirst("Photo");
-            if (existingPhotoClaim != null)
-            {
-                identity.RemoveClaim(existingPhotoClaim);
-            }
-            identity.AddClaim(new Claim("Photo", userAccount.Photo ?? string.Empty));
-
-            // Use SignInManager to refresh the authentication cookie with updated claims
-            var principal = new ClaimsPrincipal(identity);
-            await HttpContext.SignInAsync(principal);
+            await _signInManager.RefreshSignInAsync(userAccount);
         }
     }
 }

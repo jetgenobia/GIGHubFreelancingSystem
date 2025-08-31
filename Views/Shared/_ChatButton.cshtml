@@ -1,8 +1,8 @@
-@model Guid
+@model string
 
 @{
     var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-    var isCurrentUser = currentUserId == Model.ToString();
+    var isCurrentUser = currentUserId == Model;
 }
 
 @if (!isCurrentUser)

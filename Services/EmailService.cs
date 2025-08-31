@@ -45,7 +45,7 @@ namespace Freelancing.Services
         {
             var subject = "Confirm your email address";
             var body = $@"
-                <img src=""https://ik.imagekit.io/6txj3mofs/GIGHub%20(2).png?updatedAt=1749718355580"" alt=""GigHub Logo"" style=""width: 200px; height: auto;"">
+                <img src=""https://ik.imagekit.io/6txj3mofs/GIGHub%20(2).png?updatedAt=1749718355580"" alt=""GigHub Logo"" style=""width: 120px; height: auto;"">
                 <h2>Welcome to GigHub!</h2>
                 <p>Please confirm your email address by clicking the link below:</p>
                 <p><a href='{callbackUrl}'>Confirm Email</a></p>
@@ -59,7 +59,7 @@ namespace Freelancing.Services
         {
             var subject = "Reset your password";
             var body = $@"
-                <img src=""https://ik.imagekit.io/6txj3mofs/GIGHub%20(2).png?updatedAt=1749718355580"" alt=""GigHub Logo"" style=""width: 200px; height: auto;"">
+                <img src=""https://ik.imagekit.io/6txj3mofs/GIGHub%20(2).png?updatedAt=1749718355580"" alt=""GigHub Logo"" style=""width: 120px; height: auto;"">
                 <h2>Password Reset Request</h2>
                 <p>You requested a password reset. Click the link below to reset your password:</p>
                 <p><a href='{callbackUrl}'>Reset Password</a></p>

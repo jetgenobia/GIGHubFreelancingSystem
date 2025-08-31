@@ -22,6 +22,14 @@ builder.Services.AddSession(options =>
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("Freelancing")));
 
+// Configure Authentication
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = IdentityConstants.ApplicationScheme;
+    options.DefaultSignInScheme = IdentityConstants.ApplicationScheme;
+    options.DefaultChallengeScheme = IdentityConstants.ApplicationScheme;
+});
+
 // Configure Identity
 builder.Services.AddIdentity<UserAccount, IdentityRole>(options =>
 {
@@ -61,7 +69,7 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.ExpireTimeSpan = TimeSpan.FromHours(2);
 });
 
-// Remove old password hasher and authentication - now handled by Identity
+builder.Services.AddScoped<IUserClaimsPrincipalFactory<UserAccount>, CustomUserClaimsPrincipalFactory>();
 
 // Add email service
 builder.Services.AddScoped<IEmailService, EmailService>();

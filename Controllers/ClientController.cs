@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Identity;
 
 namespace Freelancing.Controllers
 {
@@ -18,11 +19,15 @@ namespace Freelancing.Controllers
     {
         private readonly ApplicationDbContext dbContext;
         private readonly INotificationService notificationService;
-        
-        public ClientController(ApplicationDbContext context, INotificationService notificationService)
+        private readonly UserManager<UserAccount> _userManager;
+        private readonly SignInManager<UserAccount> _signInManager;
+
+        public ClientController(ApplicationDbContext context, INotificationService notificationService, UserManager<UserAccount> userManager, SignInManager<UserAccount> signInManager)
         {
             this.dbContext = context;
             this.notificationService = notificationService;
+            this._userManager = userManager;
+            this._signInManager = signInManager;
         }
 
         // Helper method to generate unique filename while preserving original name
@@ -83,7 +88,7 @@ namespace Freelancing.Controllers
             return View(project);
         }
         [HttpGet]
-        public async Task<IActionResult> Project(Guid Id)
+        public async Task<IActionResult> Project(Guid id)
         {
             var projects = await dbContext.Projects
                 .Include(p => p.User)
@@ -93,7 +98,7 @@ namespace Freelancing.Controllers
                 .ThenInclude(uas => uas.UserSkill)
                 .Include(p => p.ProjectSkills)
                 .ThenInclude(ps => ps.UserSkill)
-                .FirstOrDefaultAsync(p => p.Id == Id);
+                .FirstOrDefaultAsync(p => p.Id == id);
 
             if (projects == null)
                 return NotFound();
@@ -240,12 +245,12 @@ namespace Freelancing.Controllers
         }
         // Displays the form to edit an existing project.
         [HttpGet]
-        public async Task<IActionResult> EditPost(Guid Id, string message = null)
+        public async Task<IActionResult> EditPost(Guid id, string message = null)
         {
             var project = await dbContext.Projects
                 .Include(p => p.ProjectSkills)
                 .ThenInclude(ps => ps.UserSkill)
-                .FirstOrDefaultAsync(p => p.Id == Id);
+                .FirstOrDefaultAsync(p => p.Id == id);
 
             if (project == null)
                 return NotFound();
@@ -366,7 +371,7 @@ namespace Freelancing.Controllers
         }
         // Displays the bids for a specific project and allows the client to manage them.
         [HttpGet]
-        public async Task<IActionResult> ManageBid(Guid Id)
+        public async Task<IActionResult> ManageBid(Guid id)
         {
             var projects = await dbContext.Projects
                 .Include(p => p.Biddings)
@@ -375,7 +380,7 @@ namespace Freelancing.Controllers
                 .ThenInclude(uas => uas.UserSkill)
                 .Include(p => p.ProjectSkills)
                 .ThenInclude(ps => ps.UserSkill)
-                .FirstOrDefaultAsync(p => p.Id == Id);
+                .FirstOrDefaultAsync(p => p.Id == id);
 
             if (projects == null)
                 return NotFound();
@@ -434,8 +439,8 @@ namespace Freelancing.Controllers
         public async Task<IActionResult> EditAccount()
         {
             // Get the user ID from the claims
-            var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out Guid userId))
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
             // Fetch the user account details from the database
@@ -585,14 +590,52 @@ namespace Freelancing.Controllers
             // Only save if there were actual changes
             if (hasChanges)
             {
+                // Update normalized fields through UserManager to ensure Identity consistency
+                if (userAccount.Email != viewModel.Email)
+                {
+                    var emailResult = await _userManager.SetEmailAsync(userAccount, viewModel.Email);
+                    if (!emailResult.Succeeded)
+                    {
+                        foreach (var error in emailResult.Errors)
+                        {
+                            ModelState.AddModelError("Email", error.Description);
+                        }
+                        return View(viewModel);
+                    }
+                    
+                    // Explicitly update the normalized email to ensure it's updated
+                    userAccount.NormalizedEmail = viewModel.Email.ToUpperInvariant();
+                }
+
+                if (userAccount.UserName != viewModel.UserName)
+                {
+                    var usernameResult = await _userManager.SetUserNameAsync(userAccount, viewModel.UserName);
+                    if (!usernameResult.Succeeded)
+                    {
+                        foreach (var error in usernameResult.Errors)
+                        {
+                            ModelState.AddModelError("UserName", error.Description);
+                        }
+                        return View(viewModel);
+                    }
+                    
+                    // Explicitly update the normalized username to ensure it's updated
+                    userAccount.NormalizedUserName = viewModel.UserName.ToUpperInvariant();
+                }
+
+                // Save other changes to the database
                 dbContext.Entry(userAccount).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
                 await dbContext.SaveChangesAsync();
 
-                // Refresh the authentication cookie with updated claims if name, email, username, or photo changed
-                if (nameChanged || photoChanged)
-                {
-                    await RefreshUserClaims(userAccount);
-                }
+                // Force a complete refresh from the database to get the updated normalized fields
+                await dbContext.Entry(userAccount).ReloadAsync();
+                
+                // Also update the local object properties to ensure consistency
+                userAccount.Email = viewModel.Email;
+                userAccount.UserName = viewModel.UserName;
+
+                // Always refresh claims when there are changes since all fields affect claims
+                await RefreshUserClaims(userAccount);
 
                 ViewBag.Message = "Account updated successfully!";
             }
@@ -607,46 +650,7 @@ namespace Freelancing.Controllers
         // Updated method to refresh claims
         private async Task RefreshUserClaims(UserAccount userAccount)
         {
-            if (User.Identity == null)
-                return;
-                
-            var identity = (ClaimsIdentity)User.Identity;
-
-            // Update FullName claim
-            var existingFullNameClaim = identity.FindFirst("FullName");
-            if (existingFullNameClaim != null)
-            {
-                identity.RemoveClaim(existingFullNameClaim);
-            }
-            var fullName = $"{userAccount.FirstName ?? string.Empty} {userAccount.LastName ?? string.Empty}";
-            identity.AddClaim(new Claim("FullName", fullName));
-
-            // Update Email claim
-            var existingEmailClaim = identity.FindFirst(ClaimTypes.Email);
-            if (existingEmailClaim != null)
-            {
-                identity.RemoveClaim(existingEmailClaim);
-            }
-            identity.AddClaim(new Claim(ClaimTypes.Email, userAccount.Email ?? string.Empty));
-
-            // Update Username claim
-            var existingUsernameClaim = identity.FindFirst(ClaimTypes.Name);
-            if (existingUsernameClaim != null)
-            {
-                identity.RemoveClaim(existingUsernameClaim);
-            }
-            identity.AddClaim(new Claim(ClaimTypes.Name, userAccount.UserName ?? string.Empty));
-
-            // Update Photo claim
-            var existingPhotoClaim = identity.FindFirst("Photo");
-            if (existingPhotoClaim != null)
-            {
-                identity.RemoveClaim(existingPhotoClaim);
-            }
-            identity.AddClaim(new Claim("Photo", userAccount.Photo ?? string.Empty));
-
-            var principal = new ClaimsPrincipal(identity);
-            await HttpContext.SignInAsync(principal);
+            await _signInManager.RefreshSignInAsync(userAccount);
         }
     }
 }
