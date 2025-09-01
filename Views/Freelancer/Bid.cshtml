@@ -21,25 +21,25 @@
                             <label for="budget" class="block mb-2 text-sm font-medium text-gray-900">Bid Amount</label>
                             <div class="relative">
                                 <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">₱</span>
-                                <input type="text" asp-for="Bidding.Budget" value="@(Model.Bidding.Budget == 0 ? "" : Model.Bidding.Budget.ToString())" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 pl-7" required="">
+                                <input type="text" asp-for="Bidding.Budget" value="@(Model.Bidding.Budget == 0 ? "" : Model.Bidding.Budget.ToString())" class="form-control border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 pl-7" required="">
                             </div>
                         </div>
                         <div class="col-span-2 sm:col-span-1">
                             <label for="delivery" class="block mb-2 text-sm font-medium text-gray-900">Delivery Time</label>
                             <div class="relative">
-                                <input type="text" asp-for="Bidding.Delivery" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 pl-7"
+                                <input type="text" asp-for="Bidding.Delivery" class="form-control border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 pl-7"
                                        placeholder="Proposed days/weeks/months to accomplish"
                                        required="">
                             </div>
                         </div>
                         <div class="col-span-2">
                             <label for="description" class="block mb-2 text-sm font-medium text-gray-900">Proposal</label>
-                            <textarea rows="4" asp-for="Bidding.Proposal" class="form-control block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500" placeholder="Proposal/Why should the client hire you?" required></textarea>
+                            <textarea rows="4" asp-for="Bidding.Proposal" class="form-control block p-2.5 w-full text-sm text-gray-900 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500" placeholder="Proposal/Why should the client hire you?" required></textarea>
                         </div>
                         <div class="col-span-2 sm:col-span-1">
                             <label for="previous-works-files" class="block mb-2 text-sm font-medium text-gray-900">Upload Previous Works</label>
-                            <div class="flex items-center justify-center w-full h-64 mt-3">
-                                <label for="previous-works-files" class="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors duration-200">
+                            <div class="flex items-center justify-center w-full h-64 mt-3 bg-white">
+                                <label for="previous-works-files" class="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:bg-gray-100 transition-colors duration-200">
                                     <div class="flex flex-col items-center justify-center pt-5 pb-6" id="previous-works-placeholder">
                                         <svg class="w-8 h-8 mb-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
                                             <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2" />
@@ -74,7 +74,7 @@
                         </div>
                         <div class="col-span-2 sm:col-span-1">
                             <label for="uploaded-previous-works" class="block mb-2 text-sm font-medium text-gray-900 mt-1">Uploaded Previous Works</label>
-                            <div id="uploaded-previous-works-container" class="h-64 p-3 bg-gray-50 rounded-lg border border-gray-200 overflow-y-auto">
+                            <div id="uploaded-previous-works-container" class="h-64 p-3 rounded-lg border border-gray-200 overflow-y-auto bg-white">
                                 <div class="flex items-center justify-center text-gray-500 py-8" id="no-files-message">
                                     <p>No files uploaded yet.</p>
                                 </div>
@@ -85,7 +85,7 @@
                             <label for="repository-links" class="block mb-2 text-sm font-medium text-gray-900">Repository/Drive Links</label>
                             <div class="space-y-2">
                                 <div class="flex items-center space-x-2">
-                                    <input type="url" id="repository-link-input" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 pl-7" placeholder="https://github.com/username/repo or https://drive.google.com/..." />
+                                    <input type="url" id="repository-link-input" class="form-control border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 pl-7" placeholder="https://github.com/username/repo or https://drive.google.com/..." />
                                     <button type="button" id="add-link-btn" class="px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300">
                                         Add
                                     </button>

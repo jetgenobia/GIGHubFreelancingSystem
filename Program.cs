@@ -20,7 +20,8 @@ builder.Services.AddSession(options =>
 });
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("Freelancing")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("Freelancing"),
+        sqlOptions => sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
 
 // Configure Authentication
 builder.Services.AddAuthentication(options =>

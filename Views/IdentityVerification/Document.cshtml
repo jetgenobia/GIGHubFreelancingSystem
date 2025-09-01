@@ -63,13 +63,13 @@
                                                                 <div class="grid gap-4 mb-7 grid-cols-2">
                                                                     <div class="col-span-2 sm:col-span-1">
                                                                         <label asp-for="IdDocumentNumber" class="form-label ml-2 font-light mb-3">ID Number <span class="text-red-500">*</span></label>
-                                                                        <input asp-for="IdDocumentNumber" class="mt-3 form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" placeholder="Enter your ID number" required />
+                                                                        <input asp-for="IdDocumentNumber" class="mt-3 form-control border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" placeholder="Enter your ID number" required />
                                                                         <span asp-validation-for="IdDocumentNumber" class="text-danger"></span>
                                                                     </div>
 
                                                                     <div class="col-span-2 sm:col-span-1">
                                                                         <label asp-for="IdDocumentExpiryDate" class="form-label ml-2 font-light mb-3">Expiry Date <span class="text-red-500" id="expiryRequired">*</span></label>
-                                                                        <input asp-for="IdDocumentExpiryDate" type="date" class="mt-3 form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:ring-2 block w-full p-2.5" value="@(Model.IdDocumentExpiryDate?.ToString("yyyy-MM-dd") ?? DateTime.Today.ToString("yyyy-MM-dd"))" />
+                                                                        <input asp-for="IdDocumentExpiryDate" type="date" class="mt-3 form-control border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:ring-2 block w-full p-2.5" value="@(Model.IdDocumentExpiryDate?.ToString("yyyy-MM-dd") ?? DateTime.Today.ToString("yyyy-MM-dd"))" />
                                                                         <span asp-validation-for="IdDocumentExpiryDate" class="text-danger"></span>
                                                                         <div class="flex items-center mt-2">
                                                                             <input asp-for="IdDocumentHasNoExpiration" id="noExpirationCheckbox" type="checkbox" class="w-4 h-4 text-[#41b8d5] bg-gray-100 border-gray-300 rounded-sm focus:ring-[#41b8d5] focus:ring-2">
@@ -88,7 +88,7 @@
                                                                             Upload New Document
                                                                             <span class="text-gray-400">(Optional)</span>
                                                                         </label>
-                                                                        <input asp-for="IdDocumentImage" type="file" class="mt-3 form-control block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none" aria-describedby="file_input_help" accept="image/*">
+                                                                        <input asp-for="IdDocumentImage" type="file" class="mt-3 form-control block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer focus:outline-none" aria-describedby="file_input_help" accept="image/*">
                                                                         <p class="mt-1 text-sm text-gray-500" id="file_input_help">Upload a new document or leave empty to use the existing one (Max: 10MB)</p>
   
                                                                         <!-- Document Preview - Moved below upload instructions -->
@@ -167,7 +167,7 @@
                                                                     {
                                                                         <!-- Show required file upload for new submissions -->
                                                                         <label asp-for="IdDocumentImage" class="form-label ml-2 font-light mb-3">Upload ID Document <span class="text-red-500">*</span></label>
-                                                                        <input asp-for="IdDocumentImage" type="file" class="mt-3 form-control block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none" aria-describedby="file_input_help" accept="image/*" required>
+                                                                        <input asp-for="IdDocumentImage" type="file" class="mt-3 form-control block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer focus:outline-none" aria-describedby="file_input_help" accept="image/*" required>
                                                                         <p class="mt-1 text-sm text-gray-500" id="file_input_help">Upload a clear, high-resolution image of your ID document (Max: 10MB)</p>
   
                                                                         <!-- New Image Preview -->

@@ -1,111 +1,112 @@
 ﻿@{
-	Layout = "_LayoutFreelancer";
-	ViewData["Title"] = "Dashboard";
+    Layout = "_LayoutFreelancer";
+    ViewData["Title"] = "Dashboard";
 }
 
 @model Freelancing.Models.FreelancerDashboard
 
 <div class="p-4 sm:ml-64">
-	<div class="p-4 mt-20">
-		<div class="mb-4">
-			<h4 class="text-2xl text-dark font-bold">
-				Hello, @(User.FindFirst("FullName")?.Value ?? "User")
-			</h4>
-		</div>
+    <div class="p-4 mt-20">
+        <div class="block w-full p-6">
+            <div class="mb-4">
+                <h4 class="text-2xl text-dark font-bold">
+                    Hello, @(User.FindFirst("FullName")?.Value ?? "User")
+                </h4>
+            </div>
 
-		<div class="w-full p-4 mb-4 text-left bg-white border border-gray-200 rounded-lg shadow-sm sm:p-8 dark:bg-gray-800 dark:border-gray-700">
-			<h5 class="mb-2 text-3xl font-bold text-gray-900 dark:text-white">Total Accepted Bids</h5>
-			<div class="flex items-center justify-between">
-				<h5 id="totalProject" class="mb-2 text-3xl font-bold text-gray-900 dark:text-white">@ViewBag.TotalAccepted</h5>
-			</div>
-		</div>
+            <div class="w-full p-4 mb-4 text-left bg-white border border-gray-200 rounded-lg shadow-sm sm:p-8 dark:bg-gray-800 dark:border-gray-700">
+                <h5 class="mb-2 text-3xl font-bold text-gray-900 dark:text-white">Total Accepted Bids</h5>
+                <div class="flex items-center justify-between">
+                    <h5 id="totalProject" class="mb-2 text-3xl font-bold text-gray-900 dark:text-white">@ViewBag.TotalAccepted</h5>
+                </div>
+            </div>
 
-		<div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-2 gap-4 mb-4">
 
-			<div class="w-full max-w p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
-				<div class="flex items-center justify-between mb-4">
-					<h5 class="text-xl font-bold leading-none text-gray-900">Sent Biddings</h5>
-				</div>
-				<div class="flow-root">
-					<ul role="list" class="divide-y divide-gray-300">
-						@foreach (var bid in Model.Biddings)
-						{
-							<li class="py-3 sm:py-4">
-								<div class="flex items-center">
-									<div class="flex-1 min-w-0">
-										<p class="text-md font-medium text-gray-900 truncate">
-											@bid.Project.ProjectName
-										</p>
-										<div class="flex items-center">
-											<h5 class="text-sm font-light tracking-tight text-gray-900">Proposed Budget:</h5>
-											<span class="ms-2 text-sm font-light tracking-tight text-gray-900">₱@bid.Budget</span>
-										</div>
-										<div class="flex items-center mb-2">
-											<h5 class="text-sm font-light tracking-tight text-gray-900">Proposed Delivery Time:</h5>
-											<span class="ms-2 text-sm font-light tracking-tight text-gray-900">@bid.Delivery</span>
-										</div>
-									</div>
-									<div class="flex-items justify-center items-center ">
-										@if (bid.Project.AcceptedBidId != null)
-										{
-											@if (bid.Project.AcceptedBidId == bid.Id)
-											{
-												<div class="inline-block">
-													<img class="w-auto h-7" src="https://ik.imagekit.io/6txj3mofs/accept.png?updatedAt=1750270981334" />
-												</div>
-											}
-											else
-											{
-												<div class="inline-block">
-													<img class="w-auto h-8" src="https://ik.imagekit.io/6txj3mofs/reject.png?updatedAt=1750270981446" />
-												</div>
-											}
+                <div class="w-full max-w p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <h5 class="text-xl font-bold leading-none text-gray-900">Sent Biddings</h5>
+                    </div>
+                    <div class="flow-root">
+                        <ul role="list" class="divide-y divide-gray-300">
+                            @foreach (var bid in Model.Biddings)
+                            {
+                                <li class="py-3 sm:py-4">
+                                    <div class="flex items-center">
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-md font-medium text-gray-900 truncate">
+                                                @bid.Project.ProjectName
+                                            </p>
+                                            <div class="flex items-center">
+                                                <h5 class="text-sm font-light tracking-tight text-gray-900">Proposed Budget:</h5>
+                                                <span class="ms-2 text-sm font-light tracking-tight text-gray-900">₱@bid.Budget</span>
+                                            </div>
+                                            <div class="flex items-center mb-2">
+                                                <h5 class="text-sm font-light tracking-tight text-gray-900">Proposed Delivery Time:</h5>
+                                                <span class="ms-2 text-sm font-light tracking-tight text-gray-900">@bid.Delivery</span>
+                                            </div>
+                                        </div>
+                                        <div class="flex-items justify-center items-center ">
+                                            @if (bid.Project.AcceptedBidId != null)
+                                            {
+                                                @if (bid.Project.AcceptedBidId == bid.Id)
+                                                {
+                                                    <div class="inline-block">
+                                                        <img class="w-auto h-7" src="https://ik.imagekit.io/6txj3mofs/accept.png?updatedAt=1750270981334" />
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="inline-block">
+                                                        <img class="w-auto h-8" src="https://ik.imagekit.io/6txj3mofs/reject.png?updatedAt=1750270981446" />
+                                                    </div>
+                                                }
 
-										}
-										else
-										{
-										}
-									</div>
-								</div>
-							</li>
-						}
-					</ul>
-				</div>
-			</div>
+                                            }
+                                            else
+                                            {
+                                            }
+                                        </div>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
 
-			<div class="w-full max-w p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
-				<div class="flex items-center justify-between mb-4">
-					<h5 class="text-xl font-bold leading-none text-gray-900">Manage Biddings</h5>
-				</div>
-				<div class="flow-root">
-					<ul role="list" class="divide-y divide-gray-300">
-						@foreach (var bid in Model.Biddings)
-						{
-							<li class="py-3 sm:py-4">
-								<div class="flex items-center">
-									<div class="flex-1 min-w-0">
-										<p class="text-sm font-medium text-gray-900 truncate">
-											@bid.Project.ProjectName
-										</p>
-									</div>
-									<div class="inline-flex items-center text-base font-semibold text-gray-900">
-										@if (bid.Project.AcceptedBidId != null)
-										{
-											<a class="text-gray-900 bg-gray-200 border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2" asp-controller="Freelancer" asp-action="EditBid" asp-route-id="@bid.Id"> View </a>
-										}
-										else
-										{
-											<a class="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-6 py-2.5 me-2 mb-2" asp-controller="Freelancer" asp-action="EditBid" asp-route-id="@bid.Id"> Edit </a>
-										}
-									</div>
-								</div>
-							</li>
-						}
-					</ul>
-				</div>
-			</div>
+                <div class="w-full max-w p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <h5 class="text-xl font-bold leading-none text-gray-900">Manage Biddings</h5>
+                    </div>
+                    <div class="flow-root">
+                        <ul role="list" class="divide-y divide-gray-300">
+                            @foreach (var bid in Model.Biddings)
+                            {
+                                <li class="py-3 sm:py-4">
+                                    <div class="flex items-center">
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-medium text-gray-900 truncate">
+                                                @bid.Project.ProjectName
+                                            </p>
+                                        </div>
+                                        <div class="inline-flex items-center text-base font-semibold text-gray-900">
+                                            @if (bid.Project.AcceptedBidId != null)
+                                            {
+                                                <a class="text-gray-900 bg-gray-200 border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2" asp-controller="Freelancer" asp-action="EditBid" asp-route-id="@bid.Id"> View </a>
+                                            }
+                                            else
+                                            {
+                                                <a class="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-6 py-2.5 me-2 mb-2" asp-controller="Freelancer" asp-action="EditBid" asp-route-id="@bid.Id"> Edit </a>
+                                            }
+                                        </div>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
 
-		</div>
-	</div>
+            </div>
+        </div>
+    </div>
 </div>
-

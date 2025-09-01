@@ -151,20 +151,20 @@
                         {
                             @if (!string.IsNullOrEmpty(Model.Comments))
                             {
-                                <div class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 min-h-[100px]">
+                                <div class="border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 min-h-[100px]">
                                     @Model.Comments
                                 </div>
                             }
                             else
                             {
-                                <div class="bg-gray-50 border border-gray-300 text-gray-500 text-sm rounded-lg block w-full p-2.5 min-h-[100px] italic">
+                                <div class="border border-gray-300 text-gray-500 text-sm rounded-lg block w-full p-2.5 min-h-[100px] italic">
                                     No comments provided
                                 </div>
                             }
                         }
                         else
                         {
-                            <textarea asp-for="Comments" rows="4" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5" placeholder="Share your overall experience with this freelancer..."></textarea>
+                            <textarea asp-for="Comments" rows="4" class="border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5" placeholder="Share your overall experience with this freelancer..."></textarea>
                             <div asp-validation-summary="ModelOnly" class="text-red-600 text-sm mt-2 text-center"></div>
                         }
                     </div>

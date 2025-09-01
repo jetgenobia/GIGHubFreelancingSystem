@@ -51,7 +51,7 @@
                 }
                 <div class="mt-6">
                     <!-- Project Owner Information -->
-                    <div class="flex items-center space-x-3 bg-gray-50 w-fit mb-3">
+                    <div class="flex items-center space-x-3 w-fit mb-3">
                         @if (!string.IsNullOrEmpty(Model.User?.Photo))
                         {
                             <div class="rounded-full cursor-pointer hover:bg-gray-100 transition-colors duration-200" onclick="openProfileModal()">
@@ -77,7 +77,7 @@
                 <h2 class="mb-4 text-3xl font-bold text-gray-900">Biddings</h2>
                 @foreach (var bid in Model.Biddings)
                 {
-                    <div class="mb-5 p-6 border border-gray-200 rounded-lg shadow-sm">
+                    <div class="mb-5 p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
                         <div class="flex items-center mb-3">
                             @if (!string.IsNullOrEmpty(bid.User.Photo))
                             {
@@ -117,7 +117,7 @@
                                             var fileExtension = System.IO.Path.GetExtension(filePath).ToLowerInvariant();
                                             var isImage = new[] { ".jpg", ".jpeg", ".png", ".gif", ".svg" }.Contains(fileExtension);
 
-                                            <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded border border-gray-300">
+                                            <div class="flex items-center space-x-2 p-2 rounded border border-gray-300">
                                                 @if (isImage)
                                                 {
                                                     <img src="@filePath" alt="@fileName" class="w-8 h-8 object-cover rounded cursor-pointer" onclick="openImageModal('@filePath')" title="Click to view">
