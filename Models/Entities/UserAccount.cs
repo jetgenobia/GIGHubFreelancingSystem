@@ -17,7 +17,10 @@ namespace Freelancing.Models.Entities
         public string? Photo { get; set; }
         
         public string Role { get; set; } = "User"; // Default role
-        
+        public string? Bio { get; set; }
+        public string? ExperienceLevel { get; set; }
+
+        public ICollection<Portfolio> Portfolios { get; set; } = new List<Portfolio>();
         public Guid? MentorshipId { get; set; }
         
         public PeerMentorship? Mentorship { get; set; }

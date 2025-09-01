@@ -539,6 +539,7 @@ namespace Freelancing.Controllers
                 LastName = userAccount.LastName,
                 Email = userAccount.Email,
                 UserName = userAccount.UserName,
+                Bio = userAccount.Bio,
                 Photo = userAccount.Photo
             };
 
@@ -610,6 +611,12 @@ namespace Freelancing.Controllers
             if (userAccount.UserName != viewModel.UserName)
             {
                 userAccount.UserName = viewModel.UserName;
+                hasChanges = true;
+            }
+
+            if (userAccount.Bio != viewModel.Bio)
+            {
+                userAccount.Bio = viewModel.Bio;
                 hasChanges = true;
             }
 

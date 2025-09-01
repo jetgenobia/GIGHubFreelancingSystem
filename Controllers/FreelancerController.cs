@@ -486,7 +486,12 @@ namespace Freelancing.Controllers
             var freelancer = await dbContext.UserAccounts
                 .Include(u => u.UserAccountSkills)
                 .ThenInclude(uas => uas.UserSkill)
+                .Include(u => u.Portfolios)
                 .FirstOrDefaultAsync(u => u.Id == targetUserId);
+
+            // Debug: Check if portfolios are loaded
+            var portfolioCount = freelancer?.Portfolios?.Count ?? 0;
+            System.Diagnostics.Debug.WriteLine($"Portfolio count for user {targetUserId}: {portfolioCount}");
 
             if (freelancer == null)
                 return NotFound();
@@ -522,12 +527,10 @@ namespace Freelancing.Controllers
         [HttpGet]
         public async Task<IActionResult> EditAccount()
         {
-            // Get the user ID from the claims
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
-            // Fetch the user account details from the database
             var userAccount = await dbContext.UserAccounts.FindAsync(userId);
             if (userAccount == null)
                 return NotFound();
@@ -539,9 +542,6 @@ namespace Freelancing.Controllers
                 .OrderBy(s => s.Name)
                 .ToListAsync();
 
-            var user = await dbContext.UserAccounts
-                .FirstOrDefaultAsync(u => u.Id == userId);
-
             // Check for completed mentorship relationships
             var completedAsMentor = await dbContext.MentorshipMatches
                 .AnyAsync(mm => mm.MentorId == userId && mm.Status == "Completed");
@@ -549,14 +549,16 @@ namespace Freelancing.Controllers
             var completedAsMentee = await dbContext.MentorshipMatches
                 .AnyAsync(mm => mm.MenteeId == userId && mm.Status == "Completed");
 
-            // Create view model
             var viewModel = new EditAccount
             {
+                UserId = Guid.Parse(userId),
                 FirstName = userAccount.FirstName,
                 LastName = userAccount.LastName,
                 Email = userAccount.Email,
                 UserName = userAccount.UserName,
                 Photo = userAccount.Photo,
+                Bio = userAccount.Bio,
+                ExperienceLevel = userAccount.ExperienceLevel,
                 SavedSkills = savedSkills,
                 TotalSkillsCount = savedSkills.Count,
                 HasCompletedMentorshipAsMentor = completedAsMentor,
@@ -571,15 +573,23 @@ namespace Freelancing.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return View(viewModel);
+                // Reload necessary data for the view
+                var reloadedViewModel = await PopulateEditAccountViewModel(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, null);
+                // Preserve form data
+                reloadedViewModel.FirstName = viewModel.FirstName;
+                reloadedViewModel.LastName = viewModel.LastName;
+                reloadedViewModel.Email = viewModel.Email;
+                reloadedViewModel.UserName = viewModel.UserName;
+                reloadedViewModel.Bio = viewModel.Bio;
+                reloadedViewModel.ExperienceLevel = viewModel.ExperienceLevel;
+
+                return View(reloadedViewModel);
             }
 
-            // Get user ID
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
-            // Fetch user account using UserManager instead of DbContext
             var userAccount = await _userManager.FindByIdAsync(userId);
             if (userAccount == null)
                 return NotFound();
@@ -593,19 +603,20 @@ namespace Freelancing.Controllers
             if (existingUserWithEmail != null)
             {
                 ModelState.AddModelError("Email", "Email is already registered.");
-                return View(viewModel);
+                var reloadedViewModel = await PopulateEditAccountViewModel(userId, userAccount);
+                return View(reloadedViewModel);
             }
 
             if (existingUserWithUsername != null)
             {
                 ModelState.AddModelError("UserName", "Username is already taken.");
-                return View(viewModel);
+                var reloadedViewModel = await PopulateEditAccountViewModel(userId, userAccount);
+                return View(reloadedViewModel);
             }
 
-            // Track if any changes were made
             bool hasChanges = false;
 
-            // Check and update user account fields only if they changed
+            // Update basic fields
             if (userAccount.FirstName != viewModel.FirstName)
             {
                 userAccount.FirstName = viewModel.FirstName;
@@ -618,28 +629,39 @@ namespace Freelancing.Controllers
                 hasChanges = true;
             }
 
+            if (userAccount.Bio != viewModel.Bio)
+            {
+                userAccount.Bio = viewModel.Bio;
+                hasChanges = true;
+            }
+
+            if (userAccount.ExperienceLevel != viewModel.ExperienceLevel)
+            {
+                userAccount.ExperienceLevel = viewModel.ExperienceLevel;
+                hasChanges = true;
+            }
+
             // Handle photo upload
             if (PhotoFile != null && PhotoFile.Length > 0)
             {
-                // Validate the uploaded file type and size
                 var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
                 var fileExtension = Path.GetExtension(PhotoFile.FileName).ToLowerInvariant();
 
                 if (!allowedExtensions.Contains(fileExtension))
                 {
                     ModelState.AddModelError("PhotoFile", "Please upload a valid image file (jpg, jpeg, png, gif).");
-                    return View(viewModel);
+                    var reloadedViewModel = await PopulateEditAccountViewModel(userId, userAccount);
+                    return View(reloadedViewModel);
                 }
 
-                if (PhotoFile.Length > 10 * 1024 * 1024) // 10 MB limit
+                if (PhotoFile.Length > 10 * 1024 * 1024)
                 {
                     ModelState.AddModelError("PhotoFile", "The image file size should not exceed 10 MB.");
-                    return View(viewModel);
+                    var reloadedViewModel = await PopulateEditAccountViewModel(userId, userAccount);
+                    return View(reloadedViewModel);
                 }
 
-                // Generate a unique file name while preserving original name
                 var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "profiles");
-
                 if (!Directory.Exists(uploadsFolder))
                 {
                     Directory.CreateDirectory(uploadsFolder);
@@ -665,14 +687,12 @@ namespace Freelancing.Controllers
                     }
                 }
 
-                // Save the uploaded photo
                 using (var stream = new FileStream(filePath, FileMode.Create))
                 {
                     await PhotoFile.CopyToAsync(stream);
                 }
 
                 userAccount.Photo = $"/uploads/profiles/{fileName}";
-                viewModel.Photo = userAccount.Photo;
                 hasChanges = true;
             }
 
@@ -686,7 +706,8 @@ namespace Freelancing.Controllers
                     {
                         ModelState.AddModelError("Email", error.Description);
                     }
-                    return View(viewModel);
+                    var reloadedViewModel = await PopulateEditAccountViewModel(userId, userAccount);
+                    return View(reloadedViewModel);
                 }
                 hasChanges = true;
             }
@@ -701,12 +722,12 @@ namespace Freelancing.Controllers
                     {
                         ModelState.AddModelError("UserName", error.Description);
                     }
-                    return View(viewModel);
+                    var reloadedViewModel = await PopulateEditAccountViewModel(userId, userAccount);
+                    return View(reloadedViewModel);
                 }
                 hasChanges = true;
             }
 
-            // Save other changes using UserManager
             if (hasChanges)
             {
                 var updateResult = await _userManager.UpdateAsync(userAccount);
@@ -716,12 +737,11 @@ namespace Freelancing.Controllers
                     {
                         ModelState.AddModelError("", error.Description);
                     }
-                    return View(viewModel);
+                    var reloadedViewModel = await PopulateEditAccountViewModel(userId, userAccount);
+                    return View(reloadedViewModel);
                 }
 
-                // Refresh the user claims after successful update
                 await RefreshUserClaims(userAccount);
-
                 ViewBag.Message = "Account updated successfully!";
             }
             else
@@ -729,13 +749,146 @@ namespace Freelancing.Controllers
                 ViewBag.Message = "No changes were detected.";
             }
 
-            // Reload the user to get the most up-to-date information
-            userAccount = await _userManager.FindByIdAsync(userId);
             var finalViewModel = await PopulateEditAccountViewModel(userId, userAccount);
             return View(finalViewModel);
         }
+
+        // Portfolio Management Actions
+        [HttpGet]
+        public async Task<IActionResult> ManagePortfolio()
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            var portfolios = await dbContext.Portfolios
+                .Where(p => p.UserId == userId)
+                .OrderByDescending(p => p.Title)
+                .ToListAsync();
+
+            var userAccount = await dbContext.UserAccounts.FindAsync(userId);
+            ViewBag.UserName = userAccount?.FirstName + " " + userAccount?.LastName;
+
+            return View(portfolios);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AddPortfolio(PortfolioItem portfolioItem)
+        {
+            if (!ModelState.IsValid)
+            {
+                return Json(new { success = false, message = "Invalid portfolio data" });
+            }
+
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Json(new { success = false, message = "Unauthorized" });
+
+            try
+            {
+                var portfolio = new Portfolio
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    Title = portfolioItem.Title,
+                    Description = portfolioItem.Description,
+                    ProjectLink = portfolioItem.RepositoryLink
+                };
+
+                // Handle file uploads if any
+                if (portfolioItem.Files != null && portfolioItem.Files.Any())
+                {
+                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "portfolios");
+                    if (!Directory.Exists(uploadsFolder))
+                    {
+                        Directory.CreateDirectory(uploadsFolder);
+                    }
+
+                    var filePaths = new List<string>();
+                    foreach (var file in portfolioItem.Files)
+                    {
+                        if (file.Length > 0)
+                        {
+                            var fileName = GenerateUniqueFileName(file.FileName, uploadsFolder);
+                            var filePath = Path.Combine(uploadsFolder, fileName);
+
+                            using (var stream = new FileStream(filePath, FileMode.Create))
+                            {
+                                await file.CopyToAsync(stream);
+                            }
+
+                            filePaths.Add($"/uploads/portfolios/{fileName}");
+                        }
+                    }
+
+                    portfolio.ProjectImages = System.Text.Json.JsonSerializer.Serialize(filePaths);
+                }
+
+                dbContext.Portfolios.Add(portfolio);
+                await dbContext.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Portfolio added successfully", portfolioId = portfolio.Id });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error adding portfolio: " + ex.Message });
+            }
+        }
+
+        [HttpDelete]
+        public async Task<IActionResult> DeletePortfolio(Guid portfolioId)
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Json(new { success = false, message = "Unauthorized" });
+
+            try
+            {
+                var portfolio = await dbContext.Portfolios
+                    .FirstOrDefaultAsync(p => p.Id == portfolioId && p.UserId == userId);
+
+                if (portfolio == null)
+                    return Json(new { success = false, message = "Portfolio not found" });
+
+                // Delete associated files
+                if (!string.IsNullOrEmpty(portfolio.ProjectImages))
+                {
+                    try
+                    {
+                        var filePaths = System.Text.Json.JsonSerializer.Deserialize<List<string>>(portfolio.ProjectImages);
+                        if (filePaths != null)
+                        {
+                            foreach (var filePath in filePaths)
+                            {
+                                var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", filePath.TrimStart('/'));
+                                if (System.IO.File.Exists(fullPath))
+                                {
+                                    System.IO.File.Delete(fullPath);
+                                }
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore file deletion errors
+                    }
+                }
+
+                dbContext.Portfolios.Remove(portfolio);
+                await dbContext.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Portfolio deleted successfully" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error deleting portfolio: " + ex.Message });
+            }
+        }
         private async Task<EditAccount> PopulateEditAccountViewModel(string userId, UserAccount userAccount)
         {
+            if (userAccount == null)
+                userAccount = await _userManager.FindByIdAsync(userId);
+
             var savedSkills = await dbContext.UserAccountSkills
                 .Where(uas => uas.UserAccountId == userId)
                 .Include(uas => uas.UserSkill)
@@ -743,7 +896,6 @@ namespace Freelancing.Controllers
                 .OrderBy(s => s.Name)
                 .ToListAsync();
 
-            // Check for completed mentorship relationships
             var completedAsMentor = await dbContext.MentorshipMatches
                 .AnyAsync(mm => mm.MentorId == userId && mm.Status == "Completed");
 
@@ -752,11 +904,14 @@ namespace Freelancing.Controllers
 
             return new EditAccount
             {
+                UserId = Guid.Parse(userId),
                 FirstName = userAccount.FirstName ?? string.Empty,
                 LastName = userAccount.LastName ?? string.Empty,
                 Email = userAccount.Email ?? string.Empty,
                 UserName = userAccount.UserName ?? string.Empty,
                 Photo = userAccount.Photo ?? string.Empty,
+                Bio = userAccount.Bio ?? string.Empty,
+                ExperienceLevel = userAccount.ExperienceLevel ?? string.Empty,
                 SavedSkills = savedSkills,
                 TotalSkillsCount = savedSkills.Count,
                 HasCompletedMentorshipAsMentor = completedAsMentor,

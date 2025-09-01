@@ -72,12 +72,6 @@
                                 <!-- Action Buttons -->
                                 <div class="flex flex-wrap gap-3 mt-4">
                                     @await Html.PartialAsync("_ChatButton", Model.Id)
-                                    <button class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                                        </svg>
-                                        Follow
-                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -92,9 +86,16 @@
                             <!-- About Section -->
                             <div class="bg-white rounded-lg shadow p-6">
                                 <h2 class="text-xl font-semibold text-gray-900 mb-4">About</h2>
-                                <p class="text-gray-600">
-                                    <span class="text-gray-400 italic">No bio available</span>
-                                </p>
+                                @if (!string.IsNullOrEmpty(Model.Bio))
+                                {
+                                    <p class="text-gray-600 mb-4">@Model.Bio</p>
+                                }
+                                else
+                                {
+                                    <p class="text-gray-600 mb-4">
+                                        <span class="text-gray-400 italic">No bio available</span>
+                                    </p>
+                                }
                             </div>
 
                             <!-- Skills Section -->
@@ -115,9 +116,134 @@
 
                             <div class="bg-white rounded-lg shadow p-6">
                                 <h2 class="text-xl font-semibold text-gray-900 mb-4">Portfolio</h2>
-                                <p class="text-gray-600">
-                                    <span class="text-gray-400 italic">No portfolio available</span>
-                                </p>
+
+                                @if (Model.Portfolios != null && Model.Portfolios.Any())
+                                {
+                                    <div class="space-y-4">
+                                        @foreach (var portfolioItem in Model.Portfolios.OrderByDescending(p => p.CreatedAt))
+                                        {
+                                            <div class="p-4">
+                                                <h3 class="font-medium text-gray-900 text-lg italic">@portfolioItem.Title</h3>
+                                                <p class="text-sm text-gray-600 mt-1 mb-3">@portfolioItem.Description</p>
+
+                                                <!-- Portfolio Files -->
+                                                @if (!string.IsNullOrEmpty(portfolioItem.ProjectImages))
+                                                {
+                                                    try
+                                                    {
+                                                        var filePaths = System.Text.Json.JsonSerializer.Deserialize<List<string>>(portfolioItem.ProjectImages);
+                                                        if (filePaths != null && filePaths.Any())
+                                                        {
+                                                            // Separate images and files
+                                                            var imageFiles = new List<string>();
+                                                            var documentFiles = new List<string>();
+
+                                                            foreach (var filePath in filePaths)
+                                                            {
+                                                                var fileExtension = System.IO.Path.GetExtension(filePath)?.ToLower();
+                                                                var isImage = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" }.Contains(fileExtension);
+
+                                                                if (isImage)
+                                                                {
+                                                                    imageFiles.Add(filePath);
+                                                                }
+                                                                else
+                                                                {
+                                                                    documentFiles.Add(filePath);
+                                                                }
+                                                            }
+
+                                                            <!-- Display Images Section -->
+                                                            @if (imageFiles.Any())
+                                                            {
+                                                                <div class="mb-3">
+                                                                    <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                                                        @foreach (var filePath in imageFiles)
+                                                                        {
+                                                                            var fileName = System.IO.Path.GetFileName(filePath);
+                                                                            <div>
+                                                                                <!-- Image Files -->
+                                                                                <img src="@filePath"
+                                                                                     alt="@fileName"
+                                                                                     class="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                                                                     onclick="openImageModal('@filePath', '@fileName')"
+                                                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+                                                                                <!-- Fallback for failed image loads -->
+                                                                                <div class="w-full h-full bg-gray-100 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
+                                                                                     style="display: none;"
+                                                                                     onclick="openImageModal('@filePath', '@fileName')">
+                                                                                    <svg class="w-8 h-8 text-gray-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                                                                    </svg>
+                                                                                    <span class="text-xs text-gray-500 text-center px-1 truncate w-full">@fileName</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+                                                            }
+
+                                                            <!-- Display Documents Section -->
+                                                            @if (documentFiles.Any())
+                                                            {
+                                                                <div class="mb-3">
+                                                                    <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                                                        @foreach (var filePath in documentFiles)
+                                                                        {
+                                                                            var fileName = System.IO.Path.GetFileName(filePath);
+                                                                            var fileExtension = System.IO.Path.GetExtension(filePath)?.ToLower();
+
+                                                                            <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded border border-gray-300">
+                                                                                <div class="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                                                                                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                                                    </svg>
+                                                                                </div>
+                                                                                <a href="@filePath" target="_blank" class="text-sm text-blue-600 hover:text-blue-800 truncate max-w-32" title="@fileName">
+                                                                                    @fileName
+                                                                                </a>
+                                                                            </div>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+                                                            }
+                                                        }
+                                                    }
+                                                    catch
+                                                    {
+                                                        <!-- Handle JSON parsing errors gracefully -->
+                                                    }
+                                                }
+                                                @if (!string.IsNullOrEmpty(portfolioItem.ProjectLink))
+                                                {
+                                                    <div class="flex items-center space-x-2 p-2 bg-blue-50 rounded border border-gray-300">
+                                                        <div class="w-6 h-6 bg-blue-100 rounded flex items-center justify-center">
+                                                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                                            </svg>
+                                                        </div>
+                                                        <a href="@portfolioItem.ProjectLink" target="_blank" class="text-sm text-blue-600 hover:text-blue-800 truncate max-w-48" title="@portfolioItem.ProjectLink">
+                                                            @portfolioItem.ProjectLink
+                                                        </a>
+                                                    </div>
+                                                }
+                                                <span class="flex items-center text-sm text-gray-500 mt-2">
+                                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                                    </svg>
+                                                    Added: @portfolioItem.CreatedAt.ToString("MMM dd, yyyy")
+                                                </span>
+                                            </div>
+                                            <hr class="border-gray-300 mb-4">
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <p class="text-gray-600">
+                                        <span class="text-gray-400 italic">No portfolio available</span>
+                                    </p>
+                                }
                             </div>
                         </div>
 
@@ -190,3 +316,77 @@
         </div>
     </div>
 </div>
+
+<!-- Image Modal - Updated with your preferred style -->
+<div id="imageModal" class="fixed inset-0 flex items-center justify-center z-50 hidden" style="background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);" onclick="closeImageModal(event)">
+    <div class="bg-white rounded-lg shadow-xl max-w-xl w-full max-h-full" onclick="event.stopPropagation()">
+        <div class="relative p-8">
+            <button type="button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 rounded-full p-2 hover:bg-gray-100 transition-colors duration-200" onclick="closeImageModal()">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+            <div class="text-center">
+                <img id="modalImage" src="" alt="Project Image" class="max-w-full max-h-[80vh] object-contain mx-auto">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openImageModal(imagePath, imageTitle = 'Project Image') {
+        const modalImage = document.getElementById('modalImage');
+        const modal = document.getElementById('imageModal');
+
+        // Debug: Log the image path to console
+        console.log('Opening image:', imagePath);
+
+        // Set image source
+        modalImage.src = imagePath;
+        modalImage.alt = imageTitle;
+
+        // Add image load error handling
+        modalImage.onerror = function() {
+            console.error('Failed to load image:', imagePath);
+        };
+
+        modalImage.onload = function() {
+            console.log('Image loaded successfully:', imagePath);
+        };
+
+        // Show modal immediately without animation
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeImageModal(event) {
+        // Check if event is provided and if the click target is the modal itself
+        if (event && event.target !== event.currentTarget) {
+            return;
+        }
+
+        const modal = document.getElementById('imageModal');
+
+        // Hide modal immediately without animation
+        modal.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+
+        // Reset image src to free memory
+        document.getElementById('modalImage').src = '';
+    }
+
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('imageModal');
+            if (!modal.classList.contains('hidden')) {
+                closeImageModal();
+            }
+        }
+    });
+
+    // Prevent modal from closing when clicking on the image itself
+    document.getElementById('modalImage').addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+</script>

@@ -24,6 +24,7 @@ namespace Freelancing.Controllers
             var freelancer = await _context.UserAccounts
                 .Include(u => u.UserAccountSkills)
                 .ThenInclude(uas => uas.UserSkill)
+                .Include(u => u.Portfolios)
                 .FirstOrDefaultAsync(u => u.Id == id);
 
             if (freelancer == null)

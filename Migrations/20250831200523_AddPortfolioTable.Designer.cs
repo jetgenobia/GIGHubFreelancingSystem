@@ -4,6 +4,7 @@ using Freelancing.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Freelancing.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250831200523_AddPortfolioTable")]
+    partial class AddPortfolioTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1247,9 +1250,6 @@ namespace Freelancing.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -1407,6 +1407,9 @@ namespace Freelancing.Migrations
                     b.Property<string>("Photo")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("PortfolioId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Role")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -1434,6 +1437,8 @@ namespace Freelancing.Migrations
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
+
+                    b.HasIndex("PortfolioId");
 
                     b.HasIndex("UserName")
                         .IsUnique()
@@ -2028,7 +2033,7 @@ namespace Freelancing.Migrations
             modelBuilder.Entity("Freelancing.Models.Entities.Portfolio", b =>
                 {
                     b.HasOne("Freelancing.Models.Entities.UserAccount", "User")
-                        .WithMany("Portfolios")
+                        .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -2071,6 +2076,15 @@ namespace Freelancing.Migrations
                     b.Navigation("Project");
 
                     b.Navigation("UserSkill");
+                });
+
+            modelBuilder.Entity("Freelancing.Models.Entities.UserAccount", b =>
+                {
+                    b.HasOne("Freelancing.Models.Entities.Portfolio", "Portfolio")
+                        .WithMany()
+                        .HasForeignKey("PortfolioId");
+
+                    b.Navigation("Portfolio");
                 });
 
             modelBuilder.Entity("Freelancing.Models.Entities.UserAccountSkill", b =>
@@ -2174,8 +2188,6 @@ namespace Freelancing.Migrations
                     b.Navigation("Biddings");
 
                     b.Navigation("Mentorship");
-
-                    b.Navigation("Portfolios");
 
                     b.Navigation("Projects");
 

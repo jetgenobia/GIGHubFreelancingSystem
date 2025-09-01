@@ -1,0 +1,403 @@
+﻿@{
+    Layout = "_LayoutFreelancer";
+    ViewData["Title"] = "Portfolio Management";
+}
+@model List<Freelancing.Models.Entities.Portfolio>
+
+<div class="p-4 sm:ml-64">
+    <div class="p-4 mt-20">
+        <div class="mt-4">
+            <div class="block w-full p-6">
+                <!-- Header with navigation -->
+                <div class="mb-6">
+                    <div class="flex items-center space-x-4">
+                        <a href="@Url.Action("EditAccount", "Freelancer")" class="text-blue-600 hover:text-blue-800">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                            </svg>
+                        </a>
+                        <h2 class="text-2xl font-bold text-gray-900">Portfolio Management</h2>
+                    </div>
+                </div>
+
+                <!-- Success/Error Messages -->
+                <div id="messageContainer"></div>
+
+                <!-- Add New Portfolio Form -->
+                <div class="p-6 rounded-lg mb-6">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-4">Add New Portfolio Item</h3>
+                    <form id="addPortfolioForm" class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="portfolioTitle" class="block mb-2 text-sm font-medium text-gray-900">Title</label>
+                                <input type="text"
+                                       id="portfolioTitle"
+                                       name="Title"
+                                       required
+                                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 pl-7"
+                                       placeholder="e.g., E-commerce Website Development">
+                            </div>
+                            <div>
+                                <label for="portfolioLink" class="block mb-2 text-sm font-medium text-gray-900">Repository/Project Link (Optional)</label>
+                                <input type="url"
+                                       id="portfolioLink"
+                                       name="RepositoryLink"
+                                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 pl-7"
+                                       placeholder="https://github.com/username/repo">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="portfolioDescription" class="block mb-2 text-sm font-medium text-gray-900">Description</label>
+                            <textarea id="portfolioDescription"
+                                      name="Description"
+                                      required
+                                      rows="4"
+                                      class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                                      placeholder="Describe your project, technologies used, challenges overcome, etc."></textarea>
+                        </div>
+
+                        <div>
+                            <label for="portfolioFiles" class="block mb-2 text-sm font-medium text-gray-900">Project Files (Optional)</label>
+                            <input type="file"
+                                   id="portfolioFiles"
+                                   name="Files"
+                                   multiple
+                                   accept=".jpg,.jpeg,.png,.gif,.svg,.pdf,.doc,.docx,.txt"
+                                   class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none">
+                            <p class="text-xs text-gray-500 mt-1">
+                                <strong>Max 10MB per file.</strong> Supported formats: Images (JPG, PNG, GIF, SVG), Documents (PDF, DOC, DOCX, TXT)
+                            </p>
+                        </div>
+
+                        <div class="flex justify-end">
+                            <button type="submit"
+                                    class="text-white inline-flex items-center bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center">
+                                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                Add Portfolio Item
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Existing Portfolio Items -->
+                <div class="p-6 space-y-6">
+                    <h3 class="text-xl font-semibold text-gray-900">Your Portfolio (@Model.Count items)</h3>
+
+                    @if (Model != null && Model.Any())
+                    {
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            @foreach (var portfolio in Model)
+                            {
+                                <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                                    <!-- Header with title and delete button -->
+                                    <div class="flex justify-between items-start mb-3">
+                                        <h4 class="font-semibold text-lg text-gray-900 flex-1 pr-2">@portfolio.Title</h4>
+                                        <button type="button"
+                                                onclick="deletePortfolio('@portfolio.Id')"
+                                                class="text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors"
+                                                title="Delete portfolio item">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+
+                                    <!-- Description -->
+                                    <p class="text-sm text-gray-600 mb-4 leading-relaxed">@portfolio.Description</p>
+
+                                    <!-- Project Link -->
+                                    @if (!string.IsNullOrEmpty(portfolio.ProjectLink))
+                                    {
+                                        <div class="mb-4">
+                                            <a href="@portfolio.ProjectLink"
+                                               target="_blank"
+                                               class="text-blue-600 hover:text-blue-800 text-sm flex items-center group">
+                                                <svg class="w-4 h-4 mr-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                                </svg>
+                                                View Project
+                                            </a>
+                                        </div>
+                                    }
+
+                                    <!-- Project Images/Files -->
+                                    @if (!string.IsNullOrEmpty(portfolio.ProjectImages))
+                                    {
+                                        <div class="space-y-2">
+                                            <p class="text-xs font-medium text-gray-700 uppercase tracking-wide">Project Files</p>
+                                            <div class="flex flex-wrap gap-2">
+                                                @try
+                                                {
+                                                    var filePaths = System.Text.Json.JsonSerializer.Deserialize<List<string>>(portfolio.ProjectImages);
+                                                    if (filePaths != null)
+                                                    {
+                                                        foreach (var filePath in filePaths.Take(4))
+                                                        {
+                                                            var extension = System.IO.Path.GetExtension(filePath).ToLower();
+                                                            if (new[] { ".jpg", ".jpeg", ".png", ".gif", ".svg" }.Contains(extension))
+                                                            {
+                                                                <div class="relative group cursor-pointer" onclick="openImageModal('@Html.Raw(filePath.Replace("'", "\\'"))')">
+                                                                    <img src="@Html.Raw(filePath)"
+                                                                         alt="Project image - @portfolio.Title"
+                                                                         class="w-16 h-16 object-cover rounded border border-gray-200 hover:scale-105 transition-transform bg-gray-100"
+                                                                         style="min-width: 64px; min-height: 64px;"
+                                                                         onerror="handleImageError(this)"
+                                                                         onload="handleImageLoad(this)">
+                                                                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded transition-all pointer-events-none"></div>
+                                                                    <!-- Loading indicator -->
+                                                                    <div class="absolute inset-0 bg-gray-200 rounded flex items-center justify-center image-loading">
+                                                                        <svg class="w-6 h-6 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                                        </svg>
+                                                                    </div>
+                                                                </div>
+                                                            }
+                                                            else
+                                                            {
+                                                                <a href="@Html.Raw(filePath)"
+                                                                   target="_blank"
+                                                                   class="w-16 h-16 bg-gray-100 rounded border border-gray-200 flex items-center justify-center hover:bg-gray-200 transition-colors">
+                                                                    <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                                    </svg>
+                                                                </a>
+                                                            }
+                                                        }
+                                                        @if (filePaths.Count > 4)
+                                                        {
+                                                            <div class="w-16 h-16 bg-gray-100 rounded border border-gray-200 flex items-center justify-center text-xs text-gray-500 font-medium">
+                                                                +@(filePaths.Count - 4)
+                                                            </div>
+                                                        }
+                                                    }
+                                                }
+                                                catch
+                                                {
+                                                    <span class="text-xs text-red-500">Files unavailable</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-12">
+                            <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                            </svg>
+                            <h3 class="text-lg font-medium text-gray-900 mb-2">No portfolio items yet</h3>
+                            <p class="text-gray-600">Add your first project above to showcase your work!</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Image Modal -->
+<div id="imageModal" class="fixed inset-0 flex items-center justify-center z-50 hidden" style="background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);" onclick="closeImageModal(event)">
+    <div class="bg-white rounded-lg shadow-xl max-w-xl w-full max-h-full" onclick="event.stopPropagation()">
+        <div class="relative p-8">
+            <button type="button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 rounded-full p-2 hover:bg-gray-100 transition-colors duration-200" onclick="closeImageModal()">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+            <div class="text-center">
+                <img id="modalImage" src="" alt="Project Image" class="max-w-full max-h-[80vh] object-contain mx-auto">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Portfolio form submission
+        const addPortfolioForm = document.getElementById('addPortfolioForm');
+        if (addPortfolioForm) {
+            addPortfolioForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const formData = new FormData(this);
+
+                // Show loading state
+                const submitButton = this.querySelector('button[type="submit"]');
+                const originalText = submitButton.innerHTML;
+                submitButton.innerHTML = '<svg class="animate-spin w-4 h-4 inline mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Adding...';
+                submitButton.disabled = true;
+
+                try {
+                    const response = await fetch('/Freelancer/AddPortfolio', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        showMessage(result.message, 'success');
+                        this.reset();
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
+                    } else {
+                        showMessage(result.message, 'error');
+                    }
+                } catch (error) {
+                    showMessage('Error adding portfolio item. Please try again.', 'error');
+                    console.error('Error:', error);
+                } finally {
+                    // Restore button state
+                    submitButton.innerHTML = originalText;
+                    submitButton.disabled = false;
+                }
+            });
+        }
+    });
+
+    // Function to delete portfolio
+    async function deletePortfolio(portfolioId) {
+        if (!confirm('Are you sure you want to delete this portfolio item? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/Freelancer/DeletePortfolio?portfolioId=${portfolioId}`, {
+                method: 'DELETE'
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showMessage(result.message, 'success');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showMessage(result.message, 'error');
+            }
+        } catch (error) {
+            showMessage('Error deleting portfolio item. Please try again.', 'error');
+            console.error('Error:', error);
+        }
+    }
+
+    // Function to show messages
+    function showMessage(message, type) {
+        const messageContainer = document.getElementById('messageContainer');
+        const alertClass = type === 'success' ? 'text-green-800 border-green-300 bg-green-50' : 'text-red-800 border-red-300 bg-red-50';
+        const iconPath = type === 'success'
+            ? 'M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z'
+            : 'M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z';
+
+        messageContainer.innerHTML = `
+            <div class="flex items-center p-4 mb-4 text-sm ${alertClass} border rounded-lg" role="alert">
+                <svg class="shrink-0 inline w-4 h-4 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="${iconPath}" />
+                </svg>
+                <div>${message}</div>
+            </div>
+        `;
+
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            messageContainer.innerHTML = '';
+        }, 5000);
+    }
+
+    // Image loading handlers
+    function handleImageLoad(img) {
+        // Hide loading indicator
+        const loadingDiv = img.parentElement.querySelector('.image-loading');
+        if (loadingDiv) {
+            loadingDiv.style.display = 'none';
+        }
+        img.style.opacity = '1';
+        console.log('Image loaded successfully:', img.src);
+    }
+
+    function handleImageError(img) {
+        console.error('Failed to load image:', img.src);
+        // Hide loading indicator
+        const loadingDiv = img.parentElement.querySelector('.image-loading');
+        if (loadingDiv) {
+            loadingDiv.style.display = 'none';
+        }
+
+        // Create fallback SVG
+        const fallbackSvg = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+                <rect width="64" height="64" fill="#f3f4f6"/>
+                <rect x="16" y="16" width="32" height="32" fill="#e5e7eb" rx="4"/>
+                <path d="M24 28l8 8 8-12" stroke="#9ca3af" stroke-width="2" fill="none"/>
+                <circle cx="28" cy="24" r="2" fill="#9ca3af"/>
+                <text x="32" y="54" text-anchor="middle" font-family="Arial" font-size="8" fill="#6b7280">Image</text>
+            </svg>
+        `);
+
+        img.src = fallbackSvg;
+        img.classList.add('opacity-75');
+    }
+
+    // Image modal functions
+    function openImageModal(imageSrc) {
+        console.log('Opening modal with image:', imageSrc); // Debug log
+        const modal = document.getElementById('imageModal');
+        const modalImage = document.getElementById('modalImage');
+
+        if (modal && modalImage) {
+            // Show loading state in modal
+            modalImage.style.opacity = '0.5';
+            modalImage.src = imageSrc;
+            modal.classList.remove('hidden');
+
+            // Handle modal image loading
+            modalImage.onload = function() {
+                this.style.opacity = '1';
+            };
+
+            modalImage.onerror = function() {
+                console.error('Failed to load modal image:', imageSrc);
+                this.style.opacity = '1';
+                // You could set a larger fallback image here if needed
+            };
+
+            // Prevent body scroll when modal is open
+            document.body.style.overflow = 'hidden';
+        } else {
+            console.error('Modal elements not found');
+        }
+    }
+
+    function closeImageModal(event) {
+        // If event is provided and it's not the modal background, don't close
+        if (event && event.target !== event.currentTarget && !event.target.closest('button')) {
+            return;
+        }
+
+        const modal = document.getElementById('imageModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            // Restore body scroll
+            document.body.style.overflow = '';
+        }
+    }
+
+    // Keyboard support for modal
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            const modal = document.getElementById('imageModal');
+            if (modal && !modal.classList.contains('hidden')) {
+                closeImageModal();
+            }
+        }
+    });
+</script>

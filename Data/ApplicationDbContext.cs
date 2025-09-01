@@ -58,6 +58,9 @@ namespace Freelancing.Data
         
         // Identity Verification entities
         public DbSet<IdentityVerification> IdentityVerifications { get; set; }
+        
+        // Portfolio entity
+        public DbSet<Portfolio> Portfolios { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Project>()
@@ -622,6 +625,16 @@ namespace Freelancing.Data
             modelBuilder.Entity<HiringOutcome>()
                 .Property(ho => ho.RecordedAt)
                 .HasDefaultValueSql("GETUTCDATE()");
+
+            // Portfolio relationships and configurations
+            modelBuilder.Entity<Portfolio>()
+                .HasOne(p => p.User)
+                .WithMany(u => u.Portfolios)
+                .HasForeignKey(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Portfolio>()
+                .HasIndex(p => p.UserId);
 
             base.OnModelCreating(modelBuilder);
         }
