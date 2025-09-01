@@ -251,16 +251,6 @@ class SignatureCapture {
             errors.push('Signature is required');
         }
         
-        if (this.signatureData.length < 2) {
-            errors.push('Signature appears to be too simple');
-        }
-        
-        // Check if signature has sufficient complexity
-        const totalPoints = this.signatureData.reduce((sum, stroke) => sum + stroke.length, 0);
-        if (totalPoints < 10) {
-            errors.push('Signature must be more detailed');
-        }
-        
         return {
             isValid: errors.length === 0,
             errors: errors

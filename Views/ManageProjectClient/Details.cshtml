@@ -115,7 +115,7 @@
                                 <div class="grid grid-cols-2 gap-2">
                                     @foreach (var imageUrl in Model.ProjectImageUrls.Take(4))
                                     {
-                                        <img src="@imageUrl" alt="Project image" class="w-full h-20 object-cover rounded-md">
+                                        <img src="@imageUrl" alt="Project image" class="w-full h-full object-cover rounded-md">
                                     }
                                 </div>
                                 @if (Model.ProjectImageUrls.Count > 4)
