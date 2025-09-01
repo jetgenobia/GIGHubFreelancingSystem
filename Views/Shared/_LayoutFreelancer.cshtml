@@ -40,6 +40,19 @@
                         <img class="h-16 w-auto" src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(2).png?updatedAt=1749718355580" alt="">
                     </a>
                 </div>
+                <div class="flex items-center justify-center flex-1 mx-4">
+                    <form class="max-w-xl w-full mx-auto" data-search-form="true">
+                        <label for="default-search" class="mb-2 text-sm font-medium text-gray-900 sr-only">Search</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                                <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
+                                </svg>
+                            </div>
+                            <input type="search" id="default-search" name="searchTerm" class="block w-full p-4 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-gray-300 focus:border-gray-300" placeholder="Search GIGHub" required />
+                        </div>
+                    </form>
+                </div>
                 <div class="flex items-center">
                     <button id="dropdownNotificationButton" data-dropdown-toggle="dropdownNotification" class="relative inline-flex items-center text-sm font-medium text-center text-gray-500 hover:text-gray-900 focus:outline-none mr-3 mt-1" type="button">
                         <svg viewBox="-1.5 0 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="currentColor" class="w-6 h-6">
@@ -289,6 +302,7 @@
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="~/js/notification.js" asp-append-version="true"></script>
     <script src="~/js/global-video-call.js" asp-append-version="true"></script>
+    <script src="~/js/search.js" asp-append-version="true"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
     @RenderSection("Scripts", required: false)
