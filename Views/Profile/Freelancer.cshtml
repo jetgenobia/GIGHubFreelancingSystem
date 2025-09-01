@@ -522,6 +522,12 @@
     }
 
     function openProfileModal(userId) {
+        // Check if user is clicking on their own profile
+        const currentUserId = '@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value';
+        if (currentUserId === userId) {
+            return; // Don't open modal for own profile
+        }
+
         // Use the DTOs instead of the full feedback objects
         const feedbackDtos = @Html.Raw(Json.Serialize(ViewBag.FeedbackDtos));
         const feedback = feedbackDtos.find(f => f.user.id === userId);
