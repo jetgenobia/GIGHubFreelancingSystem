@@ -516,10 +516,50 @@ namespace Freelancing.Controllers
                 .Take(5)
                 .ToListAsync();
 
+            // FIX: Use targetUserId instead of id for feedbacks
+            var feedbacks = await dbContext.FreelancerFeedbacks
+                .Where(f => f.FreelancerId == targetUserId) // Changed from id to targetUserId
+                .Include(f => f.AcceptBidding)
+                .ThenInclude(ab => ab.Project)
+                .ThenInclude(p => p.User)
+                .OrderByDescending(f => f.CreatedAt)
+                .ToListAsync();
+
+            var feedbackDtos = feedbacks.Select(f => new FeedbackDto
+            {
+                Id = f.Id,
+                Rating = f.Rating,
+                WouldRecommend = f.WouldRecommend,
+                Comments = f.Comments,
+                CreatedAt = f.CreatedAt,
+                User = new UserDto
+                {
+                    Id = f.AcceptBidding.Project.User.Id,
+                    FirstName = f.AcceptBidding.Project.User.FirstName,
+                    LastName = f.AcceptBidding.Project.User.LastName,
+                    Email = f.AcceptBidding.Project.User.Email,
+                    UserName = f.AcceptBidding.Project.User.UserName,
+                    Photo = f.AcceptBidding.Project.User.Photo
+                }
+            }).ToList();
+
+            // Calculate average rating
+            var averageRating = feedbacks.Any() ? feedbacks.Average(f => f.Rating) : 0;
+
+            // Calculate recommendation rate
+            var recommendationRate = feedbacks.Any() ?
+                (double)feedbacks.Count(f => f.WouldRecommend) / feedbacks.Count * 100 : 0;
+
             ViewBag.MentorshipData = (completedAsMentor, completedAsMentee);
             ViewBag.Projects = projects;
             ViewBag.Biddings = biddings;
             ViewBag.IsOwnProfile = (currentUserId == targetUserId); // Flag to indicate if this is user's own profile
+            ViewBag.AllFeedbacks = feedbacks;
+            ViewBag.RecentFeedbacks = feedbacks;
+            ViewBag.FeedbackDtos = feedbackDtos;
+            ViewBag.AverageRating = averageRating;
+            ViewBag.RecommendationRate = recommendationRate;
+            ViewBag.FeedbackCount = feedbacks.Count;
 
             return View(freelancer);
         }
