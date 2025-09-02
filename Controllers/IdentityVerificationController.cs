@@ -91,69 +91,63 @@ namespace Freelancing.Controllers
                     return RedirectToAction("Login", "Account");
                 }
 
-                // Handle expiry date logic - if no expiration, set to null
+                // Handle expiry date logic
                 DateTime? expiryDate = null;
                 if (!model.IdDocumentHasNoExpiration && model.IdDocumentExpiryDate.HasValue)
                 {
                     expiryDate = model.IdDocumentExpiryDate.Value;
                 }
 
-                // Check if this is a returning user (no new file uploaded)
-                var isReturningUser = model.IdDocumentImage == null || model.IdDocumentImage.Length == 0;
-                
-                if (isReturningUser)
+                // Check if this is a returning user with existing session data
+                var existingSessionData = HttpContext.Session.GetString("DocumentData");
+                if (!string.IsNullOrEmpty(existingSessionData))
                 {
-                    // User is returning without uploading a new file
-                    var existingSessionData = HttpContext.Session.GetString("DocumentData");
-                    if (!string.IsNullOrEmpty(existingSessionData))
+                    try
                     {
-                        try
+                        var existingData = System.Text.Json.JsonSerializer.Deserialize<DocumentVerificationData>(existingSessionData);
+
+                        // Check if user made any changes to the form
+                        bool hasChanges = existingData.IdDocumentType != model.IdDocumentType ||
+                                        existingData.IdDocumentNumber != model.IdDocumentNumber ||
+                                        existingData.IdDocumentExpiryDate != expiryDate ||
+                                        existingData.IdDocumentHasNoExpiration != model.IdDocumentHasNoExpiration ||
+                                        (model.IdDocumentImage != null && model.IdDocumentImage.Length > 0);
+
+                        if (hasChanges)
                         {
-                            // Check if the form data has changed
-                            var existingData = System.Text.Json.JsonSerializer.Deserialize<DocumentVerificationData>(existingSessionData);
-                            
-                            bool hasChanges = existingData.IdDocumentType != model.IdDocumentType ||
-                                            existingData.IdDocumentNumber != model.IdDocumentNumber ||
-                                            existingData.IdDocumentExpiryDate != expiryDate ||
-                                            existingData.IdDocumentHasNoExpiration != model.IdDocumentHasNoExpiration;
-                            
-                            if (hasChanges)
-                            {
-                                // User made changes to form fields, update the session data while preserving image data
-                                existingData.IdDocumentType = model.IdDocumentType;
-                                existingData.IdDocumentNumber = model.IdDocumentNumber;
-                                existingData.IdDocumentExpiryDate = expiryDate;
-                                existingData.IdDocumentHasNoExpiration = model.IdDocumentHasNoExpiration;
-                                existingData.IdDocumentMessage = "Document data updated, pending verification";
-                                // Note: existingData.IdDocumentImageData and IdDocumentImageContentType are preserved from existing session
-                                
-                                // Save updated data back to session
-                                var updatedSerializedData = System.Text.Json.JsonSerializer.Serialize(existingData);
-                                HttpContext.Session.SetString("DocumentData", updatedSerializedData);
-                                
-                                // Log for debugging
-                                _logger.LogInformation("Updated document data for user {UserId}. Image data preserved: {HasImageData}", 
-                                    userId, !string.IsNullOrEmpty(existingData.IdDocumentImageData));
-                            }
-                            else
-                            {
-                                // No changes detected, reuse existing data
-                                HttpContext.Session.SetString("DocumentData", existingSessionData);
-                            }
-                            
-                            // Redirect to face verification
-                            return RedirectToAction("Verify");
+                            // User made changes to form fields, update the session data while preserving image data
+                            existingData.IdDocumentType = model.IdDocumentType;
+                            existingData.IdDocumentNumber = model.IdDocumentNumber;
+                            existingData.IdDocumentExpiryDate = expiryDate;
+                            existingData.IdDocumentHasNoExpiration = model.IdDocumentHasNoExpiration;
+                            existingData.IdDocumentMessage = "Document data updated, pending verification";
+                            // Note: existingData.IdDocumentImageData and IdDocumentImageContentType are preserved from existing session
+
+                            // Save updated data back to session
+                            var updatedSerializedData = System.Text.Json.JsonSerializer.Serialize(existingData);
+                            HttpContext.Session.SetString("DocumentData", updatedSerializedData);
+
+                            // Log for debugging
+                            _logger.LogInformation("Updated document data for user {UserId}. Image data preserved: {HasImageData}",
+                                userId, !string.IsNullOrEmpty(existingData.IdDocumentImageData));
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            _logger.LogError(ex, "Error updating document data for returning user");
-                            // Fall through to create new document data if deserialization fails
+                            // No changes detected, reuse existing data
+                            HttpContext.Session.SetString("DocumentData", existingSessionData);
                         }
+
+                        // Redirect to face verification
+                        return RedirectToAction("Verify");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error updating document data for returning user");
+                        // Fall through to create new document data if deserialization fails
                     }
                 }
-                
-                // Store document data WITHOUT calling Google Cloud API yet
-                // The API will only be called when face verification is submitted
+
+                // Create new document data
                 var documentData = new DocumentVerificationData
                 {
                     IdDocumentType = model.IdDocumentType,
@@ -166,7 +160,7 @@ namespace Freelancing.Controllers
                     IdDocumentImageData = null, // Will be set if image is uploaded
                     IdDocumentImageContentType = null // Will be set if image is uploaded
                 };
-                
+
                 // If an image was uploaded, convert it to base64 and store it
                 if (model.IdDocumentImage != null && model.IdDocumentImage.Length > 0)
                 {
@@ -175,16 +169,45 @@ namespace Freelancing.Controllers
                         await model.IdDocumentImage.CopyToAsync(memoryStream);
                         var imageBytes = memoryStream.ToArray();
                         var base64String = Convert.ToBase64String(imageBytes);
-                        
+
                         documentData.IdDocumentImageData = base64String;
                         documentData.IdDocumentImageContentType = model.IdDocumentImage.ContentType;
+                    }
+
+                    // *** NEW: Call Google Vision API immediately to extract ID number and name ***
+                    try
+                    {
+                        var documentResult = await _verificationService.VerifyIdDocumentAsync(
+                            model.IdDocumentImage,
+                            model.IdDocumentType,
+                            model.IdDocumentNumber,
+                            expiryDate,
+                            model.IdDocumentHasNoExpiration,
+                            userId
+                        );
+
+                        // Store the extracted data
+                        documentData.ExtractedIdName = documentResult.extractedIdName;
+                        documentData.ExtractedIdNumber = documentResult.extractedIdNumber;
+                        documentData.IdDocumentVerified = documentResult.verified;
+                        documentData.IdDocumentConfidence = documentResult.confidence;
+                        documentData.IdDocumentMessage = documentResult.message;
+
+                        _logger.LogInformation("Document verification completed for user {UserId}. Extracted name: {ExtractedName}, Extracted ID: {ExtractedId}",
+                            userId, documentResult.extractedIdName, documentResult.extractedIdNumber);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error during document verification for user {UserId}", userId);
+                        // Continue with the flow even if extraction fails - user can still proceed
+                        documentData.IdDocumentMessage = "Document uploaded but extraction failed. Please verify manually.";
                     }
                 }
 
                 // Store document data in Session for the next step
                 var serializedData = System.Text.Json.JsonSerializer.Serialize(documentData);
                 HttpContext.Session.SetString("DocumentData", serializedData);
-                
+
                 return RedirectToAction("Verify");
             }
             catch (Exception ex)
@@ -200,20 +223,22 @@ namespace Freelancing.Controllers
         {
             // Retrieve document data from Session if available
             var sessionDocumentData = HttpContext.Session.GetString("DocumentData");
-            
+
             if (!string.IsNullOrEmpty(sessionDocumentData))
             {
                 try
                 {
                     var documentData = System.Text.Json.JsonSerializer.Deserialize<DocumentVerificationData>(sessionDocumentData);
-                    
-                    // Create a new view model with the stored data
+
+                    // Create a new view model with the stored data including extracted information
                     var model = new FaceVerificationViewModel
                     {
                         IdDocumentType = documentData.IdDocumentType,
                         IdDocumentNumber = documentData.IdDocumentNumber,
                         IdDocumentExpiryDate = documentData.IdDocumentExpiryDate,
-                        IdDocumentHasNoExpiration = documentData.IdDocumentHasNoExpiration
+                        IdDocumentHasNoExpiration = documentData.IdDocumentHasNoExpiration,
+                        ExtractedIdName = documentData.ExtractedIdName,
+                        ExtractedIdNumber = documentData.ExtractedIdNumber
                     };
 
                     return View(model);
@@ -225,7 +250,7 @@ namespace Freelancing.Controllers
                     return RedirectToAction("Document");
                 }
             }
-            
+
             return View(new FaceVerificationViewModel());
         }
 
@@ -254,16 +279,41 @@ namespace Freelancing.Controllers
                 }
 
                 var documentData = System.Text.Json.JsonSerializer.Deserialize<DocumentVerificationData>(sessionDocumentData);
-                
+
+                // Convert stored image data to bytes for API call
+                byte[]? storedImageBytes = null;
+                if (!string.IsNullOrEmpty(documentData.IdDocumentImageData))
+                {
+                    storedImageBytes = Convert.FromBase64String(documentData.IdDocumentImageData);
+                }
+
                 // Now call the Google Cloud API for document verification using stored data
                 var documentResult = await _verificationService.VerifyIdDocumentAsync(
-                    null, // No new file uploaded, use stored data
-                    documentData.IdDocumentType, 
-                    documentData.IdDocumentNumber, 
-                    documentData.IdDocumentExpiryDate, 
-                    documentData.IdDocumentHasNoExpiration, 
-                    userId
+                    null, // No new file uploaded
+                    documentData.IdDocumentType,
+                    documentData.IdDocumentNumber,
+                    documentData.IdDocumentExpiryDate,
+                    documentData.IdDocumentHasNoExpiration,
+                    userId,
+                    storedImageBytes // Pass the stored image bytes
                 );
+
+                documentData.ExtractedIdName = documentResult.extractedIdName;
+                documentData.ExtractedIdNumber = documentResult.extractedIdNumber;
+
+                var updatedSerializedData = System.Text.Json.JsonSerializer.Serialize(documentData);
+                HttpContext.Session.SetString("DocumentData", updatedSerializedData);
+
+                // Create face model with extracted details
+                var faceModel = new FaceVerificationViewModel
+                {
+                    IdDocumentType = documentData.IdDocumentType,
+                    IdDocumentNumber = documentData.IdDocumentNumber,
+                    IdDocumentExpiryDate = documentData.IdDocumentExpiryDate,
+                    IdDocumentHasNoExpiration = documentData.IdDocumentHasNoExpiration,
+                    ExtractedIdName = documentData.ExtractedIdName,
+                    ExtractedIdNumber = documentData.ExtractedIdNumber
+                };
 
                 // Only proceed with face verification if document verification passed
                 if (!documentResult.Item1)
@@ -272,13 +322,13 @@ namespace Freelancing.Controllers
                     return RedirectToAction("Document");
                 }
 
-                // Now verify the live face
+                // Now verify the live face using Google Vision API
                 var faceResult = await _verificationService.VerifyLiveFaceAsync(model.LiveFaceImageData, userId);
 
                 if (!faceResult.Item1) // If face verification failed
                 {
                     ModelState.AddModelError("", $"Face verification failed: {faceResult.Item2}");
-                    return View(model);
+                    return View(faceModel);
                 }
 
                 // Both verifications passed, save the complete verification data
@@ -311,8 +361,8 @@ namespace Freelancing.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during identity verification");
-                ModelState.AddModelError("", "An error occurred during verification. Please try again.");
+                _logger.LogError(ex, "Error during face verification");
+                ModelState.AddModelError("", "An error occurred during face verification. Please try again.");
                 return View(model);
             }
         }
@@ -430,5 +480,10 @@ namespace Freelancing.Controllers
         
         [JsonPropertyName("idDocumentImageContentType")]
         public string? IdDocumentImageContentType { get; set; } // Image MIME type
+        [JsonPropertyName("extractedIdName")]
+        public string? ExtractedIdName { get; set; }
+
+        [JsonPropertyName("extractedIdNumber")]
+        public string? ExtractedIdNumber { get; set; }
     }
 }

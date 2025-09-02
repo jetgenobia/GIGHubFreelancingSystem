@@ -3,6 +3,7 @@ using Freelancing.Models;
 using Freelancing.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace Freelancing.Services
 {
@@ -55,7 +56,14 @@ namespace Freelancing.Services
                 // Verify ID Document
                 if (model.IdDocumentImage != null)
                 {
-                    var (idVerified, idMessage, idConfidence) = await VerifyIdDocumentAsync(model.IdDocumentImage, model.IdDocumentType, model.IdDocumentNumber, model.IdDocumentExpiryDate, model.IdDocumentHasNoExpiration, userId);
+                    var (idVerified, idMessage, idConfidence, _, _) = await VerifyIdDocumentAsync(
+                        model.IdDocumentImage,
+                        model.IdDocumentType,
+                        model.IdDocumentNumber,
+                        model.IdDocumentExpiryDate,
+                        model.IdDocumentHasNoExpiration,
+                        userId
+                    );
                     result.IdDocumentVerified = idVerified;
                     result.IdDocumentMessage = idMessage;
                     result.IdDocumentConfidence = idConfidence;
@@ -91,7 +99,15 @@ namespace Freelancing.Services
         }
 
         // New method for completing verification with stored document data
-        public async Task<VerificationResultViewModel> CompleteVerificationAsync(string liveFaceImageData, string userId, string idDocumentType, string idDocumentNumber, DateTime? idDocumentExpiryDate, bool idDocumentHasNoExpiration, bool idDocumentVerified, float idDocumentConfidence)
+        public async Task<VerificationResultViewModel> CompleteVerificationAsync(
+            string liveFaceImageData,
+            string userId,
+            string idDocumentType,
+            string idDocumentNumber,
+            DateTime? idDocumentExpiryDate,
+            bool idDocumentHasNoExpiration,
+            bool idDocumentVerified,
+            float idDocumentConfidence)
         {
             try
             {
@@ -144,94 +160,126 @@ namespace Freelancing.Services
             }
         }
 
-        public async Task<(bool verified, string message, float confidence)> VerifyIdDocumentAsync(IFormFile documentImage, string idDocumentType, string idDocumentNumber, DateTime? idDocumentExpiryDate, bool idDocumentHasNoExpiration, string userId)
+        public async Task<(bool verified, string message, float confidence, string? extractedIdName, string? extractedIdNumber)> VerifyIdDocumentAsync(
+    IFormFile? documentImage,
+    string idDocumentType,
+    string idDocumentNumber,
+    DateTime? idDocumentExpiryDate,
+    bool idDocumentHasNoExpiration,
+    string userId,
+    byte[]? storedImageBytes = null) // Add optional parameter for stored image data
         {
             try
             {
-                // Save and encrypt the document image
-                var imageBytes = await GetImageBytesAsync(documentImage);
+                byte[] imageBytes;
+
+                // Use stored image bytes if provided, otherwise use the uploaded file
+                if (storedImageBytes != null)
+                {
+                    imageBytes = storedImageBytes;
+                }
+                else if (documentImage != null)
+                {
+                    imageBytes = await GetImageBytesAsync(documentImage);
+                }
+                else
+                {
+                    return (false, "No document image provided for verification.", 0.0f, null, null);
+                }
+
                 var encryptedImage = _encryptionService.EncryptDocumentImage(imageBytes, userId);
-                
+
                 // Process with Google Cloud Vision API using REST API
                 if (!string.IsNullOrEmpty(_googleCloudApiKey))
                 {
                     using var httpClient = new HttpClient();
                     var requestUrl = $"https://vision.googleapis.com/v1/images:annotate?key={_googleCloudApiKey}";
-                    
+
                     var requestBody = new
                     {
                         requests = new[]
                         {
+                    new
+                    {
+                        image = new
+                        {
+                            content = Convert.ToBase64String(imageBytes)
+                        },
+                        features = new[]
+                        {
                             new
                             {
-                                image = new
-                                {
-                                    content = Convert.ToBase64String(imageBytes)
-                                },
-                                features = new[]
-                                {
-                                    new
-                                    {
-                                        type = "TEXT_DETECTION",
-                                        maxResults = 10
-                                    }
-                                }
+                                type = "TEXT_DETECTION",
+                                maxResults = 10
                             }
                         }
+                    }
+                }
                     };
-                    
+
                     var jsonContent = System.Text.Json.JsonSerializer.Serialize(requestBody);
                     var content = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
-                    
+
                     var response = await httpClient.PostAsync(requestUrl, content);
                     var responseContent = await response.Content.ReadAsStringAsync();
-                    
+
                     if (response.IsSuccessStatusCode)
                     {
                         var visionResponse = System.Text.Json.JsonSerializer.Deserialize<dynamic>(responseContent);
                         var textAnnotations = visionResponse.GetProperty("responses")[0].GetProperty("textAnnotations");
-                        
+
                         var extractedText = "";
                         if (textAnnotations.GetArrayLength() > 0)
                         {
                             extractedText = textAnnotations[0].GetProperty("description").GetString();
                         }
-                        
+
+                        // Parse the extracted text based on document type
+                        IdOcrResult ocrResult = null;
+                        if (idDocumentType == "National ID")
+                            ocrResult = ParseNationalId(extractedText);
+                        else if (idDocumentType == "Driver's License")
+                            ocrResult = ParseDriversLicense(extractedText);
+
+                        // Encrypt extracted details
+                        string encryptedOcrName = ocrResult?.Name != null ? _encryptionService.EncryptIdentityData(ocrResult.Name, userId) : null;
+                        string encryptedOcrIdNumber = ocrResult?.IdNumber != null ? _encryptionService.EncryptIdentityData(ocrResult.IdNumber, userId) : null;
+
                         // Basic validation - check if it looks like an ID document
                         var hasNumbers = extractedText.Any(char.IsDigit);
                         var hasLetters = extractedText.Any(char.IsLetter);
                         var hasDatePattern = System.Text.RegularExpressions.Regex.IsMatch(extractedText, @"\d{1,2}[/-]\d{1,2}[/-]\d{2,4}");
-                        
+
                         // ID documents need at least numbers and letters, but date pattern is optional
                         if (hasNumbers && hasLetters)
                         {
                             if (hasDatePattern)
                             {
-                                return (true, "ID document appears valid with expiration date", 90.0f);
+                                return (true, "ID document appears valid with expiration date", 90.0f, ocrResult?.Name, ocrResult?.IdNumber);
                             }
                             else
                             {
-                                return (true, "ID document appears valid (no expiration date detected)", 85.0f);
+                                return (true, "ID document appears valid (no expiration date detected)", 85.0f, ocrResult?.Name, ocrResult?.IdNumber);
                             }
                         }
-                        
-                        return (false, "Unable to verify ID document. Please ensure the image is clear and contains readable text.", 0.0f);
+
+                        return (false, "Unable to verify ID document. Please ensure the image is clear and contains readable text.", 0.0f, null, null);
                     }
                     else
                     {
                         _logger.LogError("Google Vision API error: {StatusCode} - {Content}", response.StatusCode, responseContent);
-                        return (false, "Error processing ID document with Google Vision API.", 0.0f);
+                        return (false, "Error processing ID document with Google Vision API.", 0.0f, null, null);
                     }
                 }
                 else
                 {
-                    return (false, "Google Cloud Vision API key not configured.", 0.0f);
+                    return (false, "Google Cloud Vision API key not configured.", 0.0f, null, null);
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error verifying ID document for user {UserId}", userId);
-                return (false, "Error processing ID document. Please try again.", 0.0f);
+                return (false, "Error processing ID document. Please try again.", 0.0f, null, null);
             }
         }
 
@@ -241,7 +289,7 @@ namespace Freelancing.Services
             {
                 // Convert base64 to bytes
                 var imageBytes = Convert.FromBase64String(base64ImageData.Replace("data:image/jpeg;base64,", ""));
-                
+
                 // Encrypt the face image
                 var encryptedImage = _encryptionService.EncryptDocumentImage(imageBytes, userId);
 
@@ -250,7 +298,7 @@ namespace Freelancing.Services
                 {
                     using var httpClient = new HttpClient();
                     var requestUrl = $"https://vision.googleapis.com/v1/images:annotate?key={_googleCloudApiKey}";
-                    
+
                     var requestBody = new
                     {
                         requests = new[]
@@ -272,18 +320,18 @@ namespace Freelancing.Services
                             }
                         }
                     };
-                    
+
                     var jsonContent = System.Text.Json.JsonSerializer.Serialize(requestBody);
                     var content = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
-                    
+
                     var response = await httpClient.PostAsync(requestUrl, content);
                     var responseContent = await response.Content.ReadAsStringAsync();
-                    
+
                     if (response.IsSuccessStatusCode)
                     {
                         var visionResponse = System.Text.Json.JsonSerializer.Deserialize<dynamic>(responseContent);
                         var faceAnnotations = visionResponse.GetProperty("responses")[0].GetProperty("faceAnnotations");
-                        
+
                         if (faceAnnotations.GetArrayLength() == 0)
                         {
                             return (false, "No face detected. Please ensure your face is clearly visible in the camera.", 0.0f);
@@ -483,6 +531,202 @@ namespace Freelancing.Services
 
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        // Helper class for parsed OCR results
+        private class IdOcrResult
+        {
+            public string IdNumber { get; set; }
+            public string Name { get; set; }
+        }
+
+        private IdOcrResult ParseNationalId(string ocrText)
+        {
+            var result = new IdOcrResult();
+
+            // Log the OCR text for debugging
+            _logger.LogInformation("OCR Text for National ID parsing: {OcrText}", ocrText);
+
+            // ID Number: ####-####-####-####
+            var idNumberMatch = Regex.Match(ocrText, @"\b\d{4}-\d{4}-\d{4}-\d{4}\b");
+            result.IdNumber = idNumberMatch.Success ? idNumberMatch.Value : null;
+
+            string lastName = "";
+            string givenNames = "";
+            string middleName = "";
+
+            // Approach 1: Use field labels to extract names directly
+            // Look for the pattern: "Apelyido/Last Name" followed by the name on the next line
+            var lastNameMatch = Regex.Match(ocrText, @"(?:Apelyido/Last Name|APELYIDO/LAST NAME)\s*\n?\s*([A-Z]+)", RegexOptions.IgnoreCase | RegexOptions.Multiline);
+            if (lastNameMatch.Success)
+            {
+                lastName = lastNameMatch.Groups[1].Value.Trim();
+            }
+
+            var givenNamesMatch = Regex.Match(ocrText, @"(?:Mga Pangalan/Given Names|GIVEN NAMES)\s*\n?\s*([A-Z]+)", RegexOptions.IgnoreCase | RegexOptions.Multiline);
+            if (givenNamesMatch.Success)
+            {
+                givenNames = givenNamesMatch.Groups[1].Value.Trim();
+            }
+
+            var middleNameMatch = Regex.Match(ocrText, @"(?:Gitnang Apelyido/Middle Name|MIDDLE NAME)\s*\n?\s*([A-Z]+)", RegexOptions.IgnoreCase | RegexOptions.Multiline);
+            if (middleNameMatch.Success)
+            {
+                middleName = middleNameMatch.Groups[1].Value.Trim();
+            }
+
+            // Approach 2: If field-based extraction didn't work, try alternative patterns
+            if (string.IsNullOrEmpty(lastName) || string.IsNullOrEmpty(givenNames))
+            {
+                // Look for names that appear after specific field labels
+                var fieldPatterns = new[]
+                {
+            new { Pattern = @"(?:Apelyido/Last Name|APELYIDO/LAST NAME)\s*([A-Z]+)", Name = "lastName" },
+            new { Pattern = @"(?:Mga Pangalan/Given Names|GIVEN NAMES)\s*([A-Z]+)", Name = "givenNames" },
+            new { Pattern = @"(?:Gitnang Apelyido/Middle Name|MIDDLE NAME)\s*([A-Z]+)", Name = "middleName" }
+        };
+
+                foreach (var pattern in fieldPatterns)
+                {
+                    var match = Regex.Match(ocrText, pattern.Pattern, RegexOptions.IgnoreCase);
+                    if (match.Success)
+                    {
+                        var value = match.Groups[1].Value.Trim();
+                        switch (pattern.Name)
+                        {
+                            case "lastName":
+                                if (string.IsNullOrEmpty(lastName)) lastName = value;
+                                break;
+                            case "givenNames":
+                                if (string.IsNullOrEmpty(givenNames)) givenNames = value;
+                                break;
+                            case "middleName":
+                                if (string.IsNullOrEmpty(middleName)) middleName = value;
+                                break;
+                        }
+                    }
+                }
+            }
+
+            // Approach 3: If still no names found, try to find names in sequence after the ID number
+            if (string.IsNullOrEmpty(lastName) || string.IsNullOrEmpty(givenNames))
+            {
+                // Find the ID number position and look for names after it
+                if (idNumberMatch.Success)
+                {
+                    var afterIdText = ocrText.Substring(idNumberMatch.Index + idNumberMatch.Length);
+
+                    // Extract all words that could be names (exclude header words, dates, addresses)
+                    var allWords = Regex.Matches(afterIdText, @"\b([A-Z]{3,})\b")
+                        .Cast<Match>()
+                        .Select(m => m.Groups[1].Value)
+                        .Where(word => IsLikelyName(word))
+                        .ToArray();
+
+                    _logger.LogInformation("Potential names after ID: {Words}", string.Join(", ", allWords));
+
+                    // Look for the name fields in the remaining text
+                    var nameFieldMatches = Regex.Matches(afterIdText, @"(?:Apelyido/Last Name|APELYIDO/LAST NAME|Mga Pangalan/Given Names|GIVEN NAMES|Gitnang Apelyido/Middle Name|MIDDLE NAME)\s*([A-Z]+)", RegexOptions.IgnoreCase);
+
+                    foreach (Match match in nameFieldMatches)
+                    {
+                        var fieldName = match.Groups[0].Value.ToUpper();
+                        var nameValue = match.Groups[1].Value.Trim();
+
+                        if (fieldName.Contains("LAST NAME") && string.IsNullOrEmpty(lastName))
+                        {
+                            lastName = nameValue;
+                        }
+                        else if (fieldName.Contains("GIVEN NAMES") && string.IsNullOrEmpty(givenNames))
+                        {
+                            givenNames = nameValue;
+                        }
+                        else if (fieldName.Contains("MIDDLE NAME") && string.IsNullOrEmpty(middleName))
+                        {
+                            middleName = nameValue;
+                        }
+                    }
+                }
+            }
+
+            // Clean up the extracted names
+            lastName = CleanName(lastName);
+            givenNames = CleanName(givenNames);
+            middleName = CleanName(middleName);
+
+            // Format: Given Names Middle Name Last Name (Philippine format)
+            var nameParts = new List<string>();
+            if (!string.IsNullOrEmpty(givenNames)) nameParts.Add(givenNames);
+            if (!string.IsNullOrEmpty(middleName)) nameParts.Add(middleName);
+            if (!string.IsNullOrEmpty(lastName)) nameParts.Add(lastName);
+
+            result.Name = string.Join(" ", nameParts).Trim();
+
+            _logger.LogInformation("Final parsed names - Given Names: {GivenNames}, Middle Name: {MiddleName}, Last Name: {LastName}, Full Name: {FullName}",
+                givenNames, middleName, lastName, result.Name);
+
+            return result;
+        }
+
+        // Helper method to check if a word is likely a name (not address, date, or header)
+        private bool IsLikelyName(string word)
+        {
+            if (string.IsNullOrEmpty(word) || word.Length < 3) return false;
+
+            // Exclude header words
+            var headerWords = new[] {
+        "REPUBLIKA", "PILIPINAS", "PAMBANSANG", "PAGKAKAKILANLAN",
+        "PHILIPPINE", "STATISTICS", "AUTHORITY", "PSA", "PHL",
+        "IDENTIFICATION", "CARD", "REPUBLIC", "PHILIPPINES", "SEATORTIC"
+    };
+            if (headerWords.Contains(word)) return false;
+
+            // Exclude months
+            var months = new[] { "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
+                        "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER" };
+            if (months.Contains(word)) return false;
+
+            // Exclude common address words
+            var addressWords = new[] { "STREET", "ST", "AVENUE", "AVE", "ROAD", "RD",
+                              "CITY", "PROVINCE", "DISTRICT", "BARANGAY", "BRGY" };
+            if (addressWords.Contains(word)) return false;
+
+            // Exclude numbers
+            if (Regex.IsMatch(word, @"^\d+$")) return false;
+
+            return true;
+        }
+
+        // Helper method to clean up extracted names
+        private string CleanName(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return "";
+
+            // Remove common OCR artifacts and extra characters
+            name = Regex.Replace(name, @"[^A-Z\s]", ""); // Keep only letters and spaces
+            name = Regex.Replace(name, @"\s+", " "); // Replace multiple spaces with single space
+            name = name.Trim();
+
+            // Remove single letters that are likely OCR artifacts
+            var words = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var cleanWords = words.Where(word => word.Length > 1).ToArray();
+
+            return string.Join(" ", cleanWords);
+        }
+
+        private IdOcrResult ParseDriversLicense(string ocrText)
+        {
+            var result = new IdOcrResult();
+
+            // License No.: N##-##-#####
+            var idNumberMatch = Regex.Match(ocrText, @"License No\.?\s*([A-Z0-9\-]+)");
+            result.IdNumber = idNumberMatch.Success ? idNumberMatch.Groups[1].Value.Trim() : null;
+
+            // Name: Dela Cruz, Juan Pedro Garcia (all uppercase, comma separated)
+            var nameMatch = Regex.Match(ocrText, @"([A-Z\s]+,[A-Z\s]+)");
+            result.Name = nameMatch.Success ? nameMatch.Groups[1].Value.Trim() : null;
+
+            return result;
         }
     }
 }

@@ -96,7 +96,8 @@
                                                 @if (!string.IsNullOrEmpty(Model.IdDocumentType))
                                                 {
                                                     <p class="mb-1"><strong>ID Type:</strong> @Model.IdDocumentType</p>
-                                                    <p class="mb-1"><strong>ID Number:</strong> @Model.IdDocumentNumber</p>
+                                                    <p class="mb-1"><strong>ID Number:</strong> @Model.ExtractedIdNumber</p>
+                                                    <p class="mb-1"><strong>Name:</strong> @Model.ExtractedIdName</p>
                                                     <p class="mb-1"><strong>Expiry Date:</strong> @(Model.IdDocumentExpiryDate?.ToString("MMM dd, yyyy") ?? "No expiration date")</p>
                                                 }
                                             </div>

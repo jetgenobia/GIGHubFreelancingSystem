@@ -39,7 +39,9 @@ namespace Freelancing.Models
         public string IdDocumentNumber { get; set; }
         public DateTime? IdDocumentExpiryDate { get; set; }
         public bool IdDocumentHasNoExpiration { get; set; }
-        
+        public string? ExtractedIdName { get; set; }
+        public string? ExtractedIdNumber { get; set; }
+
         // Face Verification Fields - Live Capture
         [Required(ErrorMessage = "Please capture a live photo of your face")]
         public string LiveFaceImageData { get; set; } // Base64 encoded image data
@@ -109,6 +111,8 @@ namespace Freelancing.Models
         public bool? FaceVerified { get; set; }
         public string? FaceMessage { get; set; }
         public float? FaceConfidence { get; set; }
+        public string? ExtractedIdName { get; set; }
+        public string? ExtractedIdNumber { get; set; }
     }
     
     public class LiveFaceCaptureViewModel
