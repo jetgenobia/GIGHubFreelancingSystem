@@ -515,8 +515,14 @@ namespace Freelancing.Controllers
                 .Take(10)
                 .ToListAsync();
 
+            // Check identity verification status
+            var identityVerification = await dbContext.IdentityVerifications
+                .FirstOrDefaultAsync(iv => iv.UserAccountId == targetUserId);
+            var isVerified = identityVerification?.Status == "APPROVED";
+
             ViewBag.Projects = projects;
             ViewBag.IsOwnProfile = (currentUserId == targetUserId);
+            ViewBag.IsVerified = isVerified;
 
             return View(client);
         }

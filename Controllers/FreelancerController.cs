@@ -552,6 +552,11 @@ namespace Freelancing.Controllers
             var recommendationRate = feedbacks.Any() ?
                 (double)feedbacks.Count(f => f.WouldRecommend) / feedbacks.Count * 100 : 0;
 
+            // Check identity verification status
+            var identityVerification = await dbContext.IdentityVerifications
+                .FirstOrDefaultAsync(iv => iv.UserAccountId == targetUserId);
+            var isVerified = identityVerification?.Status == "APPROVED";
+
             ViewBag.MentorshipData = (completedAsMentor, completedAsMentee);
             ViewBag.Projects = projects;
             ViewBag.Biddings = biddings;
@@ -562,6 +567,7 @@ namespace Freelancing.Controllers
             ViewBag.AverageRating = averageRating;
             ViewBag.RecommendationRate = recommendationRate;
             ViewBag.FeedbackCount = feedbacks.Count;
+            ViewBag.IsVerified = isVerified;
 
             return View(freelancer);
         }
