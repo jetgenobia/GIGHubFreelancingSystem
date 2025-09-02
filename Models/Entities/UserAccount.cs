@@ -17,6 +17,9 @@ namespace Freelancing.Models.Entities
         public string? Photo { get; set; }
         
         public string Role { get; set; } = "User"; // Default role
+
+        [Required(ErrorMessage = "Freelancer role is required.")]
+        public string FRole { get; set; }
         public string? Bio { get; set; }
         public string? ExperienceLevel { get; set; }
 

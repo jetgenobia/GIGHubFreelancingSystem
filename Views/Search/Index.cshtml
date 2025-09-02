@@ -80,12 +80,23 @@
                                                     }
                                                 </div>
                                             }
-                                            <div class="mt-4">
-                                                <a href="@Url.Action("Profile", "Profile", new { userId = user.Id })" 
-                                                   class="text-sm font-medium text-blue-600 hover:text-blue-500">
-                                                    View Profile →
-                                                </a>
-                                            </div>
+                                            @if (user.FRole == "Freelancer")
+                                            {
+                                                <div class="mt-4">
+                                                    <a href="@Url.Action("Freelancer", "Profile", new { id = user.Id })" 
+                                                    class="text-sm font-medium text-blue-600 hover:text-blue-500">
+                                                        View Profile →
+                                                    </a>
+                                                </div>
+                                            }else if (user.FRole == "Client")
+                                            {
+                                                <div class="mt-4">
+                                                    <a href="@Url.Action("Client", "Profile", new { id = user.Id })"
+                                                       class="text-sm font-medium text-blue-600 hover:text-blue-500">
+                                                        View Profile →
+                                                    </a>
+                                                </div>
+                                            }
                                         </div>
                                     </div>
                                 }
