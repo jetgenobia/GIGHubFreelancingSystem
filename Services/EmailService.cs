@@ -69,5 +69,20 @@ namespace Freelancing.Services
 
             await SendEmailAsync(to, subject, body, true);
         }
+
+        public async Task SendEmailChangeConfirmationAsync(string to, string confirmationLink)
+        {
+            var subject = "Confirm your new email address";
+            var body = $@"
+                <img src=""https://ik.imagekit.io/6txj3mofs/GIGHub%20(2).png?updatedAt=1749718355580"" alt=""GigHub Logo"" style=""width: 120px; height: auto;"">
+                <h2>Email Change Request</h2>
+                <p>You requested to change your email address. Click the link below to confirm your new email:</p>
+                <p><a href='{confirmationLink}'>Confirm Email Change</a></p>
+                <p>If you didn't request this, please ignore this email.</p>
+                <p>This link will expire in 1 hour.</p>
+                <p>Best regards,<br/>The GigHub Team</p>";
+
+            await SendEmailAsync(to, subject, body, true);
+        }
     }
 }

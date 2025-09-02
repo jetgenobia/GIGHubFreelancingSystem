@@ -98,12 +98,22 @@ namespace Freelancing.Controllers
 
             if (ModelState.IsValid)
             {
-                var result = await _signInManager.PasswordSignInAsync(model.UserNameorEmail, model.Password, false, lockoutOnFailure: false);
+                string userNameToSignIn = model.UserNameorEmail;
+
+                if (model.UserNameorEmail.Contains("@"))
+                {
+                    var userByEmail = await _userManager.FindByEmailAsync(model.UserNameorEmail);
+                    if (userByEmail != null)
+                    {
+                        userNameToSignIn = userByEmail.UserName;
+                    }
+                }
+
+                var result = await _signInManager.PasswordSignInAsync(userNameToSignIn, model.Password, false, lockoutOnFailure: false);
 
                 if (result.Succeeded)
                 {
-                    var user = await _userManager.FindByNameAsync(model.UserNameorEmail) ?? 
-                               await _userManager.FindByEmailAsync(model.UserNameorEmail);
+                    var user = await _userManager.FindByNameAsync(userNameToSignIn);
 
                     if (user != null)
                     {
@@ -121,7 +131,6 @@ namespace Freelancing.Controllers
                         }
                         else
                         {
-                            // If no role or unexpected role, redirect to access denied
                             return RedirectToAction("AccessDenied");
                         }
                     }
@@ -129,7 +138,6 @@ namespace Freelancing.Controllers
 
                 if (result.RequiresTwoFactor)
                 {
-                    // Handle two-factor authentication
                     return RedirectToAction("LoginWith2fa", new { returnUrl });
                 }
 
@@ -139,10 +147,7 @@ namespace Freelancing.Controllers
                     return View(model);
                 }
 
-                // Check email confirmation for failed login attempts
-                var userForCheck = await _userManager.FindByNameAsync(model.UserNameorEmail) ?? 
-                                  await _userManager.FindByEmailAsync(model.UserNameorEmail);
-                
+                var userForCheck = await _userManager.FindByNameAsync(userNameToSignIn);
                 if (userForCheck != null && !await _userManager.IsEmailConfirmedAsync(userForCheck))
                 {
                     ModelState.AddModelError("", "Please confirm your email address before logging in.");

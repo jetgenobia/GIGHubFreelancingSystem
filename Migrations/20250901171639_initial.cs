@@ -34,6 +34,8 @@ namespace Freelancing.Migrations
                     LastName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Photo = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Role = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Bio = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ExperienceLevel = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     MentorshipId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     UserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
@@ -309,6 +311,29 @@ namespace Freelancing.Migrations
                     table.PrimaryKey("PK_PeerMentorships", x => x.Id);
                     table.ForeignKey(
                         name: "FK_PeerMentorships_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Portfolios",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ProjectImages = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ProjectLink = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Portfolios", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Portfolios_AspNetUsers_UserId",
                         column: x => x.UserId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
@@ -1364,6 +1389,11 @@ namespace Freelancing.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Portfolios_UserId",
+                table: "Portfolios",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Projects_AcceptedBidId",
                 table: "Projects",
                 column: "AcceptedBidId");
@@ -1469,6 +1499,9 @@ namespace Freelancing.Migrations
 
             migrationBuilder.DropTable(
                 name: "Notifications");
+
+            migrationBuilder.DropTable(
+                name: "Portfolios");
 
             migrationBuilder.DropTable(
                 name: "ProjectSkills");

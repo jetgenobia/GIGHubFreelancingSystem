@@ -22,13 +22,15 @@ namespace Freelancing.Controllers
         private readonly INotificationService notificationService;
         private readonly UserManager<UserAccount> _userManager;
         private readonly SignInManager<UserAccount> _signInManager;
+        private readonly IEmailService _emailService;
 
-        public FreelancerController(ApplicationDbContext context, INotificationService notificationService, UserManager<UserAccount> userManager, SignInManager<UserAccount> signInManager)
+        public FreelancerController(ApplicationDbContext context, INotificationService notificationService, UserManager<UserAccount> userManager, SignInManager<UserAccount> signInManager, IEmailService emailService)
         {
             this.dbContext = context;
             this.notificationService = notificationService;
             this._userManager = userManager;
             this._signInManager = signInManager;
+            this._emailService = emailService;
         }
 
         // Helper method to generate unique filename while preserving original name
@@ -605,6 +607,13 @@ namespace Freelancing.Controllers
                 HasCompletedMentorshipAsMentee = completedAsMentee
             };
 
+            if (TempData.ContainsKey("Message"))
+                ViewBag.Message = TempData["Message"];
+            if (TempData.ContainsKey("ErrorMessage"))
+                ViewBag.ErrorMessage = TempData["ErrorMessage"];
+            if (TempData.ContainsKey("MessageType"))
+                ViewBag.MessageType = TempData["MessageType"];
+
             return View(viewModel);
         }
 
@@ -959,6 +968,105 @@ namespace Freelancing.Controllers
             };
         }
 
+        [HttpPost]
+        public async Task<IActionResult> RequestEmailChange([FromBody] EmailChangeRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.NewEmail))
+            {
+                TempData["ErrorMessage"] = "Invalid request data provided.";
+                TempData["MessageType"] = "error";
+                return Json(new { success = false, reload = true });
+            }
+
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    TempData["ErrorMessage"] = "User not authenticated. Please log in again.";
+                    TempData["MessageType"] = "error";
+                    return Json(new { success = false, reload = true });
+                }
+
+                var user = await _userManager.FindByIdAsync(userId);
+                if (user == null)
+                {
+                    TempData["ErrorMessage"] = "User account not found.";
+                    TempData["MessageType"] = "error";
+                    return Json(new { success = false, reload = true });
+                }
+
+                var existingUser = await _userManager.FindByEmailAsync(request.NewEmail);
+                if (existingUser != null)
+                {
+                    TempData["ErrorMessage"] = "This email address is already registered with another account.";
+                    TempData["MessageType"] = "error";
+                    return Json(new { success = false, reload = true });
+                }
+
+                if (!IsValidEmail(request.NewEmail))
+                {
+                    TempData["ErrorMessage"] = "Please enter a valid email address.";
+                    TempData["MessageType"] = "error";
+                    return Json(new { success = false, reload = true });
+                }
+
+                var token = await _userManager.GenerateChangeEmailTokenAsync(user, request.NewEmail);
+                var confirmationLink = Url.Action("ConfirmEmailChange", "Freelancer",
+                    new { userId = userId, email = request.NewEmail, token = token },
+                    Request.Scheme);
+
+                await _emailService.SendEmailChangeConfirmationAsync(request.NewEmail, confirmationLink);
+
+                TempData["Message"] = $"Confirmation email sent successfully to <span class=\"font-bold\">{request.NewEmail}</span>! Please confirm to complete the change.";
+                TempData["MessageType"] = "success";
+                return Json(new { success = true, reload = true });
+            }
+            catch
+            {
+                TempData["ErrorMessage"] = "An unexpected error occurred while processing your request. Please try again later.";
+                TempData["MessageType"] = "error";
+                return Json(new { success = false, reload = true });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ConfirmEmailChange(string userId, string email, string token)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+                return NotFound();
+
+            var result = await _userManager.ChangeEmailAsync(user, email, token);
+            if (result.Succeeded)
+            {
+                // Update normalized email
+                user.NormalizedEmail = email.ToUpperInvariant();
+                await _userManager.UpdateNormalizedEmailAsync(user);
+                await RefreshUserClaims(user);
+
+                TempData["Message"] = "Your email has been successfully changed.";
+                TempData["MessageType"] = "success";
+                return RedirectToAction("EditAccount");
+            }
+
+            TempData["ErrorMessage"] = "Error changing email. Please try again.";
+            TempData["MessageType"] = "error";
+            return RedirectToAction("EditAccount");
+        }
+
+        private bool IsValidEmail(string email)
+        {
+            try
+            {
+                var addr = new System.Net.Mail.MailAddress(email);
+                return addr.Address == email;
+            }
+            catch
+            {
+                return false;
+            }
+        }
         private async Task RefreshUserClaims(UserAccount userAccount)
         {
             await _signInManager.RefreshSignInAsync(userAccount);
