@@ -24,6 +24,10 @@
                                     <div class="max-w-2xl mx-auto">
 
                                         <form asp-action="Document" asp-controller="IdentityVerification" method="post" enctype="multipart/form-data" id="documentForm">
+                                            
+                                            <!-- Hidden fields to preserve extracted data -->
+                                            @Html.HiddenFor(m => m.ExtractedIdNumber)
+                                            @Html.HiddenFor(m => m.ExtractedIdName)
 
                                             <!-- Document Verification Section -->
                                             <div class="mb-5">
@@ -31,6 +35,16 @@
                                                     <h3 class="text-3xl font-bold text-gray-800 mb-1">
                                                         ID Document Information
                                                     </h3>
+                                                    <p class="text-sm text-gray-600 mt-2">
+                                                        @if (!string.IsNullOrEmpty(Model.ExtractedIdNumber))
+                                                        {
+                                                            <text>Your ID information has been extracted. You can update details or upload a new document if needed.</text>
+                                                        }
+                                                        else
+                                                        {
+                                                            <text>Your ID number will be automatically extracted from the uploaded document</text>
+                                                        }
+                                                    </p>
                                                 </div>
 
                                                 <div class="card">
@@ -40,48 +54,57 @@
                                                                 <div class="mb-7">
                                                                     <label asp-for="IdDocumentType" class="form-label ml-2 font-light">Select your ID type <span class="text-red-500">*</span></label>
                                                                     <div class="space-y-4 mt-3">
-                                                                        <div class="flex items-center justify-between ps-4 pe-4 bg-gray-100 text-gray-900 text-sm rounded-lg hover:bg-[#6ce5e8] transition-colors cursor-pointer" onclick="selectRadio('Passport')">
+                                                                        <div class="flex items-center justify-between ps-4 pe-4 bg-gray-100 text-gray-900 text-sm rounded-lg hover:bg-[#6ce5e8] transition-colors cursor-pointer @(Model.IdDocumentType == "Passport" ? "bg-[#6ce5e8] border-[#6ce5e8]" : "")" onclick="selectRadio('Passport')">
                                                                             <label for="radio-passport" class="py-4 text-sm font-medium text-gray-900 cursor-pointer">Passport</label>
-                                                                            <input id="radio-passport" type="radio" value="Passport" name="IdDocumentType" asp-for="IdDocumentType" required class="w-4 h-4 text-[#41b8d5] bg-gray-100 border-gray-400 focus:ring-[#41b8d5] focus:ring-2">
+                                                                            <input id="radio-passport" type="radio" value="Passport" name="IdDocumentType" asp-for="IdDocumentType" required class="w-4 h-4 text-[#41b8d5] bg-gray-100 border-gray-400 focus:ring-[#41b8d5] focus:ring-2" checked="@(Model.IdDocumentType == "Passport")" />
                                                                         </div>
-                                                                        <div class="flex items-center justify-between ps-4 pe-4 bg-gray-100 text-gray-900 text-sm rounded-lg hover:bg-[#6ce5e8] transition-colors cursor-pointer" onclick="selectRadio('Driver\'s License')">
+                                                                        <div class="flex items-center justify-between ps-4 pe-4 bg-gray-100 text-gray-900 text-sm rounded-lg hover:bg-[#6ce5e8] transition-colors cursor-pointer @(Model.IdDocumentType == "Driver's License" ? "bg-[#6ce5e8] border-[#6ce5e8]" : "")" onclick="selectRadio('Driver\'s License')">
                                                                             <label for="radio-drivers" class="py-4 text-sm font-medium text-gray-900 cursor-pointer">Driver's License</label>
-                                                                            <input id="radio-drivers" type="radio" value="Driver's License" name="IdDocumentType" asp-for="IdDocumentType" required class="w-4 h-4 text-[#41b8d5] bg-gray-100 border-gray-400 focus:ring-[#41b8d5] focus:ring-2">
+                                                                            <input id="radio-drivers" type="radio" value="Driver's License" name="IdDocumentType" asp-for="IdDocumentType" required class="w-4 h-4 text-[#41b8d5] bg-gray-100 border-gray-400 focus:ring-[#41b8d5] focus:ring-2" checked="@(Model.IdDocumentType == "Driver's License")" />
                                                                         </div>
-                                                                        <div class="flex items-center justify-between ps-4 pe-4 bg-gray-100 text-gray-900 text-sm rounded-lg hover:bg-[#6ce5e8] transition-colors cursor-pointer" onclick="selectRadio('National ID')">
+                                                                        <div class="flex items-center justify-between ps-4 pe-4 bg-gray-100 text-gray-900 text-sm rounded-lg hover:bg-[#6ce5e8] transition-colors cursor-pointer @(Model.IdDocumentType == "National ID" ? "bg-[#6ce5e8] border-[#6ce5e8]" : "")" onclick="selectRadio('National ID')">
                                                                             <label for="radio-national" class="py-4 text-sm font-medium text-gray-900 cursor-pointer">National ID</label>
-                                                                            <input id="radio-national" type="radio" value="National ID" name="IdDocumentType" asp-for="IdDocumentType" required class="w-4 h-4 text-[#41b8d5] bg-gray-100 border-gray-400 focus:ring-[#41b8d5] focus:ring-2">
+                                                                            <input id="radio-national" type="radio" value="National ID" name="IdDocumentType" asp-for="IdDocumentType" required class="w-4 h-4 text-[#41b8d5] bg-gray-100 border-gray-400 focus:ring-[#41b8d5] focus:ring-2" checked="@(Model.IdDocumentType == "National ID")" />
                                                                         </div>
-                                                                        <div class="flex items-center justify-between ps-4 pe-4 bg-gray-100 text-gray-900 text-sm rounded-lg hover:bg-[#6ce5e8] transition-colors cursor-pointer" onclick="selectRadio('OTHERS')">
+                                                                        <div class="flex items-center justify-between ps-4 pe-4 bg-gray-100 text-gray-900 text-sm rounded-lg hover:bg-[#6ce5e8] transition-colors cursor-pointer @(Model.IdDocumentType == "OTHERS" ? "bg-[#6ce5e8] border-[#6ce5e8]" : "")" onclick="selectRadio('OTHERS')">
                                                                             <label for="radio-others" class="py-4 text-sm font-medium text-gray-900 cursor-pointer">Others</label>
-                                                                            <input id="radio-others" type="radio" value="OTHERS" name="IdDocumentType" asp-for="IdDocumentType" required class="w-4 h-4 text-[#41b8d5] bg-gray-100 border-gray-400 focus:ring-[#41b8d5] focus:ring-2">
+                                                                            <input id="radio-others" type="radio" value="OTHERS" name="IdDocumentType" asp-for="IdDocumentType" required class="w-4 h-4 text-[#41b8d5] bg-gray-100 border-gray-400 focus:ring-[#41b8d5] focus:ring-2" checked="@(Model.IdDocumentType == "OTHERS")" />
                                                                         </div>
                                                                     </div>
                                                                     <span asp-validation-for="IdDocumentType" class="text-danger"></span>
                                                                 </div>
 
-                                                                <div class="grid gap-4 mb-7 grid-cols-2">
-                                                                    <div class="col-span-2 sm:col-span-1">
-                                                                        <label asp-for="IdDocumentNumber" class="form-label ml-2 font-light mb-3">ID Number <span class="text-red-500">*</span></label>
-                                                                        <input asp-for="IdDocumentNumber" class="mt-3 form-control border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" placeholder="Enter your ID number" required />
-                                                                        <span asp-validation-for="IdDocumentNumber" class="text-danger"></span>
-                                                                    </div>
-
-                                                                    <div class="col-span-2 sm:col-span-1">
-                                                                        <label asp-for="IdDocumentExpiryDate" class="form-label ml-2 font-light mb-3">Expiry Date <span class="text-red-500" id="expiryRequired">*</span></label>
-                                                                        <input asp-for="IdDocumentExpiryDate" type="date" class="mt-3 form-control border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:ring-2 block w-full p-2.5" value="@(Model.IdDocumentExpiryDate?.ToString("yyyy-MM-dd") ?? DateTime.Today.ToString("yyyy-MM-dd"))" />
-                                                                        <span asp-validation-for="IdDocumentExpiryDate" class="text-danger"></span>
-                                                                        <div class="flex items-center mt-2">
-                                                                            <input asp-for="IdDocumentHasNoExpiration" id="noExpirationCheckbox" type="checkbox" class="w-4 h-4 text-[#41b8d5] bg-gray-100 border-gray-300 rounded-sm focus:ring-[#41b8d5] focus:ring-2">
-                                                                            <label for="noExpirationCheckbox" class="ms-2 text-sm font-light text-gray-900">My ID document has no expiration date</label>
+                                                                <!-- Display extracted ID number if available (read-only) -->
+                                                                @if (!string.IsNullOrEmpty(Model.ExtractedIdNumber))
+                                                                {
+                                                                    <div class="mb-7">
+                                                                        <label class="form-label ml-2 font-light mb-3">ID Number</label>
+                                                                        <div class="mt-3 p-2.5 bg-gray-50 border border-gray-300 text-gray-700 text-sm rounded-lg w-full">
+                                                                            @Model.ExtractedIdNumber
                                                                         </div>
+                                                                        @if (!string.IsNullOrEmpty(Model.ExtractedIdName))
+                                                                        {
+                                                                            <div class="mt-2 p-2.5 bg-blue-50 border border-blue-200 text-blue-700 text-sm rounded-lg w-full">
+                                                                                <strong>Name:</strong> @Model.ExtractedIdName
+                                                                            </div>
+                                                                        }
+                                                                    </div>
+                                                                }
+
+                                                                <div class="mb-7">
+                                                                    <label asp-for="IdDocumentExpiryDate" class="form-label ml-2 font-light mb-3">Expiry Date <span class="text-red-500" id="expiryRequired" style="@(Model.IdDocumentHasNoExpiration ? "display:none;" : "")">*</span></label>
+                                                                    <input asp-for="IdDocumentExpiryDate" type="date" class="mt-3 form-control border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:ring-2 block w-full p-2.5" disabled="@(Model.IdDocumentHasNoExpiration)" />
+                                                                    <span asp-validation-for="IdDocumentExpiryDate" class="text-danger"></span>
+                                                                    <div class="flex items-center mt-2">
+                                                                        <input asp-for="IdDocumentHasNoExpiration" id="noExpirationCheckbox" type="checkbox" class="w-4 h-4 text-[#41b8d5] bg-gray-100 border-gray-300 rounded-sm focus:ring-[#41b8d5] focus:ring-2">
+                                                                        <label for="noExpirationCheckbox" class="ms-2 text-sm font-light text-gray-900">My ID document has no expiration date</label>
                                                                     </div>
                                                                 </div>
                                                             </div>
 
                                                             <div class="col-md-6">
                                                                 <div class="mb-3">
-                                                                    @if (!string.IsNullOrEmpty(Model.IdDocumentType) && !string.IsNullOrEmpty(Model.IdDocumentNumber))
+                                                                    @if ((ViewBag.HasExtractedData as bool?) == true)
                                                                     {
                                                                         <!-- Show optional file upload for returning users -->
                                                                         <label asp-for="IdDocumentImage" class="form-label ml-2 font-light mb-3">
@@ -90,11 +113,11 @@
                                                                         </label>
                                                                         <input asp-for="IdDocumentImage" type="file" class="mt-3 form-control block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer focus:outline-none" aria-describedby="file_input_help" accept="image/*">
                                                                         <p class="mt-1 text-sm text-gray-500" id="file_input_help">Upload a new document or leave empty to use the existing one (Max: 10MB)</p>
-  
+
                                                                         <!-- Document Preview - Moved below upload instructions -->
                                                                         <div class="mt-4">
                                                                             <div class="relative inline-block">
-                                                                                @if (ViewBag.StoredImageData != null)
+                                                                                @if ((ViewBag.HasStoredImage as bool?) == true)
                                                                                 {
                                                                                     <!-- Show actual uploaded image -->
                                                                                     <div id="existingImagePreview" class="w-40 h-24 rounded-lg border-2 border-gray-300 cursor-pointer hover:border-blue-400 transition-colors shadow-sm overflow-hidden"
@@ -102,7 +125,7 @@
                                                                                         <img src="data:@ViewBag.StoredImageContentType;base64,@ViewBag.StoredImageData"
                                                                                              alt="Uploaded Document"
                                                                                              class="w-full h-full object-cover">
-                                                                                        
+
                                                                                         <!-- Verification Badge -->
                                                                                         <div class="absolute top-0 right-0 bg-green-500 text-white text-xs px-2 py-1 rounded-full transform translate-x-1/2 -translate-y-1/2">
                                                                                             ✓
@@ -111,40 +134,40 @@
                                                                                 }
                                                                                 else
                                                                                 {
-                                                                                    <!-- Show realistic ID Card Preview when no image stored -->
-                                                                                    <div id="existingImagePreview" class="w-40 h-24 bg-white rounded-lg border-2 border-gray-300 transition-colors shadow-sm overflow-hidden"
+                                                                                    <!-- Show realistic ID Card Preview when extracted data exists but no stored image -->
+                                                                                    <div id="existingImagePreview" class="w-40 h-24 bg-white rounded-lg border-2 border-gray-300 transition-colors shadow-sm overflow-hidden cursor-pointer"
                                                                                          onclick="showDocumentPreview()">
                                                                                         <!-- Realistic ID Card Preview -->
                                                                                         <div class="w-full h-full bg-gradient-to-br from-blue-50 to-blue-100 p-2 relative">
                                                                                             <!-- Philippine Flag Emblem -->
                                                                                             <div class="absolute top-1 left-1 w-4 h-3 bg-gradient-to-r from-blue-600 via-red-500 to-yellow-400 rounded-sm"></div>
-                                                                                            
+
                                                                                             <!-- Photo Placeholder -->
                                                                                             <div class="absolute top-1 left-6 w-8 h-10 bg-gray-300 rounded-sm flex items-center justify-center">
                                                                                                 <div class="text-xs text-gray-600">👤</div>
                                                                                             </div>
-                                                                                            
+
                                                                                             <!-- ID Text -->
                                                                                             <div class="absolute top-1 left-16 right-1">
                                                                                                 <div class="text-xs font-bold text-gray-800">REPUBLIKA NG</div>
                                                                                                 <div class="text-xs font-bold text-gray-800">PILIPINAS</div>
                                                                                             </div>
-                                                                                            
+
                                                                                             <!-- Personal Details -->
                                                                                             <div class="absolute top-12 left-6 right-1 text-xs text-gray-700">
-                                                                                                <div>Name: <span class="font-medium">CADJET SENOBEA</span></div>
-                                                                                                <div>DOB: <span class="font-medium">APRIL 22, 2004</span></div>
+                                                                                                <div>Name: <span class="font-medium">@(Model.ExtractedIdName ?? "EXTRACTED NAME")</span></div>
+                                                                                                <div>ID: <span class="font-medium">@Model.ExtractedIdNumber</span></div>
                                                                                             </div>
-                                                                                            
+
                                                                                             <!-- QR Code Placeholder -->
                                                                                             <div class="absolute top-1 right-1 w-6 h-6 bg-black rounded-sm flex items-center justify-center">
                                                                                                 <div class="text-xs text-white">QR</div>
                                                                                             </div>
-                                                                                            
+
                                                                                             <!-- Country Code -->
                                                                                             <div class="absolute bottom-1 right-1 text-xs font-bold text-gray-800">PHL</div>
                                                                                         </div>
-                                                                                        
+
                                                                                         <!-- Verification Badge -->
                                                                                         <div class="absolute top-0 right-0 bg-green-500 text-white text-xs px-2 py-1 rounded-full transform translate-x-1/2 -translate-y-1/2">
                                                                                             ✓
@@ -154,7 +177,7 @@
                                                                                 <p class="text-xs text-gray-600 mt-1">Click to enlarge</p>
                                                                             </div>
                                                                         </div>
-  
+
                                                                         <!-- New Image Preview -->
                                                                         <div id="newImagePreview" class="mt-3" style="display: none;">
                                                                             <img id="newImage" src="" alt="New Document Preview"
@@ -168,8 +191,8 @@
                                                                         <!-- Show required file upload for new submissions -->
                                                                         <label asp-for="IdDocumentImage" class="form-label ml-2 font-light mb-3">Upload ID Document <span class="text-red-500">*</span></label>
                                                                         <input asp-for="IdDocumentImage" type="file" class="mt-3 form-control block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer focus:outline-none" aria-describedby="file_input_help" accept="image/*" required>
-                                                                        <p class="mt-1 text-sm text-gray-500" id="file_input_help">Upload a clear, high-resolution image of your ID document (Max: 10MB)</p>
-  
+                                                                        <p class="mt-1 text-sm text-gray-500" id="file_input_help">Upload a clear, high-resolution image of your ID document. (Max: 10MB)</p>
+
                                                                         <!-- New Image Preview -->
                                                                         <div id="newImagePreview" class="mt-3" style="display: none;">
                                                                             <img id="newImage" src="" alt="Document Preview"
@@ -222,31 +245,17 @@
 @section Scripts {
     <script>
         $(document).ready(function() {
-            // Populate form fields with existing data if available
-            @if (!string.IsNullOrEmpty(Model.IdDocumentType))
-            {
-                <text>
-                // Set the selected ID document type
-                $('input[name="IdDocumentType"][value="@Model.IdDocumentType"]').prop('checked', true);
-                selectRadio('@Model.IdDocumentType');
+            console.log('Document ready - initializing form');
+            
+            // Debug information
+            console.log('Has extracted data:', '@((ViewBag.HasExtractedData as bool?) == true)');
+            console.log('Has stored image:', '@((ViewBag.HasStoredImage as bool?) == true)');
+            console.log('Extracted ID Number:', '@Model.ExtractedIdNumber');
+            console.log('Extracted ID Name:', '@Model.ExtractedIdName');
+            console.log('ID Document Type:', '@Model.IdDocumentType');
 
-                // Set the ID document number
-                $('#IdDocumentNumber').val('@Model.IdDocumentNumber');
-
-                // Set the expiry date
-                @if (Model.IdDocumentExpiryDate.HasValue)
-                {
-                    <text>$('#IdDocumentExpiryDate').val('@Model.IdDocumentExpiryDate.Value.ToString("yyyy-MM-dd")');</text>
-                }
-
-                // Set the no expiration checkbox
-                if (@Model.IdDocumentHasNoExpiration.ToString().ToLower()) {
-                    $('#noExpirationCheckbox').prop('checked', true);
-                    $('#IdDocumentExpiryDate').prop('disabled', true).val('').removeAttr('required');
-                    $('#expiryRequired').hide();
-                }
-                </text>
-            }
+            // Initialize form state based on model data
+            initializeFormState();
 
             // Handle "No Expiration Date" checkbox
             $('#noExpirationCheckbox').on('change', function() {
@@ -261,117 +270,149 @@
                 }
             });
 
-            // Set initial state based on checkbox
-            if ($('#noExpirationCheckbox').is(':checked')) {
-                $('#IdDocumentExpiryDate').prop('disabled', true).val('');
-            }
-
             // File validation and preview
             $('input[type="file"]').on('change', function() {
-                var file = this.files[0];
-                var fileError = $('#fileError');
-                var newImagePreview = $('#newImagePreview');
-                var newImage = $('#newImage');
-
-                // Reset error message and hide preview
-                fileError.hide();
-                newImagePreview.hide();
-
-                if (file) {
-                    // Check file size (10MB limit)
-                    if (file.size > 10 * 1024 * 1024) {
-                        fileError.text('File size must be less than 10MB').show();
-                        this.value = ''; // Clear the file input
-                        return false;
-                    }
-
-                    // Check file type
-                    var allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp'];
-                    if (!allowedTypes.includes(file.type)) {
-                        fileError.text('Please upload a valid image file (JPEG, PNG, GIF, BMP)').show();
-                        this.value = ''; // Clear the file input
-                        return false;
-                    }
-
-                    // Show image preview
-                    var reader = new FileReader();
-                    reader.onload = function(e) {
-                        newImage.attr('src', e.target.result);
-                        newImagePreview.show();
-                    };
-                    reader.readAsDataURL(file);
-                }
+                console.log('File input changed');
+                handleFileSelection(this);
             });
 
             // Form submission handling
             $('#documentForm').on('submit', function(e) {
-                // Clear any previous error messages
-                $('#fileError').hide();
-
-                // Validate that an ID type is selected
-                var selectedIdType = $('input[name="IdDocumentType"]:checked').val();
-                if (!selectedIdType) {
-                    e.preventDefault();
-                    alert('Please select an ID document type before proceeding.');
-                    return false;
-                }
-
-                // Validate file upload - only required for new submissions
-                var fileInput = $('input[type="file"]')[0];
-                var isReturningUser = @(!string.IsNullOrEmpty(Model.IdDocumentType) && !string.IsNullOrEmpty(Model.IdDocumentNumber)).ToString().toLowerCase();
-                
-                // For returning users, file upload is optional
-                if (isReturningUser === 'true') {
-                    // User is returning, file upload is optional
-                } else {
-                    // New user, file upload is required
-                    if (!fileInput.files || fileInput.files.length === 0) {
-                        e.preventDefault();
-                        $('#fileError').text('Please select a file to upload').show();
-                        return false;
-                    }
-                }
-
-                // If there's a file, validate it
-                if (fileInput.files && fileInput.files.length > 0) {
-                    var file = fileInput.files[0];
-
-                    // Check file size again
-                    if (file.size > 10 * 1024 * 1024) {
-                        e.preventDefault();
-                        $('#fileError').text('File size must be less than 10MB').show();
-                        return false;
-                    }
-
-                    // Check file type again
-                    var allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp'];
-                    if (!allowedTypes.includes(file.type)) {
-                        e.preventDefault();
-                        $('#fileError').text('Please upload a valid image file (JPEG, PNG, GIF, BMP)').show();
-                        return false;
-                    }
-                }
-
-                // Show loading state
-                $('#nextBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Processing...');
-
-                // Allow form to submit normally
-                return true;
+                console.log('Form submission started');
+                return handleFormSubmission(e);
             });
         });
 
+        function initializeFormState() {
+            // Set the selected ID document type and apply styling
+            var selectedIdType = '@Model.IdDocumentType';
+            if (selectedIdType) {
+                console.log('Setting selected ID type:', selectedIdType);
+                $('input[name="IdDocumentType"][value="' + selectedIdType + '"]').prop('checked', true);
+                selectRadio(selectedIdType);
+            }
+
+            // Set the expiry date if available
+            var expiryDate = '@(Model.IdDocumentExpiryDate?.ToString("yyyy-MM-dd") ?? "")';
+            if (expiryDate) {
+                $('#IdDocumentExpiryDate').val(expiryDate);
+            }
+
+            // Handle no expiration checkbox state
+            var hasNoExpiration = @Model.IdDocumentHasNoExpiration.ToString().ToLower();
+            if (hasNoExpiration) {
+                $('#noExpirationCheckbox').prop('checked', true);
+                $('#IdDocumentExpiryDate').prop('disabled', true).val('').removeAttr('required');
+                $('#expiryRequired').hide();
+            }
+        }
+
+        function handleFileSelection(fileInput) {
+            var file = fileInput.files[0];
+            var fileError = $('#fileError');
+            var newImagePreview = $('#newImagePreview');
+            var newImage = $('#newImage');
+
+            // Reset error message and hide preview
+            fileError.hide();
+            newImagePreview.hide();
+
+            if (file) {
+                console.log('File selected:', file.name, 'Size:', file.size, 'Type:', file.type);
+                
+                // Check file size (10MB limit)
+                if (file.size > 10 * 1024 * 1024) {
+                    fileError.text('File size must be less than 10MB').show();
+                    fileInput.value = ''; // Clear the file input
+                    return false;
+                }
+
+                // Check file type
+                var allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp'];
+                if (!allowedTypes.includes(file.type)) {
+                    fileError.text('Please upload a valid image file (JPEG, PNG, GIF, BMP)').show();
+                    fileInput.value = ''; // Clear the file input
+                    return false;
+                }
+
+                // Show image preview
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    newImage.attr('src', e.target.result);
+                    newImagePreview.show();
+                    console.log('Image preview loaded');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function handleFormSubmission(e) {
+            // Clear any previous error messages
+            $('#fileError').hide();
+
+            // Validate that an ID type is selected
+            var selectedIdType = $('input[name="IdDocumentType"]:checked').val();
+            if (!selectedIdType) {
+                e.preventDefault();
+                alert('Please select an ID document type before proceeding.');
+                return false;
+            }
+
+            // Check validation logic
+            var hasExtractedData = '@((ViewBag.HasExtractedData as bool?) == true)'.toLowerCase() === 'true';
+            var hasStoredImage = '@((ViewBag.HasStoredImage as bool?) == true)'.toLowerCase() === 'true';
+            var fileInput = $('input[type="file"]')[0];
+            var hasNewFile = fileInput.files && fileInput.files.length > 0;
+
+            console.log('Form validation - HasExtractedData:', hasExtractedData, 'HasStoredImage:', hasStoredImage, 'HasNewFile:', hasNewFile);
+
+            // Validation logic for file upload
+            if (!hasExtractedData || (!hasStoredImage && !hasNewFile)) {
+                // New user or returning user without stored image - file upload is required
+                if (!hasNewFile) {
+                    e.preventDefault();
+                    $('#fileError').text('Please select a file to upload').show();
+                    return false;
+                }
+            }
+
+            // If there's a new file, validate it
+            if (hasNewFile) {
+                var file = fileInput.files[0];
+
+                // Check file size again
+                if (file.size > 10 * 1024 * 1024) {
+                    e.preventDefault();
+                    $('#fileError').text('File size must be less than 10MB').show();
+                    return false;
+                }
+
+                // Check file type again
+                var allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp'];
+                if (!allowedTypes.includes(file.type)) {
+                    e.preventDefault();
+                    $('#fileError').text('Please upload a valid image file (JPEG, PNG, GIF, BMP)').show();
+                    return false;
+                }
+            }
+
+            // Show loading state
+            $('#nextBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Processing...');
+
+            console.log('Form validation passed, submitting form');
+            return true;
+        }
+
         // Function to handle radio button selection with visual feedback
         function selectRadio(value) {
-            // Uncheck all radio buttons
+            console.log('Selecting radio:', value);
+            
+            // Uncheck all radio buttons and remove active styling
             $('input[name="IdDocumentType"]').prop('checked', false);
+            $('.space-y-4 > div').removeClass('bg-[#6ce5e8] border-[#6ce5e8]').addClass('bg-gray-100');
 
-            // Check the selected radio button
+            // Check the selected radio button and add active styling
             $(`input[value="${value}"]`).prop('checked', true);
-
-            // Remove active styling from all radio containers
-            $('.space-y-4 > div').removeClass('bg-blue-100 border-blue-300').addClass('bg-gray-100');
-
-            // Add active styling to selected container
             $(`input[value="${value}"]`).closest('div').removeClass('bg-gray-100').addClass('bg-[#6ce5e8] border-[#6ce5e8]');
         }
 
@@ -385,15 +426,15 @@
 
         // Function to show document preview modal
         function showDocumentPreview() {
+            console.log('Attempting to show document preview');
+            
             // Check if stored image data is available from ViewBag
             var storedImageData = '@Html.Raw(ViewBag.StoredImageData)';
             var storedImageContentType = '@Html.Raw(ViewBag.StoredImageContentType)';
-            
-            // Debug logging
-            console.log('Attempting to show document preview');
-            console.log('StoredImageData length:', storedImageData ? storedImageData.length : 'null');
+
+            console.log('StoredImageData available:', !!storedImageData);
             console.log('StoredImageContentType:', storedImageContentType);
-            
+
             // Try ViewBag data first
             if (storedImageData && storedImageData !== '' && storedImageContentType && storedImageContentType !== '') {
                 try {
@@ -403,7 +444,7 @@
                     console.error('Error using ViewBag data:', error);
                 }
             }
-            
+
             // Fallback: Try to get image data from existing img element on the page
             var existingImg = document.querySelector('#existingImagePreview img');
             if (existingImg && existingImg.src && existingImg.src.startsWith('data:')) {
@@ -414,18 +455,18 @@
                     console.error('Error using existing img data:', error);
                 }
             }
-            
-            // No image data available
-            console.log('No stored image data available from any source');
-            console.warn('No uploaded document image available to preview.');
+
+            // If no actual image data, show informational message
+            alert('Document has been processed but image preview is not available. Your extracted ID information is shown above.');
+            console.log('No image data available for preview');
         }
-        
+
         // Helper function to show modal with image data
         function showModalWithImageData(imageSrc, title) {
             var modalImage = document.getElementById('modalImage');
             var modalTitle = document.getElementById('modalTitle');
             var imageModal = document.getElementById('imageModal');
-            
+
             if (modalImage && modalTitle && imageModal) {
                 modalImage.style.display = 'block';
                 modalTitle.textContent = title;
@@ -434,10 +475,7 @@
                 console.log('Modal opened successfully with image data');
             } else {
                 console.error('Modal elements not found');
-                console.error('modalImage:', modalImage);
-                console.error('modalTitle:', modalTitle);
-                console.error('imageModal:', imageModal);
-                console.warn('Cannot show image preview: Modal elements not found');
+                alert('Cannot show image preview: Modal elements not found');
             }
         }
 
