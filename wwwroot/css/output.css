@@ -56,7 +56,6 @@
     --color-blue-800: #1E40AF;
     --color-blue-900: #1E3A8A;
     --color-purple-50: #F5F3FF;
-    --color-purple-400: #A78BFA;
     --color-purple-500: #8B5CF6;
     --color-purple-600: #7C3AED;
     --color-purple-700: #6D28D9;
@@ -885,6 +884,9 @@
   .h-32 {
     height: calc(var(--spacing) * 32);
   }
+  .h-44 {
+    height: calc(var(--spacing) * 44);
+  }
   .h-48 {
     height: calc(var(--spacing) * 48);
   }
@@ -1652,6 +1654,9 @@
   }
   .border-orange-400 {
     border-color: var(--color-orange-400);
+  }
+  .border-orange-600 {
+    border-color: var(--color-orange-600);
   }
   .border-red-200 {
     border-color: var(--color-red-200);
