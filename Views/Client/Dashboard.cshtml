@@ -37,6 +37,36 @@
                 </div>
             </div>
 
+            <div class="grid grid-cols-1 gap-4 mb-4">
+                <div class="w-full max-w p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <h5 class="text-xl font-bold leading-none text-gray-900">Active Projects</h5>
+                    </div>
+                    <div class="flow-root">
+                        <ul role="list" class="divide-y divide-gray-300">
+                            @foreach (var project in Model.Projects)
+                            {
+                                <li class="py-3 sm:py-4">
+                                    <div class="flex items-center">
+                                        @if (project.Status == "Active")
+                                        {
+                                            <div class="flex-1 min-w-0">
+                                                <p class="text-sm font-medium text-gray-900 truncate">
+                                                    @project.ProjectName
+                                                </p>
+                                            </div>
+                                            <div class="inline-flex items-center text-base font-semibold text-gray-900">
+                                                <a class="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-6 py-2 me-2 mb-2" asp-controller="ManageProjectClient" asp-action="Details" asp-route-id="@project.Id"> View </a>
+                                            </div>
+                                        }
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
             <div class="grid grid-cols-2 gap-4 mb-4">
 
                 <div class="w-full max-w p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
@@ -81,6 +111,12 @@
                                             </div>
                                         }
                                     </div>
+                                </li>
+                            }
+                            @if (!Model.Projects.Any())
+                            {
+                                <li class="py-3 sm:py-4 text-center">
+                                    <div class="text-sm text-gray-500">No projects posted yet.</div>
                                 </li>
                             }
                         </ul>
@@ -129,6 +165,69 @@
                                             </div>
                                         }
                                     </div>
+                                </li>
+                            }
+                            @if (!Model.Projects.Any())
+                            {
+                                <li class="py-3 sm:py-4 text-center">
+                                    <div class="text-sm text-gray-500">No projects posted yet.</div>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+
+
+                <div class="w-full max-w p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
+                    <div class="mb-4">
+                        <h5 class="text-xl font-bold leading-none text-gray-900">Spending Summary</h5>
+                        <p class="text-sm italic font-light">Based on the budget of all accepted bids</p>
+                    </div>
+                    <div class="flow-root">
+                        <h5 id="totalPostedProject" class="mb-2 text-3xl font-bold text-gray-900"><span class="mr-2">₱</span>@ViewBag.TotalAcceptedBudget</h5>
+                    </div>
+                </div>
+
+
+                <div class="w-full max-w p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <h5 class="text-xl font-bold leading-none text-gray-900">Given Feedbacks</h5>
+                    </div>
+                    <div class="flow-root">
+                        <ul role="list" class="divide-y divide-gray-300">
+                            @foreach (var feedbacks in Model.freelancerFeedbacks)
+                            {
+                                <li class="py-3 sm:py-4">
+                                    <div class="flex items-center">
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-medium text-gray-900 truncate">
+                                                @(
+                                                                                            feedbacks.AcceptBidding?.Project != null
+                                                                                            ? feedbacks.AcceptBidding.Project.ProjectName
+                                                                                            : "Unknown project"
+                                                )
+                                        </p>
+                                        <p class="text-xs text-gray-500">
+                                            To: @(feedbacks.Freelancer != null ? $"{feedbacks.Freelancer.FirstName} {feedbacks.Freelancer.LastName}" : feedbacks.FreelancerId) • @feedbacks.Rating star(s)
+                                        </p>
+                                    </div>
+                                    <div class="inline-flex items-center text-base font-semibold text-gray-900">
+                                        @{
+                                                var projectId = feedbacks.AcceptBidding?.Project?.Id;
+                                            }
+                                            @if (projectId != null)
+                                            {
+                                                <a class="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-6 py-2 me-2 mb-2"
+                                                   asp-controller="ManageProjectClient" asp-action="Feedback" asp-route-id="@feedbacks.AcceptBidId"> View </a>
+                                            }
+                                        </div>
+                                    </div>
+                                </li>
+                            }
+                            @if (!Model.freelancerFeedbacks.Any())
+                            {
+                                <li class="py-3 sm:py-4 text-center">
+                                    <div class="text-sm text-gray-500">No feedback sent yet.</div>
                                 </li>
                             }
                         </ul>

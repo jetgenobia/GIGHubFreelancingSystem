@@ -56,18 +56,40 @@ namespace Freelancing.Controllers
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
+
             // Fetch projects associated with the logged-in user, including accepted bids.
             var projects = await dbContext.Projects
                 .Include(p => p.AcceptedBid)
                 .Where(p => p.UserId == userId)
                 .ToListAsync();
+
+            // Sum budgets of accepted bids only for projects with Status == "Completed"
+            var totalAcceptedBudgetForCompleted = await dbContext.Biddings
+                .Where(b => b.Project.UserId == userId && b.IsAccepted && b.Project.Status == "Completed")
+                .SumAsync(b => (int?)b.Budget) ?? 0;
+
+            ViewBag.TotalAcceptedBudget = totalAcceptedBudgetForCompleted;
+
+            var biddings = await dbContext.Biddings
+                .Where(b => b.Project.UserId == userId)
+                .ToListAsync();
+
+            var feedbacks = await dbContext.FreelancerFeedbacks
+                .Where(f => f.AcceptBidding != null && f.AcceptBidding.Project.UserId == userId)
+                .Include(f => f.Freelancer)
+                .Include(f => f.AcceptBidding)
+                    .ThenInclude(b => b.Project)
+                .Where(f => f.AcceptBidding != null && f.AcceptBidding.Project.UserId == userId)
+                .ToListAsync();
+
             // Create a view model to hold project statistics and the list of projects.
             var viewModel = new ClientDashboard
             {
                 Projects = projects,
                 TotalProjects = projects.Count,
                 OpenProjects = projects.Count(p => !p.AcceptedBidId.HasValue),
-                ClosedProjects = projects.Count(p => p.AcceptedBidId.HasValue)
+                ClosedProjects = projects.Count(p => p.AcceptedBidId.HasValue),
+                freelancerFeedbacks = feedbacks
             };
 
             if (!string.IsNullOrEmpty(message))

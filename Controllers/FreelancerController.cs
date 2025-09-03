@@ -70,16 +70,39 @@ namespace Freelancing.Controllers
                 .Where(b => b.UserId == userId)
                 .ToListAsync();
 
+            var totalCompletedProjects = await dbContext.Biddings
+                .Where(b => b.UserId == userId && b.IsAccepted && b.Project.Status == "Completed")
+                .Select(b => b.ProjectId)
+                .Distinct()
+                .CountAsync();
+
+            ViewBag.TotalAcceptedProjects = totalCompletedProjects;
+
+            var totalAcceptedBudget = await dbContext.Biddings
+                .Where(b => b.UserId == userId && b.IsAccepted && b.Project.Status == "Completed")
+                .SumAsync(b => (int?)b.Budget) ?? 0;
+
+            ViewBag.TotalAcceptedBudget = totalAcceptedBudget;
+
             var projects = await dbContext.Projects
                 .Include(p => p.Biddings)
                 .ThenInclude(b => b.User)
                 .FirstOrDefaultAsync(p => p.Id == projectId);
 
+            var receivedFeedbacks = await dbContext.FreelancerFeedbacks
+                .Include(f => f.AcceptBidding)
+                    .ThenInclude(b => b.Project)
+                        .ThenInclude(p => p.User)
+                .Include(f => f.Freelancer)
+                .Where(f => f.FreelancerId == userId)
+                .OrderByDescending(f => f.CreatedAt)
+                .ToListAsync();
 
             var viewModel = new FreelancerDashboard
             {
                 Biddings = biddings,
-                Project = projects
+                Project = projects,
+                ReceivedFeedbacks = receivedFeedbacks
             };
 
             return View(viewModel);

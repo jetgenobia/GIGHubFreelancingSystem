@@ -8,5 +8,6 @@ namespace Freelancing.Models
         public int TotalProjects { get; set; }
         public int OpenProjects { get; set; }
         public int ClosedProjects { get; set; }
+        public List<FreelancerFeedback> freelancerFeedbacks { get; set; } = new();
     }
 }
