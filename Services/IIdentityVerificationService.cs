@@ -16,7 +16,8 @@ namespace Freelancing.Services
             DateTime? idDocumentExpiryDate,
             bool idDocumentHasNoExpiration,
             bool idDocumentVerified,
-            float idDocumentConfidence);
+            float idDocumentConfidence,
+            string? extractedIdName);
 
         Task<(bool verified, string message, float confidence, string? extractedIdName, string? extractedIdNumber)> VerifyIdDocumentAsync(
             IFormFile? documentImage,

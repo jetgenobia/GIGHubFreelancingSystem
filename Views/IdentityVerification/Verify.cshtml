@@ -59,6 +59,12 @@
                                     <div class="max-w-2xl mx-auto">
                                         <form asp-action="Verify" method="post" enctype="multipart/form-data" id="verificationForm">
 
+                                            <input asp-for="IdDocumentType" type="hidden" />
+                                            <input asp-for="ExtractedIdNumber" type="hidden" />
+                                            <input asp-for="ExtractedIdName" type="hidden" />
+                                            <input asp-for="IdDocumentExpiryDate" type="hidden" />
+                                            <input asp-for="IdDocumentHasNoExpiration" type="hidden" />
+
                                             <!-- Face Verification Section -->
                                             <div class="mb-9">
                                                 <div class="section-header mb-6 text-center">
@@ -87,31 +93,50 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            <hr class="border-gray-300 mb-4">
-                                            <div class="text-center mb-5">
+
+                                            <!-- Review Section -->
+                                            <div class="mb-2">
                                                 <h6 class="text-lg font-bold">Review Information</h6>
                                             </div>
-                                            <div class="flex flex-col items-center text-center mb-3">
-                                                <h6 class="font-light mb-2">ID Information:</h6>
-                                                @if (!string.IsNullOrEmpty(Model.IdDocumentType))
-                                                {
-                                                    <p class="mb-1"><strong>ID Type:</strong> @Model.IdDocumentType</p>
-                                                    <p class="mb-1"><strong>ID Number:</strong> @Model.ExtractedIdNumber</p>
-                                                    <p class="mb-1"><strong>Name:</strong> @Model.ExtractedIdName</p>
-                                                    <p class="mb-1"><strong>Expiry Date:</strong> @(Model.IdDocumentExpiryDate?.ToString("MMM dd, yyyy") ?? "No expiration date")</p>
-                                                }
-                                            </div>
+                                            <hr class="border-gray-300 mb-4">
 
-                                            <div class="flex flex-col items-center text-center mb-4">
-                                                <h6 class="font-light mb-2">Selfie Photo:</h6>
-                                                <div id="capturedImageContainer" class="text-center" style="display: none;">
-                                                    <div class="mb-1">
-                                                        <img id="capturedImage" class="img-fluid rounded shadow-sm" style="max-height: 250px;" />
+                                            <div class="grid gap-4 mb-4 grid-cols-2">
+                                                <div class="col-span-2 sm:col-span-1">
+                                                    <h6 class="font-light mb-2">ID Information</h6>
+
+                                                </div>
+                                                <div class="col-span-2 sm:col-span-1">
+                                                    @if (!string.IsNullOrEmpty(Model.IdDocumentType))
+                                                    {
+                                                        <div class="grid grid-cols-2">
+                                                            <p class="mb-1 font-light text-gray-600">ID Type:</p>
+                                                            <p class="mb-1">@Model.IdDocumentType</p>
+                                                            <p class="mb-1 font-light text-gray-600">ID Number:</p>
+                                                            <p class="mb-1">@Model.ExtractedIdNumber</p>
+                                                            <p class="mb-1 font-light text-gray-600">Name:</p>
+                                                            <p class="mb-1">@Model.ExtractedIdName</p>
+                                                            <p class="mb-1 font-light text-gray-600">Expiry Date:</p>
+                                                            <p class="mb-1">@(Model.IdDocumentExpiryDate?.ToString("MMM dd, yyyy") ?? "No expiration date")</p>
+                                                        </div>
+                                                    }
+                                                </div>
+                                                <div class="col-span-2">
+                                                    <hr class="border-gray-300 mb-4">
+                                                </div>
+                                                <div class="col-span-2 sm:col-span-1">
+                                                    <h6 class="font-light mb-2">Selfie Photo</h6>
+                                                </div>
+                                                <div class="col-span-2 sm:col-span-1">
+                                                    <div id="capturedImageContainer" class="text-center" style="display: none;">
+                                                        <div class="mb-1">
+                                                            <img id="capturedImage" class="img-fluid rounded shadow-sm" style="max-height: 250px;" />
+                                                        </div>
+                                                        <p class="font-light text-xs italic">Click "Open Camera" to retake</p>
                                                     </div>
-                                                    <p class="font-light text-xs italic">Click "Open Camera" to retake</p>
                                                 </div>
                                             </div>
                                             <hr class="border-gray-300 mb-4">
+
                                             <input asp-for="LiveFaceImageData" type="hidden" id="liveFaceImageData" />
                                             <span asp-validation-for="LiveFaceImageData" class="text-danger"></span>
 
@@ -234,12 +259,21 @@
 
 @section Scripts {
     <script src="~/js/identity-verification.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
     <script>
         $(document).ready(function() {
             // Initialize the identity verification system
             const identityVerification = new IdentityVerification();
             identityVerification.initializeElements();
             identityVerification.bindEvents();
+
+                const formEvents = $._data($('#verificationForm')[0], 'events');
+        console.log('Form events:', formEvents);
+
+        // Also check the submit button
+        const btnEvents = $._data($('#submitBtn')[0], 'events');
+        console.log('Submit button events:', btnEvents);
 
             // Modal functionality
             $('#openCameraModal').on('click', function() {
@@ -258,24 +292,58 @@
                 retakeModalPhoto();
             });
 
-            // Form submission handling
-            $('#verificationForm').on('submit', function(e) {
-                e.preventDefault();
+                    $('#verificationForm').on('submit', function(e) {
+            console.log('=== FORM SUBMISSION HANDLER CALLED ===');
 
-                if (!$('#liveFaceImageData').val()) {
+            const imageData = $('#liveFaceImageData').val();
+            const agreeToTerms = $('#AgreeToTerms').is(':checked');
+
+            console.log('Image data length:', imageData?.length || 0);
+            console.log('Terms agreed:', agreeToTerms);
+            console.log('Form element:', this);
+            console.log('Event:', e);
+
+            // Check for any JavaScript errors
+            try {
+                if (!imageData || imageData.length < 1000) {
+                    console.log('BLOCKING: Invalid image data');
+                    e.preventDefault();
                     alert('Please capture a live photo before submitting.');
                     return false;
                 }
 
-                if (!$('#AgreeToTerms').is(':checked')) {
+                if (!agreeToTerms) {
+                    console.log('BLOCKING: Terms not agreed');
+                    e.preventDefault();
                     alert('Please agree to the terms and conditions before submitting.');
                     return false;
                 }
 
+                console.log('ALLOWING FORM SUBMISSION');
                 $('#submitBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Processing...');
-                this.submit();
-            });
+
+                // Let the form submit naturally
+                return true;
+
+            } catch (error) {
+                console.error('Error in form submission handler:', error);
+                e.preventDefault();
+                return false;
+            }
         });
+        });
+                function testFormValidity() {
+            const form = document.getElementById('verificationForm');
+            console.log('Form valid:', form.checkValidity());
+            console.log('Form action:', form.action);
+            console.log('Form method:', form.method);
+
+            // Check required fields
+            const requiredFields = form.querySelectorAll('[required]');
+            requiredFields.forEach(field => {
+                console.log(`Field ${field.name}: valid=${field.checkValidity()}, value=${field.value}`);
+            });
+        }
 
         // Updated Modal Functions with body scroll prevention
         function openCameraModal() {
@@ -326,12 +394,24 @@
             const modalImage = document.getElementById('modalCapturedImage');
             const mainImage = document.getElementById('capturedImage');
             const mainContainer = document.getElementById('capturedImageContainer');
+            const hiddenField = document.getElementById('liveFaceImageData');
 
-            if (modalImage && mainImage && mainContainer && modalImage.src) {
+            console.log('useModalPhoto called');
+            console.log('Modal image src length:', modalImage?.src?.length || 0);
+
+            if (modalImage && mainImage && mainContainer && hiddenField && modalImage.src) {
+                // CRITICAL FIX: Transfer the image data to the main form's hidden field
+                hiddenField.value = modalImage.src;
+
+                // Update the main preview image
                 mainImage.src = modalImage.src;
                 mainContainer.style.display = 'block';
+
+                console.log('Image data transferred to main form, hidden field length:', hiddenField.value.length);
+
                 closeCameraModal();
             } else {
+                console.error('useModalPhoto failed - missing elements or data');
                 alert('Error: Could not use the captured photo. Please try again.');
             }
         }

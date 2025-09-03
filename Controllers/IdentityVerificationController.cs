@@ -332,8 +332,22 @@ namespace Freelancing.Controllers
         [HttpPost]
         public async Task<IActionResult> Verify(FaceVerificationViewModel model)
         {
+            _logger.LogInformation("Verify POST action called");
+            _logger.LogInformation("LiveFaceImageData length: {Length}",
+                model.LiveFaceImageData?.Length ?? 0);
+            _logger.LogInformation("AgreeToTerms: {AgreeToTerms}", model.AgreeToTerms);
+
+            _logger.LogInformation("=== VERIFY POST ACTION HIT ===");
+            _logger.LogInformation("Request method: {Method}", Request.Method);
+            _logger.LogInformation("Content type: {ContentType}", Request.ContentType);
+
             if (!ModelState.IsValid)
             {
+                _logger.LogWarning("Model state is invalid");
+                foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    _logger.LogWarning("Model error: {Error}", error.ErrorMessage);
+                }
                 return View(model);
             }
 
@@ -342,74 +356,57 @@ namespace Freelancing.Controllers
                 var userId = GetCurrentUserId();
                 if (string.IsNullOrEmpty(userId))
                 {
+                    _logger.LogWarning("User ID is empty, redirecting to login");
                     return RedirectToAction("Login", "Account");
                 }
 
                 var sessionDocumentData = HttpContext.Session.GetString("DocumentData");
                 if (string.IsNullOrEmpty(sessionDocumentData))
                 {
+                    _logger.LogWarning("No session document data found");
                     ModelState.AddModelError("", "Document data not found. Please start over from the document verification step.");
                     return RedirectToAction("Document");
                 }
 
                 var documentData = System.Text.Json.JsonSerializer.Deserialize<DocumentVerificationData>(sessionDocumentData);
 
-                // Validate that we have essential document data
+                // Validate essential document data
                 if (string.IsNullOrEmpty(documentData.IdDocumentType) ||
                     string.IsNullOrEmpty(documentData.ExtractedIdNumber) ||
                     string.IsNullOrEmpty(documentData.IdDocumentImageData))
                 {
                     _logger.LogError(
-                        "Incomplete document data in Verify POST. ID Type: {IdType}, Extracted ID: {ExtractedId}, Has Image: {HasImage}",
-                        documentData.IdDocumentType, documentData.ExtractedIdNumber, !string.IsNullOrEmpty(documentData.IdDocumentImageData));
+                        "Incomplete document data. Type: {Type}, ExtractedId: {ExtractedId}, HasImageData: {HasImage}",
+                        documentData.IdDocumentType,
+                        documentData.ExtractedIdNumber,
+                        !string.IsNullOrEmpty(documentData.IdDocumentImageData));
 
                     ModelState.AddModelError("", "Incomplete document data found. Please restart the verification process.");
                     return RedirectToAction("Document");
                 }
 
-                byte[]? storedImageBytes = null;
-                if (!string.IsNullOrEmpty(documentData.IdDocumentImageData))
-                {
-                    storedImageBytes = Convert.FromBase64String(documentData.IdDocumentImageData);
-                }
-
-                var documentResult = await _verificationService.VerifyIdDocumentAsync(
-                    null,
-                    documentData.IdDocumentType,
-                    documentData.ExtractedIdNumber,
-                    documentData.IdDocumentExpiryDate,
-                    documentData.IdDocumentHasNoExpiration,
-                    userId,
-                    storedImageBytes
-                );
-
-                documentData.ExtractedIdName = documentResult.extractedIdName;
-                documentData.ExtractedIdNumber = documentResult.extractedIdNumber;
-
-                HttpContext.Session.SetString("DocumentData", System.Text.Json.JsonSerializer.Serialize(documentData));
-
-                var faceModel = new FaceVerificationViewModel
-                {
-                    IdDocumentType = documentData.IdDocumentType,
-                    ExtractedIdNumber = documentData.ExtractedIdNumber,
-                    IdDocumentExpiryDate = documentData.IdDocumentExpiryDate,
-                    IdDocumentHasNoExpiration = documentData.IdDocumentHasNoExpiration,
-                    ExtractedIdName = documentData.ExtractedIdName
-                };
-
-                if (!documentResult.Item1)
-                {
-                    ModelState.AddModelError("", $"Document verification failed: {documentResult.Item2}");
-                    return RedirectToAction("Document");
-                }
-
+                // Verify face first
+                _logger.LogInformation("Starting face verification for user {UserId}", userId);
                 var faceResult = await _verificationService.VerifyLiveFaceAsync(model.LiveFaceImageData, userId);
-                if (!faceResult.Item1)
+
+                if (!faceResult.verified)
                 {
-                    ModelState.AddModelError("", $"Face verification failed: {faceResult.Item2}");
-                    return View(faceModel);
+                    _logger.LogWarning("Face verification failed for user {UserId}: {Message}", userId, faceResult.message);
+                    ModelState.AddModelError("", $"Face verification failed: {faceResult.message}");
+
+                    // Restore model data for the view
+                    model.IdDocumentType = documentData.IdDocumentType;
+                    model.ExtractedIdNumber = documentData.ExtractedIdNumber;
+                    model.ExtractedIdName = documentData.ExtractedIdName;
+                    model.IdDocumentExpiryDate = documentData.IdDocumentExpiryDate;
+                    model.IdDocumentHasNoExpiration = documentData.IdDocumentHasNoExpiration;
+
+                    return View(model);
                 }
 
+                _logger.LogInformation("Face verification successful, proceeding with complete verification");
+
+                // Complete the verification process
                 var result = await _verificationService.CompleteVerificationAsync(
                     model.LiveFaceImageData,
                     userId,
@@ -417,17 +414,24 @@ namespace Freelancing.Controllers
                     documentData.ExtractedIdNumber,
                     documentData.IdDocumentExpiryDate,
                     documentData.IdDocumentHasNoExpiration,
-                    documentResult.Item1,
-                    documentResult.Item3
+                    documentData.IdDocumentVerified,
+                    documentData.IdDocumentConfidence,
+                    documentData.ExtractedIdName
                 );
 
                 if (result.Success)
                 {
+                    _logger.LogInformation("Identity verification completed successfully for user {UserId}", userId);
+
+                    // Clear session data after successful verification
+                    HttpContext.Session.Remove("DocumentData");
                     TempData["SuccessMessage"] = "Identity verification completed successfully!";
                     return RedirectToAction("Status");
                 }
                 else
                 {
+                    _logger.LogWarning("Identity verification failed for user {UserId}: {Message}", userId, result.Message);
+
                     var errorMessage = !string.IsNullOrEmpty(result.Message) ? result.Message : "Verification failed. Please try again.";
                     ModelState.AddModelError("", errorMessage);
 
@@ -436,12 +440,19 @@ namespace Freelancing.Controllers
                         ModelState.AddModelError("", $"Rejection Reason: {result.RejectionReason}");
                     }
 
+                    // Restore model data for the view
+                    model.IdDocumentType = documentData.IdDocumentType;
+                    model.ExtractedIdNumber = documentData.ExtractedIdNumber;
+                    model.ExtractedIdName = documentData.ExtractedIdName;
+                    model.IdDocumentExpiryDate = documentData.IdDocumentExpiryDate;
+                    model.IdDocumentHasNoExpiration = documentData.IdDocumentHasNoExpiration;
+
                     return View(model);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during face verification");
+                _logger.LogError(ex, "Error during face verification for user {UserId}", GetCurrentUserId());
                 ModelState.AddModelError("", "An error occurred during face verification. Please try again.");
                 return View(model);
             }

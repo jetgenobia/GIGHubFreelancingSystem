@@ -109,7 +109,8 @@ namespace Freelancing.Services
             DateTime? idDocumentExpiryDate,
             bool idDocumentHasNoExpiration,
             bool idDocumentVerified,
-            float idDocumentConfidence)
+            float idDocumentConfidence,
+            string? extractedIdName)
         {
             try
             {
@@ -120,9 +121,21 @@ namespace Freelancing.Services
                     IdDocumentVerified = idDocumentVerified,
                     IdDocumentConfidence = idDocumentConfidence,
                     IdDocumentMessage = "Document verified successfully",
-                    ExtractedIdNumber = extractedIdNumber, // Use extracted ID number
+                    ExtractedIdNumber = extractedIdNumber,
+                    ExtractedIdName = extractedIdName,
                     FaceConfidence = 0.0f
                 };
+
+                if (idDocumentVerified && !string.IsNullOrEmpty(extractedIdName))
+                {
+                    var (nameMatch, nameMatchMessage) = await CrossMatchNameWithRegisteredUserAsync(extractedIdName, userId);
+                    if (!nameMatch)
+                    {
+                        result.IdDocumentVerified = false;
+                        result.IdDocumentMessage = nameMatchMessage;
+                        result.IdDocumentConfidence = 0.0f;
+                    }
+                }
 
                 // Verify Live Face Capture
                 if (!string.IsNullOrEmpty(liveFaceImageData))
@@ -137,7 +150,8 @@ namespace Freelancing.Services
                 var model = new IdentityVerificationViewModel
                 {
                     IdDocumentType = idDocumentType,
-                    ExtractedIdNumber = extractedIdNumber, // Use extracted ID number
+                    ExtractedIdNumber = extractedIdNumber,
+                    ExtractedIdName = extractedIdName,
                     IdDocumentExpiryDate = idDocumentExpiryDate,
                     IdDocumentHasNoExpiration = idDocumentHasNoExpiration,
                     LiveFaceImageData = liveFaceImageData
@@ -166,11 +180,11 @@ namespace Freelancing.Services
         public async Task<(bool verified, string message, float confidence, string? extractedIdName, string? extractedIdNumber)> VerifyIdDocumentAsync(
             IFormFile? documentImage,
             string idDocumentType,
-            string? manualIdNumber, // This parameter is now optional/nullable since we're not using manual input
+            string? manualIdNumber,
             DateTime? idDocumentExpiryDate,
             bool idDocumentHasNoExpiration,
             string userId,
-            byte[]? storedImageBytes = null) // Add optional parameter for stored image data
+            byte[]? storedImageBytes = null)
         {
             try
             {
@@ -273,6 +287,22 @@ namespace Freelancing.Services
                             {
                                 confidence = 90.0f;
                                 message = "ID document verified with extracted ID number";
+                            }
+
+                            // Cross-match extracted name with registered user name
+                            if (!string.IsNullOrEmpty(ocrResult.Name))
+                            {
+                                var (nameMatch, nameMatchMessage) = await CrossMatchNameWithRegisteredUserAsync(ocrResult.Name, userId);
+                                if (!nameMatch)
+                                {
+                                    _logger.LogWarning("Name mismatch for user {UserId}. Extracted: '{ExtractedName}'", userId, ocrResult.Name);
+                                    return (false, nameMatchMessage, 0.0f, ocrResult.Name, ocrResult.IdNumber);
+                                }
+                                else
+                                {
+                                    _logger.LogInformation("Name match successful for user {UserId}", userId);
+                                    message = "ID document verified with name match";
+                                }
                             }
 
                             return (true, message, confidence, ocrResult.Name, ocrResult.IdNumber);
@@ -685,6 +715,140 @@ namespace Freelancing.Services
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Cross-matches the extracted name from ID document with the registered user's first and last name
+        /// </summary>
+        /// <param name="extractedName">Name extracted from ID document</param>
+        /// <param name="userId">User ID to look up registered name</param>
+        /// <returns>Tuple indicating if names match and message</returns>
+        private async Task<(bool match, string message)> CrossMatchNameWithRegisteredUserAsync(string extractedName, string userId)
+        {
+            try
+            {
+                // Get user's registered name from database
+                var user = await _context.Users
+                    .Where(u => u.Id == userId)
+                    .Select(u => new { u.FirstName, u.LastName })
+                    .FirstOrDefaultAsync();
+
+                if (user == null)
+                {
+                    _logger.LogWarning("User not found for ID matching: {UserId}", userId);
+                    return (false, "User account not found. Please contact support.");
+                }
+
+                var registeredFirstName = user.FirstName?.Trim() ?? "";
+                var registeredLastName = user.LastName?.Trim() ?? "";
+
+                if (string.IsNullOrEmpty(registeredFirstName) || string.IsNullOrEmpty(registeredLastName))
+                {
+                    _logger.LogWarning("Incomplete user name data for ID matching: {UserId}", userId);
+                    return (false, "User profile is incomplete. Please update your first and last name in your profile.");
+                }
+
+                // Normalize and clean the extracted name
+                var normalizedExtractedName = NormalizeName(extractedName);
+                var normalizedRegisteredName = NormalizeName($"{registeredFirstName} {registeredLastName}");
+
+                _logger.LogInformation("Name matching - Extracted: '{ExtractedName}' (normalized: '{NormalizedExtracted}'), Registered: '{RegisteredName}' (normalized: '{NormalizedRegistered}')",
+                    extractedName, normalizedExtractedName, $"{registeredFirstName} {registeredLastName}", normalizedRegisteredName);
+
+                // Check for exact match
+                if (normalizedExtractedName.Equals(normalizedRegisteredName, StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogInformation("Name match successful for user {UserId}", userId);
+                    return (true, "Name verification successful");
+                }
+
+                // Check for partial match (handles cases where middle names might be missing or extra)
+                var extractedParts = normalizedExtractedName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                var registeredParts = normalizedRegisteredName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                // Check if first and last names match (ignoring middle names)
+                if (extractedParts.Length >= 2 && registeredParts.Length >= 2)
+                {
+                    var extractedFirst = extractedParts[0];
+                    var extractedLast = extractedParts[extractedParts.Length - 1];
+                    var registeredFirst = registeredParts[0];
+                    var registeredLast = registeredParts[registeredParts.Length - 1];
+
+                    if (extractedFirst.Equals(registeredFirst, StringComparison.OrdinalIgnoreCase) &&
+                        extractedLast.Equals(registeredLast, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _logger.LogInformation("Partial name match successful for user {UserId} (first and last names match)", userId);
+                        return (true, "Name verification successful (first and last names match)");
+                    }
+                }
+
+                // Check for reverse order (Last, First format)
+                if (extractedParts.Length >= 2)
+                {
+                    var extractedFirst = extractedParts[extractedParts.Length - 1]; // Last part as first name
+                    var extractedLast = extractedParts[0]; // First part as last name
+                    var registeredFirst = registeredParts[0];
+                    var registeredLast = registeredParts[registeredParts.Length - 1];
+
+                    if (extractedFirst.Equals(registeredFirst, StringComparison.OrdinalIgnoreCase) &&
+                        extractedLast.Equals(registeredLast, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _logger.LogInformation("Reverse order name match successful for user {UserId}", userId);
+                        return (true, "Name verification successful (reverse order match)");
+                    }
+                }
+
+                _logger.LogWarning("Name mismatch for user {UserId}. Extracted: '{ExtractedName}', Registered: '{RegisteredName}'",
+                    userId, extractedName, $"{registeredFirstName} {registeredLastName}");
+
+                return (false, $"Name on ID document does not match your registered name. ID shows: '{extractedName}', but your account shows: '{registeredFirstName} {registeredLastName}'. Please ensure you are using your own ID document or update your profile information.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during name matching for user {UserId}", userId);
+                return (false, "Error verifying name match. Please try again or contact support.");
+            }
+        }
+
+        /// <summary>
+        /// Normalizes a name for comparison by removing extra spaces, converting to uppercase, and handling common variations
+        /// </summary>
+        /// <param name="name">Name to normalize</param>
+        /// <returns>Normalized name</returns>
+        private string NormalizeName(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+                return "";
+
+            // Remove extra whitespace and convert to uppercase
+            var normalized = name.Trim().ToUpperInvariant();
+
+            // Replace multiple spaces with single space
+            normalized = Regex.Replace(normalized, @"\s+", " ");
+
+            // Remove common punctuation and special characters
+            normalized = Regex.Replace(normalized, @"[^\w\s]", "");
+
+            // Handle common name variations and abbreviations
+            var replacements = new Dictionary<string, string>
+            {
+                { @"\bJR\b", "JUNIOR" },
+                { @"\bSR\b", "SENIOR" },
+                { @"\bIII\b", "THIRD" },
+                { @"\bII\b", "SECOND" },
+                { @"\bDELA\b", "DE LA" },
+                { @"\bDELOS\b", "DE LOS" },
+                { @"\bDEL\b", "DE" },
+                { @"\bVAN\b", "VAN" },
+                { @"\bVON\b", "VON" }
+            };
+
+            foreach (var replacement in replacements)
+            {
+                normalized = Regex.Replace(normalized, replacement.Key, replacement.Value, RegexOptions.IgnoreCase);
+            }
+
+            return normalized.Trim();
         }
 
         // Helper method to check if a word is likely a name (not address, date, or header)

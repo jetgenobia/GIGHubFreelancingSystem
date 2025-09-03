@@ -597,6 +597,12 @@ namespace Freelancing.Controllers
             var completedAsMentee = await dbContext.MentorshipMatches
                 .AnyAsync(mm => mm.MenteeId == userId && mm.Status == "Completed");
 
+            var identityVerification = await dbContext.IdentityVerifications
+                .FirstOrDefaultAsync(iv => iv.UserAccountId == userId);
+            var isVerified = identityVerification?.Status == "APPROVED";
+
+            ViewBag.IsVerified = isVerified;
+
             var viewModel = new EditAccount
             {
                 UserId = Guid.Parse(userId),

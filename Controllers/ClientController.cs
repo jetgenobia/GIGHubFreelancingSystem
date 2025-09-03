@@ -540,6 +540,12 @@ namespace Freelancing.Controllers
             if (userAccount == null)
                 return NotFound();
 
+            var identityVerification = await dbContext.IdentityVerifications
+                .FirstOrDefaultAsync(iv => iv.UserAccountId == userId);
+            var isVerified = identityVerification?.Status == "APPROVED";
+
+            ViewBag.IsVerified = isVerified;
+
             // Create view model
             var viewModel = new EditAccount
             {
