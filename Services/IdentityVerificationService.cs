@@ -105,12 +105,13 @@ namespace Freelancing.Services
             string liveFaceImageData,
             string userId,
             string idDocumentType,
-            string? extractedIdNumber, // Changed from idDocumentNumber to extractedIdNumber
+            string? extractedIdNumber,
             DateTime? idDocumentExpiryDate,
             bool idDocumentHasNoExpiration,
             bool idDocumentVerified,
             float idDocumentConfidence,
-            string? extractedIdName)
+            string? extractedIdName,
+            string? storedIdDocumentImageBase64 = null) // new param
         {
             try
             {
@@ -146,7 +147,7 @@ namespace Freelancing.Services
                     result.FaceConfidence = faceConfidence;
                 }
 
-                // Create a model for saving
+                // Build model for saving; include stored base64 image if present
                 var model = new IdentityVerificationViewModel
                 {
                     IdDocumentType = idDocumentType,
@@ -154,10 +155,11 @@ namespace Freelancing.Services
                     ExtractedIdName = extractedIdName,
                     IdDocumentExpiryDate = idDocumentExpiryDate,
                     IdDocumentHasNoExpiration = idDocumentHasNoExpiration,
-                    LiveFaceImageData = liveFaceImageData
+                    LiveFaceImageData = liveFaceImageData,
+                    StoredIdDocumentImageData = storedIdDocumentImageBase64 // <-- pass session image here
                 };
 
-                // Save verification data with encryption
+                // Save verification data with encryption (will handle stored base64)
                 await SaveVerificationDataAsync(model, userId, result);
 
                 return result;
@@ -443,34 +445,63 @@ namespace Freelancing.Services
                 _context.IdentityVerifications.Add(verification);
             }
 
-            // Update verification data with encryption
+            // If a new uploaded IFormFile exists, use it first
             if (model.IdDocumentImage != null)
             {
                 var imageBytes = await GetImageBytesAsync(model.IdDocumentImage);
                 verification.EncryptedIdDocumentImage = _encryptionService.EncryptDocumentImage(imageBytes, userId);
                 verification.IdDocumentType = model.IdDocumentType;
-                // Use extracted ID number instead of manual input
                 verification.EncryptedIdDocumentNumber = !string.IsNullOrEmpty(result.ExtractedIdNumber)
                     ? _encryptionService.EncryptIdentityData(result.ExtractedIdNumber, userId)
                     : null;
 
-                // If user checked "no expiration", set a far future date; otherwise use the selected date
                 verification.IdDocumentExpiryDate = model.IdDocumentHasNoExpiration
-                    ? DateTime.UtcNow.ToLocalTime().AddYears(100) // Set to 100 years in future for "no expiration"
+                    ? DateTime.UtcNow.ToLocalTime().AddYears(100)
                     : model.IdDocumentExpiryDate;
                 verification.IdDocumentVerified = result.IdDocumentVerified;
                 verification.IdDocumentConfidence = result.IdDocumentConfidence;
             }
+            else if (!string.IsNullOrEmpty(model.StoredIdDocumentImageData))
+            {
+                // Handle base64 image saved in session
+                try
+                {
+                    var base64 = model.StoredIdDocumentImageData;
+                    // Remove data url prefix if present
+                    var idx = base64.IndexOf("base64,", StringComparison.OrdinalIgnoreCase);
+                    if (idx >= 0)
+                    {
+                        base64 = base64.Substring(idx + 7);
+                    }
+
+                    var imageBytes = Convert.FromBase64String(base64);
+                    verification.EncryptedIdDocumentImage = _encryptionService.EncryptDocumentImage(imageBytes, userId);
+                    verification.IdDocumentType = model.IdDocumentType;
+                    verification.EncryptedIdDocumentNumber = !string.IsNullOrEmpty(result.ExtractedIdNumber)
+                        ? _encryptionService.EncryptIdentityData(result.ExtractedIdNumber, userId)
+                        : null;
+
+                    verification.IdDocumentExpiryDate = model.IdDocumentHasNoExpiration
+                        ? DateTime.UtcNow.ToLocalTime().AddYears(100)
+                        : model.IdDocumentExpiryDate;
+                    verification.IdDocumentVerified = result.IdDocumentVerified;
+                    verification.IdDocumentConfidence = result.IdDocumentConfidence;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to save stored Base64 document image for user {UserId}", userId);
+                    // do not throw — allow record to continue without image
+                }
+            }
             else if (!string.IsNullOrEmpty(model.IdDocumentType))
             {
-                // Document data was already processed in a previous step
+                // Document data was already processed in a previous step (no image to update)
                 verification.IdDocumentType = model.IdDocumentType;
-                // Use extracted ID number instead of manual input
                 verification.EncryptedIdDocumentNumber = !string.IsNullOrEmpty(result.ExtractedIdNumber)
                     ? _encryptionService.EncryptIdentityData(result.ExtractedIdNumber, userId)
                     : null;
                 verification.IdDocumentExpiryDate = model.IdDocumentHasNoExpiration
-                    ? DateTime.UtcNow.ToLocalTime().AddYears(100) // Set to 100 years in future for "no expiration"
+                    ? DateTime.UtcNow.ToLocalTime().AddYears(100)
                     : model.IdDocumentExpiryDate;
                 verification.IdDocumentVerified = result.IdDocumentVerified;
                 verification.IdDocumentConfidence = result.IdDocumentConfidence;
@@ -478,23 +509,26 @@ namespace Freelancing.Services
 
             if (!string.IsNullOrEmpty(model.LiveFaceImageData))
             {
-                var imageBytes = Convert.FromBase64String(model.LiveFaceImageData.Replace("data:image/jpeg;base64,", ""));
-                verification.EncryptedFaceImage = _encryptionService.EncryptDocumentImage(imageBytes, userId);
-                verification.FaceVerified = result.FaceVerified;
-                verification.FaceConfidence = result.FaceConfidence;
+                try
+                {
+                    var faceBytes = Convert.FromBase64String(model.LiveFaceImageData.Replace("data:image/jpeg;base64,", ""));
+                    verification.EncryptedFaceImage = _encryptionService.EncryptDocumentImage(faceBytes, userId);
+                    verification.FaceVerified = result.FaceVerified;
+                    verification.FaceConfidence = result.FaceConfidence;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to encrypt face image for user {UserId}", userId);
+                }
             }
 
-            // Determine overall status
-            if (result.IdDocumentVerified == true && result.FaceVerified == true)
+            // Preserve APPROVED status if already approved; otherwise set PENDING
+            if (!string.Equals(verification.Status, "APPROVED", StringComparison.OrdinalIgnoreCase))
             {
-                verification.Status = "APPROVED";
-                verification.VerifiedAt = DateTime.UtcNow.ToLocalTime();
-            }
-            else if (result.IdDocumentVerified == false || result.FaceVerified == false)
-            {
-                verification.Status = "REJECTED";
-                verification.RejectedAt = DateTime.UtcNow.ToLocalTime();
-                verification.RejectionReason = $"ID: {result.IdDocumentMessage}, Face: {result.FaceMessage}";
+                verification.Status = "PENDING";
+                verification.VerifiedAt = null;
+                verification.RejectedAt = null;
+                verification.RejectionReason = null;
             }
 
             verification.UpdatedAt = DateTime.UtcNow.ToLocalTime();

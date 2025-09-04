@@ -416,7 +416,8 @@ namespace Freelancing.Controllers
                     documentData.IdDocumentHasNoExpiration,
                     documentData.IdDocumentVerified,
                     documentData.IdDocumentConfidence,
-                    documentData.ExtractedIdName
+                    documentData.ExtractedIdName,
+                    documentData.IdDocumentImageData // <-- pass the session-stored base64 image here
                 );
 
                 if (result.Success)

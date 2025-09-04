@@ -91,6 +91,9 @@ namespace Freelancing.Models
 
         // Hidden field to preserve extracted ID name
         public string? ExtractedIdName { get; set; }
+
+        // NEW: base64 image held in session (optional)
+        public string? StoredIdDocumentImageData { get; set; } // Backing property used by SaveVerificationDataAsync
     }
 
     public class VerificationStatusViewModel

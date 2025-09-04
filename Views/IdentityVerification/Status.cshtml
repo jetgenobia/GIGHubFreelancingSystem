@@ -28,69 +28,80 @@
                                                         @if (Model.IsVerified)
                                                         {
                                                             <div class="flex items-center justify-center w-full">
-                                                        <img class="w-44 h-44" src="https://ik.imagekit.io/6txj3mofs/CHECK.png?updatedAt=1754207749128" alt="">
-                                                    </div>
-                                                    <h5 class="font-bold text-2xl mt-2">Approved</h5>
-                                                    <p class="font-light">Verification complete, enjoy GIGHub!</p>
-                                                    <div class="flex items-center justify-center mt-5">
-                                                        <a asp-controller="@(User.IsInRole("Client") ? "Client" : "Freelancer")" asp-action="Profile" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                                            <svg class="w-4 h-4 mr-2 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
-                                                                <path fill-rule="evenodd" d="M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm-2 9a4 4 0 0 0-4 4v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1a4 4 0 0 0-4-4h-4Z" clip-rule="evenodd" />
-                                                            </svg>
+                                                                <img class="w-44 h-44" src="https://ik.imagekit.io/6txj3mofs/CHECK.png?updatedAt=1754207749128" alt="">
+                                                            </div>
+                                                            <h5 class="font-bold text-2xl mt-2">Approved</h5>
+                                                            <p class="font-light">Verification complete, enjoy GIGHub!</p>
+                                                            <div class="flex items-center justify-center mt-5">
+                                                                <a asp-controller="@(User.IsInRole("Client") ? "Client" : "Freelancer")" asp-action="Profile" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                                                    <svg class="w-4 h-4 mr-2 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                                                                        <path fill-rule="evenodd" d="M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm-2 9a4 4 0 0 0-4 4v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1a4 4 0 0 0-4-4h-4Z" clip-rule="evenodd" />
+                                                                    </svg>
 
-                                                            Go to Profile
-                                                        </a>
-                                                    </div>
+                                                                    Go to Profile
+                                                                </a>
+                                                            </div>
                                                         }
                                                         else if (Model.Status == "REJECTED")
                                                         {
                                                             <div class="flex items-center justify-center w-full">
-                                                        <img class="w-44 h-44" src="https://ik.imagekit.io/6txj3mofs/DECLINED.png?updatedAt=1754266151184" alt="">
-                                                    </div>
-                                                    <h5 class="font-bold text-2xl mt-2">Rejected</h5>
-                                                    <p class="font-light">Verification was not successful</p>
-                                                    <div class="flex items-center justify-center mt-2">
-                                                        <div class="p-4 bg-orange-50 border rounded-lg text-start" style="border-color: #FEEBC8">
-                                                            <div class="inline-flex items-center">
-                                                                <i class="fas fa-info-circle text-orange-600 me-2"></i>
-                                                                <p class="font-bold text-base">Tips for a Successful Identity Verification</p>
+                                                                <img class="w-44 h-44" src="https://ik.imagekit.io/6txj3mofs/DECLINED.png?updatedAt=1754266151184" alt="">
                                                             </div>
-                                                            <p class="font-light text-sm"><span class="mr-2">•</span>Your ID name should match your registered name.</p>
-                                                            <p class="font-light text-sm"><span class="mr-2">•</span>Make sure you are in a well-lit place with no shadows on your face.</p>
-                                                            <p class="font-light text-sm"><span class="mr-2">•</span>Remove accessories such as hats, sunglasses, or masks.</p>
-                                                        </div>
-                                                    </div>
-                                                    <div class="flex items-center justify-center mt-5">
-                                                        <a asp-controller="IdentityVerification" asp-action="Verify" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                                            <svg class="w-4 h-4 mr-2 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 9H8a5 5 0 0 0 0 10h9m4-10-4-4m4 4-4 4" />
-                                                            </svg>
-                                                            Try Again
-                                                        </a>
-                                                    </div>
+                                                            <h5 class="font-bold text-2xl mt-2">Rejected</h5>
+                                                            <p class="font-light">Verification was not successful</p>
+                                                            <div class="flex items-center justify-center mt-2">
+                                                                <div class="p-4 bg-orange-50 border rounded-lg text-start" style="border-color: #FEEBC8">
+                                                                    <div class="inline-flex items-center">
+                                                                        <i class="fas fa-info-circle text-orange-600 me-2"></i>
+                                                                        <p class="font-bold text-base">Tips for a Successful Identity Verification</p>
+                                                                    </div>
+                                                                    <p class="font-light text-sm"><span class="mr-2">•</span>Your ID name should match your registered name.</p>
+                                                                    <p class="font-light text-sm"><span class="mr-2">•</span>Make sure you are in a well-lit place with no shadows on your face.</p>
+                                                                    <p class="font-light text-sm"><span class="mr-2">•</span>Remove accessories such as hats, sunglasses, or masks.</p>
+                                                                </div>
+                                                            </div>
+                                                            <div class="flex items-center justify-center mt-5">
+                                                                <a asp-controller="IdentityVerification" asp-action="Verify" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                                                    <svg class="w-4 h-4 mr-2 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 9H8a5 5 0 0 0 0 10h9m4-10-4-4m4 4-4 4" />
+                                                                    </svg>
+                                                                    Try Again
+                                                                </a>
+                                                            </div>
                                                         }
                                                         else if (Model.Status == "UNDER_REVIEW")
                                                         {
                                                             <div class="flex items-center justify-center w-full">
-                                                        <img class="w-44 h-44" src="https://ik.imagekit.io/6txj3mofs/PENDING.png" alt="">
-                                                    </div>
-                                                    <h5 class="font-bold text-2xl mt-2">Under Review</h5>
-                                                    <p class="font-light">Your verification is being processed</p>
-                                                    <div class="flex items-center justify-center mt-5">
-                                                        <a asp-controller="@(User.IsInRole("Client") ? "Client" : "Freelancer")" asp-action="Profile" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                                            <svg class="w-4 h-4 mr-2 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
-                                                                <path fill-rule="evenodd" d="M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm-2 9a4 4 0 0 0-4 4v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1a4 4 0 0 0-4-4h-4Z" clip-rule="evenodd" />
-                                                            </svg>
+                                                                <img class="w-44 h-44" src="https://ik.imagekit.io/6txj3mofs/PENDING.png" alt="">
+                                                            </div>
+                                                            <h5 class="font-bold text-2xl mt-2">Under Review</h5>
+                                                            <p class="font-light">Your verification is being processed</p>
+                                                            <div class="flex items-center justify-center mt-5">
+                                                                <a asp-controller="@(User.IsInRole("Client") ? "Client" : "Freelancer")" asp-action="Profile" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                                                    <svg class="w-4 h-4 mr-2 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                                                                        <path fill-rule="evenodd" d="M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm-2 9a4 4 0 0 0-4 4v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1a4 4 0 0 0-4-4h-4Z" clip-rule="evenodd" />
+                                                                    </svg>
 
-                                                            Go to Profile
-                                                        </a>
-                                                    </div>
+                                                                    Go to Profile
+                                                                </a>
+                                                            </div>
                                                         }
                                                         else
                                                         {
-                                                            <i class="fas fa-hourglass-half fa-4x text-info mb-3"></i>
-                                                            <h5 class="text-info">Pending</h5>
-                                                            <p class="text-muted">Verification is in progress</p>
+                                                            <div class="flex items-center justify-center w-full">
+                                                                <img class="w-44 h-44" src="https://ik.imagekit.io/6txj3mofs/PENDING.png" alt="">
+                                                            </div>
+                                                            <h5 class="font-bold text-2xl mt-2">Under Review</h5>
+                                                            <p class="font-light">Your verification is being processed</p>
+                                                            <div class="flex items-center justify-center mt-5">
+                                                                <a asp-controller="@(User.IsInRole("Client") ? "Client" : "Freelancer")" asp-action="Profile" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                                                    <svg class="w-4 h-4 mr-2 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                                                                        <path fill-rule="evenodd" d="M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm-2 9a4 4 0 0 0-4 4v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1a4 4 0 0 0-4-4h-4Z" clip-rule="evenodd" />
+                                                                    </svg>
+
+                                                                    Go to Profile
+                                                                </a>
+                                                            </div>
                                                         }
                                                     </div>
                                                 </div>

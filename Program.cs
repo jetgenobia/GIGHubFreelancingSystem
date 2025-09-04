@@ -78,6 +78,9 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 // Add role seeder service
 builder.Services.AddScoped<IRoleSeederService, RoleSeederService>();
 
+// Register Admin seeder
+builder.Services.AddScoped<AdminSeederService>();
+
 builder.Services.AddScoped<IMentorshipMatchingService, MentorshipMatchingService>();
 
 builder.Services.AddScoped<IMessageEncryptionService, MessageEncryptionService>();
@@ -149,7 +152,6 @@ app.MapHub<ChatHub>("/chatHub");
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
-
 // Seed data
 using (var scope = app.Services.CreateScope())
 {
@@ -158,6 +160,10 @@ using (var scope = app.Services.CreateScope())
     // Seed roles
     var roleSeeder = scope.ServiceProvider.GetRequiredService<IRoleSeederService>();
     await roleSeeder.SeedRolesAsync();
+
+    // Seed admin user (reads Admin:Email and Admin:Password from configuration)
+    var adminSeeder = scope.ServiceProvider.GetRequiredService<AdminSeederService>();
+    await adminSeeder.SeedAsync();
     
     await Freelancing.SeedGoals.SeedGoalsData(context);
     await Freelancing.SeedUserSkills.SeedUserSkillsData(context);

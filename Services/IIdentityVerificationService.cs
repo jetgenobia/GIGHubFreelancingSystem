@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Freelancing.Models;
 using Freelancing.Models.Entities;
 using Microsoft.AspNetCore.Http;
@@ -12,21 +13,22 @@ namespace Freelancing.Services
             string liveFaceImageData,
             string userId,
             string idDocumentType,
-            string idDocumentNumber,
+            string? extractedIdNumber,
             DateTime? idDocumentExpiryDate,
             bool idDocumentHasNoExpiration,
             bool idDocumentVerified,
             float idDocumentConfidence,
-            string? extractedIdName);
+            string? extractedIdName,
+            string? storedIdDocumentImageBase64 = null); // <-- new optional parameter
 
         Task<(bool verified, string message, float confidence, string? extractedIdName, string? extractedIdNumber)> VerifyIdDocumentAsync(
             IFormFile? documentImage,
             string idDocumentType,
-            string idDocumentNumber,
+            string? idDocumentNumber,
             DateTime? idDocumentExpiryDate,
             bool idDocumentHasNoExpiration,
             string userId,
-            byte[]? storedImageBytes = null); // Add optional parameter for stored image data
+            byte[]? storedImageBytes = null);
 
         Task<(bool verified, string message, float confidence)> VerifyLiveFaceAsync(string base64ImageData, string userId);
 

@@ -41,6 +41,16 @@ namespace Freelancing.Controllers
             return View();
         }
 
+        [HttpGet]
+        public async Task<IActionResult> WhoAmI([FromServices] UserManager<UserAccount> userManager)
+        {
+            var user = await userManager.GetUserAsync(User);
+            var roles = user != null ? await userManager.GetRolesAsync(user) : new List<string>();
+            var roleClaims = User.Claims.Where(c => c.Type == System.Security.Claims.ClaimTypes.Role).Select(c => c.Value);
+            var claims = string.Join(", ", User.Claims.Select(c => $"{c.Type}={c.Value}"));
+            return Content($"UserId={user?.Id}\nEmail={user?.Email}\nDBRoles=[{string.Join(", ", roles)}]\nRoleClaimsOnPrincipal=[{string.Join(", ", roleClaims)}]\nAllClaims=[{claims}]");
+        }
+
         [HttpPost]
         public async Task<IActionResult> Registration(RegistrationViewModel model)
         {
@@ -129,6 +139,11 @@ namespace Freelancing.Controllers
                         else if (role?.ToLower() == "freelancer")
                         {
                             return RedirectToAction("Dashboard", "Freelancer");
+                        }
+                        else if (role?.ToLower() == "admin")
+                        {
+                            // Admin: go to admin area / page
+                            return RedirectToAction("IdentityVerification", "Admin");
                         }
                         else
                         {
