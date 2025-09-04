@@ -313,6 +313,81 @@
                                     </div>
                                 }
                             </div>
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <h2 class="text-xl font-semibold text-gray-900 mb-4">Mentorship Reviews</h2>
+                                @if (ViewBag.MFeedback != null && ((IEnumerable<object>)ViewBag.MFeedback).Any())
+                                {
+                                    <div class="space-y-4">
+                                        @foreach (var feedback in ViewBag.MFeedback)
+                                        {
+                                            var mentee = feedback.MentorshipMatch?.Mentee;
+                                            <div class="flex justify-between items-start">
+                                                <div>
+                                                    <div class="flex items-center space-x-3 bg-gray-50 w-fit mb-3">
+                                                        @if (!string.IsNullOrEmpty(mentee?.Photo))
+                                                        {
+                                                            <div class="rounded-full cursor-pointer hover:bg-gray-100 transition-colors duration-200" onclick="openProfileModal('@mentee.Id')">
+                                                                <img src="@mentee.Photo" alt="Project Owner" class="w-10 h-10 rounded-full object-cover border-2 border-gray-200">
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="rounded-full cursor-pointer hover:bg-gray-100 transition-colors duration-200" onclick="openProfileModal('@mentee.Id')">
+                                                                <img src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497" alt="Project Owner" class="w-10 h-10 rounded-full object-cover border-2 border-gray-200">
+                                                            </div>
+                                                        }
+                                                        <div class="flex flex-col">
+                                                            <span class="font-semibold text-md text-gray-900">@($"{mentee?.FirstName} {mentee?.LastName}")</span>
+                                                            <div class="flex">
+                                                                @for (int i = 1; i <= 5; i++)
+                                                                {
+                                                                    if (i <= feedback?.Rating)
+                                                                    {
+                                                                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5">
+                                                                            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                                                            <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                                                            <g id="SVGRepo_iconCarrier"><path d="m12 17.328-5.403 3.286a.75.75 0 0 1-1.12-.813l1.456-6.155-4.796-4.123a.75.75 0 0 1 .428-1.316l6.303-.517 2.44-5.835a.75.75 0 0 1 1.384 0l2.44 5.835 6.303.517a.75.75 0 0 1 .427 1.316l-4.795 4.123 1.456 6.155a.75.75 0 0 1-1.12.813L12 17.328z" fill="#FFC203"></path></g>
+                                                                        </svg>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="text-gray-300">⭐</span>
+                                                                    }
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    @if (!string.IsNullOrEmpty(feedback?.Comments))
+                                                    {
+                                                        <p class="text-gray-700 mt-2">@feedback.Comments</p>
+                                                    }
+                                                </div>
+                                                <div class="text-right">
+                                                    @if (feedback?.WouldRecommend == true)
+                                                    {
+                                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                            Would Recommend
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                            Would Not Recommend
+                                                        </span>
+                                                    }
+                                                </div>
+                                            </div>
+                                            <hr class="border-gray-300 mb-4">
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <p class="text-gray-600">
+                                        <span class="text-gray-400 italic">No mentorship reviews yet</span>
+                                    </p>
+                                }
+                            </div>
                         </div>
 
                         <!-- Right Column -->

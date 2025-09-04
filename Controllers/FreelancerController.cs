@@ -521,6 +521,15 @@ namespace Freelancing.Controllers
             if (freelancer == null)
                 return NotFound();
 
+            var profileOwnerRole = freelancer.Role ?? freelancer.FRole;
+            ViewBag.ProfileOwnerRole = profileOwnerRole;
+
+            var currentUser = await dbContext.UserAccounts
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == currentUserId);
+            var currentUserRole = currentUser?.Role ?? currentUser?.FRole;
+            ViewBag.CurrentUserRole = currentUserRole;
+
             // Check mentorship completion status
             var completedAsMentor = await dbContext.MentorshipMatches
                 .AnyAsync(mm => mm.MentorId == targetUserId && mm.Status == "Completed");
@@ -547,6 +556,13 @@ namespace Freelancing.Controllers
                 .Include(f => f.AcceptBidding)
                 .ThenInclude(ab => ab.Project)
                 .ThenInclude(p => p.User)
+                .OrderByDescending(f => f.CreatedAt)
+                .ToListAsync();
+
+            var mentorfeedback = await dbContext.MentorReviews
+                .Where(f => f.MentorId == targetUserId) // Changed from id to targetUserId
+                .Include(f => f.MentorshipMatch)
+                .ThenInclude(mm => mm.Mentee)
                 .OrderByDescending(f => f.CreatedAt)
                 .ToListAsync();
 
@@ -591,6 +607,7 @@ namespace Freelancing.Controllers
             ViewBag.RecommendationRate = recommendationRate;
             ViewBag.FeedbackCount = feedbacks.Count;
             ViewBag.IsVerified = isVerified;
+            ViewBag.MFeedback = mentorfeedback;
 
             return View(freelancer);
         }

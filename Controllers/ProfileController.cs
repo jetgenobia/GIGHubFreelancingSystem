@@ -58,6 +58,25 @@ namespace Freelancing.Controllers
                 .OrderByDescending(f => f.CreatedAt)
                 .ToListAsync();
 
+            var mentorfeedback = await _context.MentorReviews
+                .Where(f => f.MentorId == id)
+                .Include(f => f.MentorshipMatch)
+                    .ThenInclude(mm => mm.Mentee)
+                .Include(f => f.Mentee)         
+                .OrderByDescending(f => f.CreatedAt)
+                .ToListAsync();
+
+            var profileOwnerRole = freelancer?.Role ?? freelancer?.FRole;
+            var isMentor = !string.IsNullOrEmpty(profileOwnerRole) &&
+                           profileOwnerRole.Equals("Mentor", StringComparison.OrdinalIgnoreCase);
+
+            if (!isMentor)
+            {
+                isMentor = await _context.MentorshipMatches.AnyAsync(mm => mm.MentorId == id);
+            }
+
+            ViewBag.IsMentor = isMentor;
+
             var feedbackDtos = feedbacks.Select(f => new FeedbackDto
             {
                 Id = f.Id,
@@ -92,6 +111,7 @@ namespace Freelancing.Controllers
             ViewBag.AverageRating = averageRating;
             ViewBag.RecommendationRate = recommendationRate;
             ViewBag.FeedbackCount = feedbacks.Count;
+            ViewBag.MFeedback = mentorfeedback;
 
             return View(freelancer);
         }
