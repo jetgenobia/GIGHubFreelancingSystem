@@ -5,6 +5,10 @@
 
 @model List<Freelancing.Models.Entities.Project>
 
+@{
+    var matchCounts = ViewBag.MatchCounts as Dictionary<Guid, int> ?? new Dictionary<Guid, int>();
+}
+
 <div class="p-4 sm:ml-64">
     <div class="p-4 mt-20">
         <div class="mt-4">
@@ -14,18 +18,28 @@
                 {
                     <div class="mb-4">
                         <a asp-controller="Freelancer" asp-action="Project" asp-route-id="@project.Id" class="block max-w p-6 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-100">
-                            <div class="flex items-center mb-4">
-                                @if (!string.IsNullOrEmpty(project.User.Photo))
-                                {
-                                    <img class="w-8 h-8 rounded-full" src="@project.User.Photo" alt="user photo">
-                                }
-                                else
-                                {
-                                    <img class="w-8 h-8 rounded-full" src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497" alt="user photo">
-                                }
-                                <div class="ms-3">
-                                    <h5 class="text-md font-bold tracking-tight text-gray-900">@project.User.FirstName @project.User.LastName</h5>
-                                    <p class="text-xs text-gray-500">Posted: @project.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt")</p>
+                            <div class="flex items-center mb-4 justify-between">
+                                <div class="flex items-center">
+                                    @if (!string.IsNullOrEmpty(project.User.Photo))
+                                    {
+                                        <img class="w-8 h-8 rounded-full" src="@project.User.Photo" alt="user photo">
+                                    }
+                                    else
+                                    {
+                                        <img class="w-8 h-8 rounded-full" src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497" alt="user photo">
+                                    }
+                                    <div class="ms-3">
+                                        <h5 class="text-md font-bold tracking-tight text-gray-900">@project.User.FirstName @project.User.LastName</h5>
+                                        <p class="text-xs text-gray-500">Posted: @project.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt")</p>
+                                    </div>
+                                </div>
+                                <div>
+                                    @if (matchCounts.TryGetValue(project.Id, out var mc) && mc > 0)
+                                    {
+                                        <span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                                            Recommended
+                                        </span>
+                                    }
                                 </div>
                             </div>
                             <hr class="border-gray-300 mb-4">

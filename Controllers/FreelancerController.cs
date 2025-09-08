@@ -111,12 +111,43 @@ namespace Freelancing.Controllers
         [HttpGet]
         public async Task<IActionResult> Feed()
         {
-            var project = await dbContext.Projects
+            // Get current freelancer ID
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            // Load freelancer skill ids
+            var userSkillIds = await dbContext.UserAccountSkills
+                .Where(uas => uas.UserAccountId == userId)
+                .Include(uas => uas.UserSkill)
+                .Select(uas => uas.UserSkill.Id)
+                .ToListAsync();
+
+            // Load projects with related skill and user data
+            var projects = await dbContext.Projects
                 .Include(p => p.User)
                 .Include(p => p.ProjectSkills)
                 .ThenInclude(ps => ps.UserSkill)
                 .ToListAsync();
-            return View(project);
+
+            // Score projects by number of matching skills
+            var scored = projects
+                .Select(p => new
+                {
+                    Project = p,
+                    MatchCount = p.ProjectSkills?.Count(ps => ps.UserSkill != null && userSkillIds.Contains(ps.UserSkill.Id)) ?? 0
+                })
+                .OrderByDescending(x => x.MatchCount)
+                .ThenByDescending(x => x.Project.CreatedAt)
+                .ToList();
+
+            // Expose match counts to the view for UI badges/labels
+            var matchMap = scored.ToDictionary(x => x.Project.Id, x => x.MatchCount);
+            ViewBag.MatchCounts = matchMap;
+
+            var orderedProjects = scored.Select(x => x.Project).ToList();
+
+            return View(orderedProjects);
         }
         // Displays the details of a specific project, including its bids and the user who posted it.
         [HttpGet]
