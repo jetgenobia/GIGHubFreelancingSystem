@@ -4,6 +4,10 @@
 }
 @model Freelancing.Models.EditAccount
 
+@{
+    var isVerified = (ViewBag.IsVerified as bool?) ?? false;
+}
+
 <div class="p-4 sm:ml-64">
     <div class="p-4 mt-20">
         <div class="mt-4">
@@ -93,12 +97,13 @@
                             </div>
                         </div>
 
-                        @if (ViewBag.IsVerified)
+                        @if (isVerified)
                         {
                             <div class="col-span-2 sm:col-span-1">
                                 <label asp-for="FirstName" class="block mb-2 text-sm font-medium text-gray-900">First Name</label>
                                 <div class="relative">
                                     <input asp-for="FirstName" class="form-control bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" required disabled>
+                                    <input type="hidden" asp-for="FirstName" />
                                     <span class="absolute inset-y-0 end-0 flex items-center mr-3 pointer-events-none">
                                         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-500">
                                             <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
@@ -116,6 +121,7 @@
                                 <label asp-for="LastName" class="block mb-2 text-sm font-medium text-gray-900">Last Name</label>
                                 <div class="relative">
                                     <input asp-for="LastName" class="form-control bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" required disabled>
+                                    <input type="hidden" asp-for="LastName" />
                                     <span class="absolute inset-y-0 end-0 flex items-center mr-3 pointer-events-none">
                                         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-500">
                                             <g id="SVGRepo_bgCarrier" stroke-width="0"></g>

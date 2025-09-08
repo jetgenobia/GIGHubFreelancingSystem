@@ -8,6 +8,9 @@
     var hasCompletedAsMentee = mentorshipData?.Item2 ?? false;
     var projects = ViewBag.Projects as List<Project> ?? new List<Project>();
     var biddings = ViewBag.Biddings as List<Bidding> ?? new List<Bidding>();
+    var isPending = ViewBag.IsPending ?? false;
+    var isVerified = ViewBag.IsVerified ?? false;
+    var showContactInfo = ViewBag.ShowContactInfo ?? false;
 }
 
 <div class="p-4 sm:ml-64">
@@ -89,7 +92,16 @@
                                         </svg>
                                         Edit Profile
                                     </a>
-                                    @if (!ViewBag.IsVerified)
+                                    @if (isPending)
+                                    {
+                                        <div class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                            <svg class="w-4 h-4 mr-2 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                            </svg>
+                                            Pending
+                                        </div>
+                                    }
+                                    else if (!isVerified)
                                     {
                                         <a asp-controller="IdentityVerification" asp-action="Index" class="inline-flex items-center px-4 py-2 border border-blue-300 rounded-md shadow-sm text-sm font-medium text-white bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                                             <svg class="w-4 h-4 mr-2 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">

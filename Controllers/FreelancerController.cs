@@ -523,7 +523,7 @@ namespace Freelancing.Controllers
 
             var profileOwnerRole = freelancer.Role ?? freelancer.FRole;
             ViewBag.ProfileOwnerRole = profileOwnerRole;
-
+            
             var currentUser = await dbContext.UserAccounts
                 .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == currentUserId);
@@ -595,11 +595,15 @@ namespace Freelancing.Controllers
             var identityVerification = await dbContext.IdentityVerifications
                 .FirstOrDefaultAsync(iv => iv.UserAccountId == targetUserId);
             var isVerified = identityVerification?.Status == "APPROVED";
+            var isRejected = identityVerification?.Status == "REJECTED";
+            var isPending = identityVerification?.Status == "PENDING";
+
+            var isOwnProfile = (currentUserId == targetUserId);
 
             ViewBag.MentorshipData = (completedAsMentor, completedAsMentee);
             ViewBag.Projects = projects;
             ViewBag.Biddings = biddings;
-            ViewBag.IsOwnProfile = (currentUserId == targetUserId); // Flag to indicate if this is user's own profile
+            ViewBag.IsOwnProfile = isOwnProfile;
             ViewBag.AllFeedbacks = feedbacks;
             ViewBag.RecentFeedbacks = feedbacks;
             ViewBag.FeedbackDtos = feedbackDtos;
@@ -607,6 +611,9 @@ namespace Freelancing.Controllers
             ViewBag.RecommendationRate = recommendationRate;
             ViewBag.FeedbackCount = feedbacks.Count;
             ViewBag.IsVerified = isVerified;
+            ViewBag.IsPending = isPending;
+            ViewBag.IsRejected = isRejected;
+            ViewBag.ShowContactInfo = isOwnProfile || isVerified;
             ViewBag.MFeedback = mentorfeedback;
 
             return View(freelancer);

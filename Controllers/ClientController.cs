@@ -541,10 +541,17 @@ namespace Freelancing.Controllers
             var identityVerification = await dbContext.IdentityVerifications
                 .FirstOrDefaultAsync(iv => iv.UserAccountId == targetUserId);
             var isVerified = identityVerification?.Status == "APPROVED";
+            var isRejected = identityVerification?.Status == "REJECTED";
+            var isPending = identityVerification?.Status == "PENDING";
+
+            var isOwnProfile = (currentUserId == targetUserId);
 
             ViewBag.Projects = projects;
-            ViewBag.IsOwnProfile = (currentUserId == targetUserId);
+            ViewBag.IsOwnProfile = isOwnProfile;
             ViewBag.IsVerified = isVerified;
+            ViewBag.IsPending = isPending;
+            ViewBag.IsRejected = isRejected;
+            ViewBag.ShowContactInfo = isOwnProfile || isVerified;
 
             return View(client);
         }
