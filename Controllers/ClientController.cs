@@ -575,6 +575,9 @@ namespace Freelancing.Controllers
 
             ViewBag.IsVerified = isVerified;
 
+            var twoFactorEnabled = await _userManager.GetTwoFactorEnabledAsync(userAccount);
+            ViewBag.TwoFactorEnabled = twoFactorEnabled;
+
             // Create view model
             var viewModel = new EditAccount
             {
@@ -601,24 +604,30 @@ namespace Freelancing.Controllers
         {
             if (!ModelState.IsValid)
             {
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var reloadedUser = userId != null ? await _userManager.FindByIdAsync(userId) : null;
+                ViewBag.TwoFactorEnabled = reloadedUser != null && await _userManager.GetTwoFactorEnabledAsync(reloadedUser);
+
                 return View(viewModel);
             }
 
             // Get user ID
-            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId))
+            var userId2 = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId2))
                 return Unauthorized();
 
             // Fetch user account
-            var userAccount = await dbContext.UserAccounts.FindAsync(userId);
+            var userAccount = await dbContext.UserAccounts.FindAsync(userId2);
             if (userAccount == null)
                 return NotFound();
 
+            ViewBag.TwoFactorEnabled = await _userManager.GetTwoFactorEnabledAsync(userAccount);
+
             // Check for existing username/email
             var existingUserWithUsername = await dbContext.UserAccounts
-                .FirstOrDefaultAsync(u => u.UserName == viewModel.UserName && u.Id.ToString() != userId);
+                .FirstOrDefaultAsync(u => u.UserName == viewModel.UserName && u.Id.ToString() != userId2);
             var existingUserWithEmail = await dbContext.UserAccounts
-                .FirstOrDefaultAsync(u => u.Email == viewModel.Email && u.Id.ToString() != userId);
+                .FirstOrDefaultAsync(u => u.Email == viewModel.Email && u.Id.ToString() != userId2);
 
             if (existingUserWithEmail != null)
             {

@@ -1,0 +1,37 @@
+@{
+    Layout = User.IsInRole("Client") ? "_LayoutClient" : "_LayoutFreelancer";
+    ViewData["Title"] = "Recovery Codes";
+    var userIsClient = User.IsInRole("Client");
+    var userIsFreelancer = User.IsInRole("Freelancer");
+    var codes = ViewBag.RecoveryCodes as string[];
+}
+
+<div class="p-4 sm:ml-64">
+    <div class="p-4 mt-20">
+        <div class="mt-15">
+            <div class="max-w-4xl mx-auto">
+                <h2 class="text-xl font-semibold mb-4">Recovery codes</h2>
+
+                @if (codes != null && codes.Length > 0)
+                {
+                    <p class="mb-2 text-sm">Save these recovery codes in a safe place. Each code can be used once to sign in if you lose your authenticator app.</p>
+                    <div class="grid grid-cols-2 gap-2 mb-4">
+                        @foreach (var c in codes)
+                        {
+                            <div class="p-2 bg-gray-100 rounded font-mono text-sm">@c</div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-sm text-gray-600 mb-4">No recovery codes available. You can generate new ones below.</p>
+                }
+
+                <form asp-action="GenerateNewRecoveryCodes" method="post" class="inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Generate new recovery codes</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

@@ -167,6 +167,39 @@
                             <label asp-for="Bio" class="block mb-2 text-sm font-medium text-gray-900">Bio</label>
                             <textarea asp-for="Bio" rows="4" class="form-control block p-2.5 w-full text-sm text-gray-900 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500" placeholder="Write your bio here"></textarea>
                         </div>
+
+                        @if ((ViewBag.TwoFactorEnabled as bool?) ?? false)
+                        {
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-900">Two-Factor Authentication</label>
+                                <p class="text-xs italic">Your account is currently protected by two-factor authentication.</p>
+                                <p class="text-xs italic mb-2">If you wish to generate a new backup code/reset authentication please click the button below.</p>
+                                <div class="mb-6 flex gap-4">
+                                    <a href="@Url.Action("ResetAuthenticator", "Account")"
+                                       class="inline-flex items-center text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2">
+                                        <svg class="w-4 h-4 mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14v3m4-6V7a3 3 0 1 1 6 0v4M5 11h10a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1Z" />
+                                        </svg>
+                                        Reset
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="mb-4">
+                                <label class="block mb-2 text-sm font-medium text-gray-900">Two-Factor Authentication</label>
+                                <div class="mb-6 flex gap-4">
+                                    <a href="@Url.Action("EnableAuthenticator", "Account")"
+                                       class="inline-flex items-center text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2">
+                                        <svg class="w-4 h-4 mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14v3m-3-6V7a3 3 0 1 1 6 0v4m-8 0h10a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1Z" />
+                                        </svg>
+                                        Enable
+                                    </a>
+                                </div>
+                            </div>
+                        }
                     </div>
 
                     <div class="flex justify-end">

@@ -1,0 +1,31 @@
+@{
+    Layout = User.IsInRole("Client") ? "_LayoutClient" : "_LayoutFreelancer";
+    ViewData["Title"] = "Two-Factor Enabled";
+    var userIsClient = User.IsInRole("Client");
+    var userIsFreelancer = User.IsInRole("Freelancer");
+    var codes = ViewBag.RecoveryCodes as string[];
+}
+
+<div class="p-4 sm:ml-64">
+    <div class="p-4 mt-20">
+        <div class="mt-15">
+            <div class="max-w-4xl mx-auto">
+                <h2 class="text-xl font-semibold mb-4">Two-factor authentication enabled</h2>
+                <p class="mb-3">You have successfully enabled two-factor authentication (TOTP) for your account.</p>
+
+                @if (codes != null && codes.Length > 0)
+                {
+                    <p class="text-sm mb-2">Please save these recovery codes now — they will not be shown again.</p>
+                    <div class="grid grid-cols-2 gap-2 mb-4">
+                        @foreach (var c in codes)
+                        {
+                            <div class="p-2 bg-gray-100 rounded font-mono text-sm">@c</div>
+                        }
+                    </div>
+                }
+
+                <a class="text-blue-600" asp-action="Index" asp-controller="Home">Return to site</a>
+            </div>
+        </div>
+    </div>
+</div>

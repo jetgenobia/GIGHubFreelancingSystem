@@ -681,6 +681,9 @@ namespace Freelancing.Controllers
 
             ViewBag.IsVerified = isVerified;
 
+            var twoFactorEnabled = await _userManager.GetTwoFactorEnabledAsync(userAccount);
+            ViewBag.TwoFactorEnabled = twoFactorEnabled;
+
             var viewModel = new EditAccount
             {
                 UserId = Guid.Parse(userId),
@@ -710,10 +713,14 @@ namespace Freelancing.Controllers
         [HttpPost]
         public async Task<IActionResult> EditAccount(EditAccount viewModel, IFormFile? PhotoFile)
         {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
             if (!ModelState.IsValid)
             {
                 // Reload necessary data for the view
-                var reloadedViewModel = await PopulateEditAccountViewModel(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, null);
+                var reloadedViewModel = await PopulateEditAccountViewModel(userId, null);
                 // Preserve form data
                 reloadedViewModel.FirstName = viewModel.FirstName;
                 reloadedViewModel.LastName = viewModel.LastName;
@@ -722,12 +729,11 @@ namespace Freelancing.Controllers
                 reloadedViewModel.Bio = viewModel.Bio;
                 reloadedViewModel.ExperienceLevel = viewModel.ExperienceLevel;
 
+                var reloadedUser = await _userManager.FindByIdAsync(userId);
+                ViewBag.TwoFactorEnabled = reloadedUser != null && await _userManager.GetTwoFactorEnabledAsync(reloadedUser);
+
                 return View(reloadedViewModel);
             }
-
-            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId))
-                return Unauthorized();
 
             var userAccount = await _userManager.FindByIdAsync(userId);
             if (userAccount == null)
@@ -877,6 +883,9 @@ namespace Freelancing.Controllers
                         ModelState.AddModelError("", error.Description);
                     }
                     var reloadedViewModel = await PopulateEditAccountViewModel(userId, userAccount);
+
+                    ViewBag.TwoFactorEnabled = await _userManager.GetTwoFactorEnabledAsync(userAccount);
+
                     return View(reloadedViewModel);
                 }
 
@@ -889,6 +898,8 @@ namespace Freelancing.Controllers
             }
 
             var finalViewModel = await PopulateEditAccountViewModel(userId, userAccount);
+            ViewBag.TwoFactorEnabled = await _userManager.GetTwoFactorEnabledAsync(userAccount);
+
             return View(finalViewModel);
         }
 
