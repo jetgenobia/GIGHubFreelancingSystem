@@ -84,6 +84,16 @@ namespace Freelancing.Controllers
 
             ViewBag.TotalAcceptedBudget = totalAcceptedBudget;
 
+            var terminatedContracts = await dbContext.Contracts
+                .Include(c => c.Project)
+                .Include(c => c.Bidding)
+                .Where(c => c.Bidding.UserId == userId && c.Status == "Terminated")
+                .ToListAsync();
+
+            var terminatedProjectIds = terminatedContracts.Select(c => c.ProjectId).ToHashSet();
+
+            ViewBag.TerminatedProjectIds = terminatedProjectIds;
+
             var projects = await dbContext.Projects
                 .Include(p => p.Biddings)
                 .ThenInclude(b => b.User)

@@ -286,8 +286,16 @@ namespace Freelancing.Services
                 throw new InvalidOperationException("Termination must be fully signed before contract can be terminated");
 
             var contract = termination.Contract;
+            if (contract == null)
+                throw new InvalidOperationException("Associated contract not found for termination");
+
             contract.Status = "Terminated";
             contract.LastModifiedAt = DateTime.UtcNow.ToLocalTime();
+
+            if (contract.Project != null)
+            {
+                contract.Project.Status = "Terminated";
+            }
 
             termination.Status = "Completed";
             termination.CompletedAt = DateTime.UtcNow.ToLocalTime();

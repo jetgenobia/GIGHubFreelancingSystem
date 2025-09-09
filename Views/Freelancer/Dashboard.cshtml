@@ -21,29 +21,44 @@
                 </div>
             </div>
 
+            @{
+                var activeBids = Model.Biddings.Where(b => b.IsAccepted &&
+                b.Project != null &&
+                b.Project.Status == "Active" &&
+                !((HashSet<Guid>)ViewBag.TerminatedProjectIds).Contains(b.Project.Id)).ToList();
+            }
             <div class="grid grid-cols-1 gap-4 mb-4">
                 <div class="w-full max-w p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
                     <div class="flex items-center justify-between mb-4">
                         <h5 class="text-xl font-bold leading-none text-gray-900">Active Projects</h5>
                     </div>
                     <div class="flow-root">
-                        <ul role="list" class="divide-y divide-gray-300">
-                            @foreach (var bid in Model.Biddings.Where(b => b.IsAccepted && b.Project != null && b.Project.Status == "Active"))
-                            {
-                                <li class="py-3 sm:py-4">
-                                    <div class="flex items-center">
-                                        <div class="flex-1 min-w-0">
-                                            <p class="text-sm font-medium text-gray-900 truncate">
-                                                @bid.Project.ProjectName
-                                            </p>
+                        @if (activeBids.Any())
+                        {
+                            <ul role="list" class="divide-y divide-gray-300">
+                                @foreach (var bid in activeBids)
+                                {
+                                    <li class="py-3 sm:py-4">
+                                        <div class="flex items-center">
+                                            <div class="flex-1 min-w-0">
+                                                <p class="text-sm font-medium text-gray-900 truncate">
+                                                    @bid.Project.ProjectName
+                                                </p>
+                                            </div>
+                                            <div class="inline-flex items-center text-base font-semibold text-gray-900">
+                                                <a class="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-6 py-2 me-2 mb-2" asp-controller="ManageProjectFreelancer" asp-action="Details" asp-route-id="@bid.Project.Id"> View </a>
+                                            </div>
                                         </div>
-                                        <div class="inline-flex items-center text-base font-semibold text-gray-900">
-                                            <a class="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-6 py-2 me-2 mb-2" asp-controller="ManageProjectFreelancer" asp-action="Details" asp-route-id="@bid.Project.Id"> View </a>
-                                        </div>
-                                    </div>
-                                </li>
-                            }
-                        </ul>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <div class="py-3 sm:py-4 text-center">
+                                <div class="text-sm text-gray-500">No active projects.</div>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>

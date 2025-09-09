@@ -74,6 +74,15 @@ namespace Freelancing.Controllers
                 .Where(b => b.Project.UserId == userId)
                 .ToListAsync();
 
+            var terminatedContracts = await dbContext.Contracts
+                .Include(c => c.Project)
+                .Where(c => c.Project != null && c.Project.UserId == userId && c.Status == "Terminated")
+                .ToListAsync();
+
+            var terminatedProjectIds = terminatedContracts.Select(c => c.ProjectId).ToHashSet();
+
+            ViewBag.TerminatedProjectIds = terminatedProjectIds;
+
             var feedbacks = await dbContext.FreelancerFeedbacks
                 .Where(f => f.AcceptBidding != null && f.AcceptBidding.Project.UserId == userId)
                 .Include(f => f.Freelancer)

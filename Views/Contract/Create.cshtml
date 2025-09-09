@@ -30,12 +30,53 @@
 
                 <!-- Contract Template Selection -->
                 <div class="bg-white rounded-lg shadow p-6">
-                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Contract Template</h2>
-                    <p class="text-sm text-gray-600 mb-4">Please select a contract template to proceed:</p>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                    @{
+                        Func<string, string> Normalize = s =>
+                        string.IsNullOrWhiteSpace(s) ? string.Empty :
+                        System.Text.RegularExpressions.Regex.Replace(s.ToLowerInvariant().Trim(), @"\W+", "");
+
+                        Func<string, string> MapToCanonical = raw =>
+                        {
+                            if (string.IsNullOrWhiteSpace(raw)) return "General";
+                            var n = Normalize(raw);
+
+                            if ((n.Contains("design") && n.Contains("media")) || n.Contains("designmedia"))
+                                return "Design & Media";
+
+                            if (n.Contains("web") || n.Contains("website") || n.Contains("it") || n.Contains("software"))
+                                return "Websites, IT & Software";
+
+                            if (n.Contains("write") || n.Contains("writing") || n.Contains("content"))
+                                return "Writing";
+
+                            return "General";
+                        };
+
+                        var canonicalProjectCategory = MapToCanonical(Model.ProjectCategory);
+
+                        var firstMatch = Model.AvailableTemplates
+                        .FirstOrDefault(t =>
+                        {
+                            var tc = Normalize(t.Category);
+                            var cc = Normalize(canonicalProjectCategory);
+                            return !string.IsNullOrEmpty(tc) && (tc.Contains(cc) || cc.Contains(tc));
+                        });
+
+                        Guid? autoSelectedTemplateId = firstMatch?.Id;
+
+                        Guid? selectedId;
+                        if (Model.SelectedTemplateId != null && Model.SelectedTemplateId != Guid.Empty)
+                            selectedId = Model.SelectedTemplateId;
+                        else
+                            selectedId = autoSelectedTemplateId;
+
+                        Model.SelectedTemplateId = selectedId;
+                    }
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 hidden">
                         @foreach (var template in Model.AvailableTemplates)
                         {
-                            <div class="border-1 border-gray-300 rounded-lg p-4 cursor-pointer hover:border-blue-500 hover:border-solid template-option transition-all duration-200" data-template-id="@template.Id">
+                            var isMatch = selectedId.HasValue && template.Id == selectedId.Value;
+                            <div class="border-1 border-gray-300 rounded-lg p-4 cursor-pointer hover:border-blue-500 hover:border-solid template-option transition-all duration-200 @(isMatch ? "border-blue-500 bg-blue-50 border-solid" : "")" data-template-id="@template.Id">
                                 <input type="radio" asp-for="SelectedTemplateId" value="@template.Id" class="hidden template-radio" />
                                 <div class="flex items-center justify-between mb-2">
                                     <h3 class="font-medium text-gray-900">@template.Name</h3>
@@ -47,7 +88,6 @@
                     </div>
                     <span asp-validation-for="SelectedTemplateId" class="text-red-600 text-sm"></span>
                     <!-- Project Summary -->
-                    <hr class="border-gray-300 mb-6">
                     <h2 class="text-xl font-semibold text-gray-900 mb-4">Project Summary</h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                         <div>
@@ -84,7 +124,7 @@
                     </div>
                     <div class="mb-6">
                         <div id="paymentTotal" class="text-sm text-gray-600 bg-gray-100 p-2 rounded">
-                            Total: <span id="totalPercentage">0</span>% 
+                            Total: <span id="totalPercentage">0</span>%
                             <span id="totalStatus" class="ml-2"></span>
                         </div>
                     </div>
@@ -207,12 +247,12 @@
         // Payment terms auto-adjustment
         const upfrontInput = document.getElementById('UpfrontPercentage');
         const finalInput = document.getElementById('FinalPercentage');
-        
+
         // Function to adjust payment percentages
         function adjustPaymentPercentages(changedField) {
             const upfront = parseInt(upfrontInput.value) || 0;
             const final = parseInt(finalInput.value) || 0;
-            
+
             if (changedField === 'upfront') {
                 // If upfront payment changed, adjust final payment
                 const newFinal = Math.max(0, 100 - upfront);
@@ -222,7 +262,7 @@
                 const newUpfront = Math.max(0, 100 - final);
                 upfrontInput.value = newUpfront;
             }
-            
+
             // Ensure values don't exceed 100%
             if (upfront + final > 100) {
                 if (changedField === 'upfront') {
@@ -231,26 +271,26 @@
                     upfrontInput.value = Math.max(0, 100 - final);
                 }
             }
-            
+
             // Update total display
             updatePaymentTotal();
-            
+
             // Update preview
             generateContractPreview();
         }
-        
+
         // Function to update payment total display
         function updatePaymentTotal() {
             const upfront = parseInt(upfrontInput.value) || 0;
             const final = parseInt(finalInput.value) || 0;
             const total = upfront + final;
-            
+
             const totalElement = document.getElementById('totalPercentage');
             const statusElement = document.getElementById('totalStatus');
             const totalContainer = document.getElementById('paymentTotal');
-            
+
             totalElement.textContent = total;
-            
+
             if (total === 100) {
                 statusElement.className = 'ml-2 text-green-600 font-medium';
                 totalContainer.className = 'text-sm text-gray-600 bg-green-100 p-2 rounded';
@@ -262,16 +302,16 @@
                 totalContainer.className = 'text-sm text-gray-600 bg-yellow-100 p-2 rounded';
             }
         }
-        
+
         // Add event listeners for payment percentage inputs
         upfrontInput.addEventListener('input', function() {
             adjustPaymentPercentages('upfront');
         });
-        
+
         finalInput.addEventListener('input', function() {
             adjustPaymentPercentages('final');
         });
-        
+
         // Auto-refresh preview when form fields change
         const formInputs = document.querySelectorAll('input, select, textarea');
         formInputs.forEach(input => {
@@ -285,7 +325,7 @@
 
         // Initialize payment total display
         updatePaymentTotal();
-        
+
         // Generate initial preview
         generateContractPreview();
 
@@ -349,11 +389,11 @@
                 try {
                     const response = await fetch(`/Contract/GetTemplateContent/${templateId}`);
                     const result = await response.json();
-                    
+
                     if (!result.success) {
                         throw new Error(result.error || 'Failed to fetch template content');
                     }
-                    
+
                     templateCache[templateId] = {
                         name: result.templateName,
                         content: result.templateContent
@@ -456,7 +496,7 @@
                 <div class="contract-preview">
                     <h1 class="text-2xl font-bold mb-4 text-center">${templateName}</h1>
                     <p class="text-center text-gray-600 mb-6">Preview content is temporarily unavailable. The actual contract will be generated with the proper template.</p>
-                    
+
                     <div class="mb-6">
                         <h2 class="text-lg font-semibold mb-2 text-blue-800">Basic Contract Information</h2>
                         <p><strong>Client:</strong> ${projectData.clientName}</p>
