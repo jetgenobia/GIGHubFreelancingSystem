@@ -3,27 +3,289 @@
     ViewData["Title"] = "Manage Biddings";
 }
 
-@model Freelancing.Models.Entities.Project
+@model SmartHiringViewModel
+
+<style>
+    .smart-hiring-container {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .insights-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .insight-card {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        text-align: center;
+        transition: transform 0.2s;
+    }
+
+        .insight-card:hover {
+            transform: translateY(-5px);
+        }
+
+    .insight-value {
+        font-size: 2em;
+        font-weight: bold;
+        color: #667eea;
+        display: block;
+    }
+
+    .insight-label {
+        color: #666;
+        font-size: 0.9em;
+        margin-top: 5px;
+    }
+
+    .recommendation-card {
+        border: 1px solid #e1e8ed;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        background: white;
+    }
+
+    .recommendation-header {
+        display: flex;
+        align-items: center;
+        padding: 20px;
+        background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+    }
+
+    .freelancer-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        margin-left: 10px;
+        margin-right: 20px;
+    }
+
+    .freelancer-info h3 {
+        margin: 0;
+        color: #333;
+        font-size: 1.3em;
+    }
+
+    .match-score {
+        margin-left: auto;
+        text-align: center;
+    }
+
+    .score-circle {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.2em;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .score-excellent {
+        background: linear-gradient(135deg, #4CAF50, #45a049);
+    }
+
+    .score-good {
+        background: linear-gradient(135deg, #2196F3, #1976D2);
+    }
+
+    .score-fair {
+        background: linear-gradient(135deg, #FF9800, #F57C00);
+    }
+
+    .score-poor {
+        background: linear-gradient(135deg, #f44336, #d32f2f);
+    }
+
+    .recommendation-body {
+        padding: 20px 40px 40px;
+    }
+
+    .recommendation-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .strength-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 15px;
+    }
+
+    .strength-tag {
+        background: #e8f5e8;
+        color: #2e7d32;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.85em;
+        font-weight: 500;
+    }
+
+    .concern-tag {
+        background: #fff3e0;
+        color: #f57c00;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.85em;
+        font-weight: 500;
+    }
+
+    .bid-details {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+    }
+
+    .bid-amount {
+        font-size: 1.4em;
+        color: #000000;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .btn-primary-custom {
+        background: linear-gradient(135deg, #3eb489 0%, #90ee90 100%);
+        border: none;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+
+        .btn-primary-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+    .btn-outline-custom {
+        border: 2px solid #1d4ed8;
+        color: #1d4ed8;
+        background: transparent;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+
+        .btn-outline-custom:hover {
+            background: #1d4ed8;
+            color: white;
+        }
+
+    .ai-badge {
+        background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-size: 0.8em;
+        font-weight: bold;
+        margin-left: 10px;
+    }
+
+    .confidence-indicator {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.85em;
+        color: #666;
+    }
+
+    .confidence-bar {
+        width: 60px;
+        height: 4px;
+        background: #e0e0e0;
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .confidence-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #ff6b6b, #4ecdc4);
+        transition: width 0.3s ease;
+    }
+
+    .top-pick-badge {
+        position: absolute;
+        top: -5px;
+        right: 15px;
+        background: linear-gradient(135deg, #FFD700, #FFA500);
+        color: #333;
+        padding: 8px 16px;
+        border-radius: 0 0 15px 15px;
+        font-size: 0.8em;
+        font-weight: bold;
+        box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+    }
+
+        .top-pick-badge::before {
+            content: "⭐";
+            margin-right: 5px;
+        }
+
+    .section-divider {
+        border-top: 2px solid #e5e7eb;
+        margin: 30px 0;
+        padding-top: 30px;
+    }
+
+    .ai-section-header {
+        background: linear-gradient(135deg, #6da1fc 0%, #4cd9fe 100%);
+        color: white;
+        padding: 20px 30px;
+        border-radius: 15px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .ai-icon {
+        width: 24px;
+        height: 24px;
+        margin-right: 10px;
+    }
+</style>
 
 <div class="p-4 sm:ml-64">
     <div class="p-4 mt-20">
         <div class="mt-4">
             <div class="block w-full p-6">
-                <h2 class="mb-4 text-3xl font-bold text-gray-900">@Model.ProjectName</h2>
+                <h2 class="mb-4 text-3xl font-bold text-gray-900">@Model.Project.ProjectName</h2>
                 <div class="flex items-center mb-2">
                     <h5 class="text-xl font-bold tracking-tight text-gray-900 mr-2">Budget:</h5>
-                    <span class="ms-2 text-xl font-light tracking-tight text-gray-900">₱@Model.Budget</span>
+                    <span class="ms-2 text-xl font-light tracking-tight text-gray-900">₱@Model.Project.Budget</span>
                 </div>
                 <div class="flex items-center mb-2">
                     <h5 class="text-xl font-bold tracking-tight text-gray-900 mr-2">Category:</h5>
-                    <span class="ms-2 text-xl font-light tracking-tight text-gray-900">@Model.Category</span>
+                    <span class="ms-2 text-xl font-light tracking-tight text-gray-900">@Model.Project.Category</span>
                 </div>
                 <div class="flex items-center mb-2">
                     <h5 class="text-xl font-bold tracking-tight text-gray-900 mr-2">Required Skills:</h5>
-                    @if (Model.ProjectSkills != null && Model.ProjectSkills.Any())
+                    @if (Model.Project.ProjectSkills != null && Model.Project.ProjectSkills.Any())
                     {
                         <div class="flex flex-wrap gap-2">
-                            @foreach (var projectSkill in Model.ProjectSkills)
+                            @foreach (var projectSkill in Model.Project.ProjectSkills)
                             {
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
                                     @projectSkill.UserSkill.Name
@@ -32,25 +294,165 @@
                         </div>
                     }
                 </div>
-                <h5 class="mb-2 text-xl font-light tracking-tight text-gray-900">@Model.ProjectDescription</h5>
+                <h5 class="mb-2 text-xl font-light tracking-tight text-gray-900">@Model.Project.ProjectDescription</h5>
             </div>
         </div>
+
+        <!-- AI Recommendations Section -->
+        @if (Model.Recommendations != null && Model.Recommendations.Any() && Model.Project.AcceptedBid == null)
+        {
+            <div class="section-divider">
+
+                <!-- Project Insights -->
+                <div class="insights-grid">
+                    <div class="insight-card">
+                        <span class="insight-value">@Model.ProjectInsights.TotalBidders</span>
+                        <div class="insight-label">Total Bidders</div>
+                    </div>
+                    <div class="insight-card">
+                        <span class="insight-value">₱@Model.ProjectInsights.AverageBidAmount.ToString("N0")</span>
+                        <div class="insight-label">Average Bid</div>
+                    </div>
+                    <div class="insight-card">
+                        <span class="insight-value">@Model.ProjectInsights.CompetitionLevel</span>
+                        <div class="insight-label">Competition Level</div>
+                    </div>
+                    <div class="insight-card">
+                        <span class="insight-value">@Model.ProjectInsights.EstimatedHiringTime</span>
+                        <div class="insight-label">Est. Hiring Time</div>
+                    </div>
+                </div>
+
+                <!-- Recommendations -->
+                <div>
+                    <div class="flex items-center justify-start mb-4">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2">
+                            <path d="M12 17V11" stroke="#1C274C" stroke-width="1.5" stroke-linecap="round"></path>
+                            <circle cx="1" cy="1" r="1" transform="matrix(1 0 0 -1 11 9)" fill="#1C274C"></circle>
+                            <path d="M7 3.33782C8.47087 2.48697 10.1786 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 10.1786 2.48697 8.47087 3.33782 7" stroke="#1C274C" stroke-width="1.5" stroke-linecap="round"></path>
+                        </svg>
+                        <small class="italic">Ranked by compatibility score</small>
+                    </div>
+
+                    @for (int i = 0; i < Math.Min(Model.Recommendations.Count, 3); i++)
+                    {
+                        var recommendation = Model.Recommendations[i];
+                        var scoreClass = recommendation.MatchScore >= 0.8f ? "score-excellent" :
+                        recommendation.MatchScore >= 0.6f ? "score-good" :
+                        recommendation.MatchScore >= 0.4f ? "score-fair" : "score-poor";
+
+                        <div class="recommendation-card" style="position: relative;">
+                            @if (i == 0 && Model.Recommendations.Count > 1)
+                            {
+                                <div class="top-pick-badge">Top Pick</div>
+                            }
+
+                            <div class="recommendation-header">
+                                <img src="@(recommendation.FreelancerPhoto ?? "https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497")"
+                                     alt="@recommendation.FreelancerName" class="freelancer-avatar rounded-full cursor-pointer hover:bg-gray-100 transition-colors duration-200" onclick="openProfileBidModal('@recommendation.FreelancerId')">
+
+                                <div class="freelancer-info">
+                                    <h3 class="font-bold">@recommendation.FreelancerName</h3>
+                                    <div class="confidence-indicator">
+                                        <span>ML Confidence:</span>
+                                        <div class="confidence-bar">
+                                            <div class="confidence-fill" style="width: @(recommendation.Confidence * 100)%"></div>
+                                        </div>
+                                        <span>@((recommendation.Confidence * 100).ToString("F0"))%</span>
+                                    </div>
+                                </div>
+
+                                <div class="match-score">
+                                    <div class="score-circle @scoreClass">
+                                        @((recommendation.MatchScore * 100).ToString("F0"))%
+                                    </div>
+                                    <small>Match Score</small>
+                                </div>
+                            </div>
+
+                            <div class="recommendation-body">
+                                <div class="recommendation-grid">
+                                    <div>
+                                        <h6 class="italic mb-2 ml-2">Key Strengths</h6>
+                                        <div class="strength-tags">
+                                            @foreach (var strength in recommendation.KeyStrengths.Take(3))
+                                            {
+                                                <span class="strength-tag">@strength</span>
+                                            }
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <h6 class="italic mb-2 ml-2">Considerations</h6>
+                                        <div class="strength-tags">
+                                            @foreach (var concern in recommendation.PotentialConcerns.Take(2))
+                                            {
+                                                <span class="concern-tag">@concern</span>
+                                            }
+                                            @if (!recommendation.PotentialConcerns.Any())
+                                            {
+                                                <span class="strength-tag">No major concerns</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="bid-details">
+                                    <div class="grid gap-4 mb-4 grid-cols-2">
+                                        <div class="col-span-2 sm:col-span-1">
+                                            <strong>Proposed Budget:</strong><br>
+                                            <span class="bid-amount">₱@recommendation.BidAmount.ToString("N0")</span>
+                                        </div>
+                                        <div class="col-span-2 sm:col-span-1">
+                                            <strong>Proposed Delivery:</strong><br>
+                                            <span class="bid-amount">@recommendation.ProposedDelivery</span>
+                                        </div>
+                                        <div class="col-span-2">
+                                            <strong>Analysis:</strong><br>
+                                            <span class="text-muted">@recommendation.Reasoning</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="action-buttons">
+                                    <button type="button" 
+                                            class="btn btn-primary-custom"
+                                            data-modal-target="acceptBidModal_@recommendation.BidId"
+                                            data-modal-toggle="acceptBidModal_@recommendation.BidId">
+                                        Accept Bid
+                                    </button>
+
+                                    <a href="@Url.Action("StartChat", "Chat", new { targetUserId = recommendation.FreelancerId })"
+                                       class="btn btn-outline-custom">
+                                        Message
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Regular Biddings Section -->
         <div class="mt-4">
             <div class="block w-full p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-3xl font-bold text-gray-900">Biddings</h2>
-                    @if (Model.AcceptedBid == null && (Model.Biddings?.Count ?? 0) > 1)
-                    {
-                        <a href="@Url.Action("SmartHiring", "ManageProjectClient", new { id = Model.Id })"
-                           class="inline-flex items-center px-6 py-3 text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-green-200 font-medium rounded-lg text-sm transition-all duration-200 transform hover:scale-105 shadow-lg">
-                            <svg viewBox="0 -77.5 1179 1179" class="w-8 h-8 mr-2" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="#000000"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path d="M597.215632 994.574713h403.714943s43.549425-8.945287 43.549425-114.64092 94.16092-577.677241-459.976092-577.677241-457.151264 541.425287-457.151264 541.425287-25.423448 160.77977 54.848735 157.013333 415.014253-6.12046 415.014253-6.120459z" fill="#FFFFFF"></path><path d="M1071.786667 712.798161h72.503908v136.297931h-72.503908zM36.016552 712.798161h72.503908v136.297931H36.016552z" fill="#EA5D5C"></path><path d="M305.68366 559.40926l556.254412-1.165018 0.398364 190.20464-556.254412 1.165018-0.398364-190.20464Z" fill="#4C66AF"></path><path d="M1129.931034 680.312644h-59.556781c-3.295632-152.069885-67.56046-258.942529-172.079081-324.384368l115.347127-238.462529a47.08046 47.08046 0 1 0-42.372414-20.48l-114.640919 236.57931a625.934713 625.934713 0 0 0-269.30023-53.200919 625.228506 625.228506 0 0 0-270.006437 54.848736l-115.817931-235.402299a47.08046 47.08046 0 1 0-42.372414 20.715402l117.701149 238.462529c-103.812414 65.441839-167.135632 173.02069-169.960459 324.61977H47.786667a47.08046 47.08046 0 0 0-47.08046 47.08046v117.701149a47.08046 47.08046 0 0 0 47.08046 47.08046h58.615172v57.908965a70.62069 70.62069 0 0 0 70.62069 70.62069l823.908046-1.647816a70.62069 70.62069 0 0 0 70.620689-70.62069v-57.908965h59.085977a47.08046 47.08046 0 0 0 47.08046-47.08046v-117.701149A47.08046 47.08046 0 0 0 1129.931034 680.312644zM94.16092 847.212874H47.08046v-117.70115h47.08046v117.70115z m929.83908 103.106206a23.54023 23.54023 0 0 1-23.54023 23.54023l-823.908046 1.647816a23.54023 23.54023 0 0 1-23.54023-23.540229v-258.942529c0-329.563218 303.668966-365.57977 434.788046-365.815173s435.494253 34.604138 436.20046 363.931954z m105.46023-105.224827h-47.08046v-117.70115h47.08046v117.70115z" fill="#3F4651"></path><path d="M464.684138 135.827126l22.363218-19.53839 40.018391 62.381609a30.131494 30.131494 0 0 0 25.423448 13.888735h2.824828a30.131494 30.131494 0 0 0 25.188046-19.067586l20.715402-79.095172 21.186207 74.387126v2.118621a30.366897 30.366897 0 0 0 52.494713 6.826667l30.366896-57.202759 13.182529 12.947126a30.131494 30.131494 0 0 0 21.186207 8.709886h57.673563a23.54023 23.54023 0 0 0 23.54023-23.54023 23.54023 23.54023 0 0 0-23.54023-23.54023h-50.140689l-23.54023-23.54023a30.366897 30.366897 0 0 0-45.668046 3.766437l-21.42161 40.01839L629.465747 19.302989a30.131494 30.131494 0 0 0-28.012873-19.067587 30.131494 30.131494 0 0 0-28.012874 19.067587l-26.60046 101.693793-29.660689-47.08046a30.366897 30.366897 0 0 0-20.48-13.653333 30.837701 30.837701 0 0 0-23.54023 6.826666l-32.250115 28.248276h-60.027586a23.54023 23.54023 0 0 0-23.54023 23.54023 23.54023 23.54023 0 0 0 23.54023 23.54023h66.148046a31.308506 31.308506 0 0 0 17.655172-6.591265zM776.121379 532.950805H404.421149A121.232184 121.232184 0 0 0 282.482759 639.352644a117.701149 117.701149 0 0 0 117.701149 129.000459h371.70023a121.232184 121.232184 0 0 0 121.938391-106.401839 117.701149 117.701149 0 0 0-117.70115-129.000459z m0 188.321839H402.302529a72.503908 72.503908 0 0 1-72.268506-56.496552 70.62069 70.62069 0 0 1 68.972874-84.744828h373.81885a72.503908 72.503908 0 0 1 72.268506 56.496552 70.62069 70.62069 0 0 1-68.502069 84.744828z" fill="#3F4651"></path></g></svg>
-                            Smart Hiring
-                        </a>
-                    }
+                    <h2 class="text-3xl font-bold text-gray-900">
+                        @if (Model.Recommendations != null && Model.Recommendations.Any() && Model.Project.AcceptedBid == null)
+                        {
+                            <span>Other Biddings</span>
+                        }
+                        else
+                        {
+                            <span>Biddings</span>
+                        }
+                    </h2>
                 </div>
-                @if (Model.AcceptedBid != null)
+
+                @if (Model.Project.AcceptedBid != null)
                 {
-                    var bid = Model.AcceptedBid;
+                    var bid = Model.Project.AcceptedBid;
                     <div class="mb-5 p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
                         <div class="flex items-center mb-3">
                             @if (!string.IsNullOrEmpty(bid.User.Photo))
@@ -76,6 +478,7 @@
                             <span class="ms-2 text-md font-light tracking-tight text-gray-900">@bid.Delivery</span>
                         </div>
                         <p class="text-md font-light tracking-tight text-gray-900 mr-2">@bid.Proposal</p>
+
                         @if (!string.IsNullOrEmpty(bid.PreviousWorksPaths))
                         {
                             <div class="mt-4">
@@ -151,122 +554,191 @@
                 }
                 else
                 {
-                    @foreach (var bid in Model.Biddings)
-                    {
-                        <div class="mb-5 p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
-                            <div class="flex items-center mb-3">
-                                @if (!string.IsNullOrEmpty(bid.User.Photo))
-                                {
-                                    <div class="rounded-full cursor-pointer hover:bg-gray-100 transition-colors duration-200" onclick="openProfileBidModal('@bid.User.Id')">
-                                        <img class="w-8 h-8 rounded-full" src="@bid.User.Photo" alt="user photo">
-                                    </div>
-                                }
-                                else
-                                {
-                                    <div class="rounded-full cursor-pointer hover:bg-gray-100 transition-colors duration-200" onclick="openProfileBidModal('@bid.User.Id')">
-                                        <img class="w-8 h-8 rounded-full" src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497" alt="user photo">
-                                    </div>
-                                }
-                                <h5 class="ms-2 text-xl font-bold tracking-tight text-gray-900">@bid.User?.FirstName @bid.User?.LastName</h5>
-                            </div>
-                            <hr class="border-gray-300 mb-4">
-                            <div class="flex items-center mb-2">
-                                <h5 class="text-md font-bold tracking-tight text-gray-900 mr-2">Budget Proposal:</h5>
-                                <span class="ms-2 text-md font-light tracking-tight text-gray-900">₱@bid.Budget</span>
-                            </div>
-                            <div class="flex items-center mb-2">
-                                <h5 class="text-md font-bold tracking-tight text-gray-900 mr-2">Delivery Time Proposal:</h5>
-                                <span class="ms-2 text-md font-light tracking-tight text-gray-900">@bid.Delivery</span>
-                            </div>
-                            <p class="text-md font-light tracking-tight text-gray-900 mr-2">@bid.Proposal</p>
-                            @if (!string.IsNullOrEmpty(bid.PreviousWorksPaths))
-                            {
-                                <div class="mt-4">
-                                    <h6 class="text-sm font-semibold text-gray-700 mb-2">Previous Works:</h6>
-                                    <div class="flex flex-wrap gap-2">
-                                        @try
-                                        {
-                                            var filePaths = System.Text.Json.JsonSerializer.Deserialize<List<string>>(bid.PreviousWorksPaths);
-                                            foreach (var filePath in filePaths)
-                                            {
-                                                var fileName = System.IO.Path.GetFileName(filePath);
-                                                var fileExtension = System.IO.Path.GetExtension(filePath).ToLowerInvariant();
-                                                var isImage = new[] { ".jpg", ".jpeg", ".png", ".gif", ".svg" }.Contains(fileExtension);
+                    var displayedRecommendationIds = Model.Recommendations?.Take(3).Select(r => r.BidId).ToHashSet() ?? new HashSet<Guid>();
 
-                                                <div class="flex items-center space-x-2 p-2 rounded border border-gray-300">
-                                                    @if (isImage)
-                                                    {
-                                                        <img src="@filePath" alt="@fileName" class="w-8 h-8 object-cover rounded cursor-pointer" onclick="openImageModal('@filePath')" title="Click to view">
-                                                    }
-                                                    else
-                                                    {
-                                                        <div class="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                    var regularBiddings = Model.Project.Biddings.Where(b => !displayedRecommendationIds.Contains(b.Id)).ToList();
+
+                    @if (regularBiddings.Any())
+                    {
+                        @foreach (var bid in regularBiddings)
+                        {
+                            <div class="mb-5 p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
+                                <div class="flex items-center mb-3">
+                                    @if (!string.IsNullOrEmpty(bid.User.Photo))
+                                    {
+                                        <div class="rounded-full cursor-pointer hover:bg-gray-100 transition-colors duration-200" onclick="openProfileBidModal('@bid.User.Id')">
+                                            <img class="w-8 h-8 rounded-full" src="@bid.User.Photo" alt="user photo">
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="rounded-full cursor-pointer hover:bg-gray-100 transition-colors duration-200" onclick="openProfileBidModal('@bid.User.Id')">
+                                            <img class="w-8 h-8 rounded-full" src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497" alt="user photo">
+                                        </div>
+                                    }
+                                    <h5 class="ms-2 text-xl font-bold tracking-tight text-gray-900">@bid.User?.FirstName @bid.User?.LastName</h5>
+                                </div>
+                                <hr class="border-gray-300 mb-4">
+                                <div class="flex items-center mb-2">
+                                    <h5 class="text-md font-bold tracking-tight text-gray-900 mr-2">Budget Proposal:</h5>
+                                    <span class="ms-2 text-md font-light tracking-tight text-gray-900">₱@bid.Budget</span>
+                                </div>
+                                <div class="flex items-center mb-2">
+                                    <h5 class="text-md font-bold tracking-tight text-gray-900 mr-2">Delivery Time Proposal:</h5>
+                                    <span class="ms-2 text-md font-light tracking-tight text-gray-900">@bid.Delivery</span>
+                                </div>
+                                <p class="text-md font-light tracking-tight text-gray-900 mr-2">@bid.Proposal</p>
+
+                                @if (!string.IsNullOrEmpty(bid.PreviousWorksPaths))
+                                {
+                                    <div class="mt-4">
+                                        <h6 class="text-sm font-semibold text-gray-700 mb-2">Previous Works:</h6>
+                                        <div class="flex flex-wrap gap-2">
+                                            @try
+                                            {
+                                                var filePaths = System.Text.Json.JsonSerializer.Deserialize<List<string>>(bid.PreviousWorksPaths);
+                                                foreach (var filePath in filePaths)
+                                                {
+                                                    var fileName = System.IO.Path.GetFileName(filePath);
+                                                    var fileExtension = System.IO.Path.GetExtension(filePath).ToLowerInvariant();
+                                                    var isImage = new[] { ".jpg", ".jpeg", ".png", ".gif", ".svg" }.Contains(fileExtension);
+
+                                                    <div class="flex items-center space-x-2 p-2 rounded border border-gray-300">
+                                                        @if (isImage)
+                                                        {
+                                                            <img src="@filePath" alt="@fileName" class="w-8 h-8 object-cover rounded cursor-pointer" onclick="openImageModal('@filePath')" title="Click to view">
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                                                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                                </svg>
+                                                            </div>
+                                                        }
+                                                        <a href="@filePath" target="_blank" class="text-sm text-blue-600 hover:text-blue-800 truncate max-w-32" title="@fileName">
+                                                            @fileName
+                                                        </a>
+                                                    </div>
+                                                }
+                                            }
+                                            catch
+                                            {
+                                                <span class="text-sm text-gray-500">Error loading files</span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+
+                                @if (!string.IsNullOrEmpty(bid.RepositoryLinks))
+                                {
+                                    <div class="mt-4">
+                                        <h6 class="text-sm font-semibold text-gray-700 mb-2">Repository/Drive Links:</h6>
+                                        <div class="flex flex-wrap gap-2">
+                                            @try
+                                            {
+                                                var links = System.Text.Json.JsonSerializer.Deserialize<List<string>>(bid.RepositoryLinks);
+                                                foreach (var link in links)
+                                                {
+                                                    <div class="flex items-center space-x-2 p-2 bg-blue-50 rounded border border-gray-300">
+                                                        <div class="w-6 h-6 bg-blue-100 rounded flex items-center justify-center">
                                                             <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
                                                             </svg>
                                                         </div>
-                                                    }
-                                                    <a href="@filePath" target="_blank" class="text-sm text-blue-600 hover:text-blue-800 truncate max-w-32" title="@fileName">
-                                                        @fileName
-                                                    </a>
-                                                </div>
-                                            }
-                                        }
-                                        catch
-                                        {
-                                            <span class="text-sm text-gray-500">Error loading files</span>
-                                        }
-                                    </div>
-                                </div>
-                            }
-
-                            @if (!string.IsNullOrEmpty(bid.RepositoryLinks))
-                            {
-                                <div class="mt-4">
-                                    <h6 class="text-sm font-semibold text-gray-700 mb-2">Repository/Drive Links:</h6>
-                                    <div class="flex flex-wrap gap-2">
-                                        @try
-                                        {
-                                            var links = System.Text.Json.JsonSerializer.Deserialize<List<string>>(bid.RepositoryLinks);
-                                            foreach (var link in links)
-                                            {
-                                                <div class="flex items-center space-x-2 p-2 bg-blue-50 rounded border border-gray-300">
-                                                    <div class="w-6 h-6 bg-blue-100 rounded flex items-center justify-center">
-                                                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                                                        </svg>
+                                                        <a href="@link" target="_blank" class="text-sm text-blue-600 hover:text-blue-800 truncate max-w-48" title="@link">
+                                                            @link
+                                                        </a>
                                                     </div>
-                                                    <a href="@link" target="_blank" class="text-sm text-blue-600 hover:text-blue-800 truncate max-w-48" title="@link">
-                                                        @link
-                                                    </a>
-                                                </div>
+                                                }
                                             }
-                                        }
-                                        catch
-                                        {
-                                            <span class="text-sm text-gray-500">Error loading links</span>
-                                        }
+                                            catch
+                                            {
+                                                <span class="text-sm text-gray-500">Error loading links</span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+
+                                <form id="acceptBidForm_@bid.Id" asp-controller="Client" asp-action="AcceptBid" method="post" style="display: none;">
+                                    <input type="hidden" name="projectId" value="@Model.Project.Id" />
+                                    <input type="hidden" name="bidId" value="@bid.Id" />
+                                </form>
+
+                                <button type="button"
+                                        data-modal-target="acceptBidModal_@bid.Id"
+                                        data-modal-toggle="acceptBidModal_@bid.Id"
+                                        class="focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mt-3">
+                                    Accept
+                                </button>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        @if (Model.Recommendations != null && Model.Recommendations.Any())
+                        {
+                            <div class="text-center py-5">
+                                <h4 class="text-lg font-semibold text-gray-700">All biddings are shown in Recommendations above</h4>
+                                <p class="text-gray-500">GIGHub has analyzed all bids for this project.</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-5">
+                                <h4 class="text-lg font-semibold text-gray-700">No biddings available yet</h4>
+                                <p class="text-gray-500">Freelancers haven't submitted bids for this project.</p>
+                            </div>
+                        }
+                    }
+
+                    <!-- Accept Bid Modals for recommendations -->
+                    @if (Model.Recommendations != null && Model.Recommendations.Any())
+                    {
+                        @foreach (var recommendation in Model.Recommendations)
+                        {
+                            <div id="acceptBidModal_@recommendation.BidId" tabindex="-1" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+                                <div class="modal-backdrop absolute inset-0 bg-opacity-50"></div>
+                                <div class="relative p-4 w-full max-w-md max-h-full">
+                                    <div class="relative bg-white rounded-lg shadow">
+                                        <button type="button" class="absolute top-3 end-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center" data-modal-hide="acceptBidModal_@recommendation.BidId">
+                                            <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
+                                            </svg>
+                                            <span class="sr-only">Close modal</span>
+                                        </button>
+
+                                        <div class="p-6 text-center">
+                                            <svg class="mx-auto mb-4 text-gray-500 w-12 h-12" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 11V6m0 8h.01M19 10a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                            </svg>
+                                            <h3 class="mb-5 text-lg font-normal text-gray-800">Are you sure you want to accept @recommendation.FreelancerName's bid?</h3>
+
+                                            <form asp-action="AcceptBid" method="post" style="display: inline;">
+                                                <input type="hidden" name="bidId" value="@recommendation.BidId" />
+                                                <button type="submit"
+                                                        data-modal-hide="acceptBidModal_@recommendation.BidId"
+                                                        class="text-white bg-green-600 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center me-2">
+                                                    Yes, I'm sure
+                                                </button>
+                                            </form>
+                                            <button type="button"
+                                                    data-modal-hide="acceptBidModal_@recommendation.BidId"
+                                                    class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10">
+                                                No, cancel
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            }
-                            <form id="acceptBidForm_@bid.Id" asp-controller="Client" asp-action="AcceptBid" method="post" style="display: none;">
-                                <input type="hidden" name="projectId" value="@Model.Id" />
-                                <input type="hidden" name="bidId" value="@bid.Id" />
-                            </form>
-
-                            <button type="button"
-                                    data-modal-target="acceptBidModal_@bid.Id"
-                                    data-modal-toggle="acceptBidModal_@bid.Id"
-                                    class="focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mt-3">
-                                Accept
-                            </button>
-                        </div>
-
+                            </div>
+                        }
                     }
-                    @foreach (var bid in Model.Biddings)
+
+                    <!-- Accept Bid Modals for regular bids -->
+                    @foreach (var bid in regularBiddings)
                     {
                         <div id="acceptBidModal_@bid.Id" tabindex="-1" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-                            <div class="modal-backdrop absolute inset-0 bg-opacity-50 bg-opacity-50"></div>
+                            <div class="modal-backdrop absolute inset-0 bg-opacity-50"></div>
                             <div class="relative p-4 w-full max-w-md max-h-full">
                                 <div class="relative bg-white rounded-lg shadow">
                                     <button type="button" class="absolute top-3 end-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center" data-modal-hide="acceptBidModal_@bid.Id">
@@ -303,6 +775,7 @@
         </div>
     </div>
 </div>
+
 <!-- Image Modal -->
 <div id="imageModal" class="fixed inset-0 flex items-center justify-center z-50 hidden" style="background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
     <div class="bg-white rounded-lg shadow-xl max-w-xl w-full max-h-full">
@@ -320,7 +793,7 @@
 </div>
 
 <!-- Profile Bid Modal -->
-@foreach (var bid in Model.Biddings)
+@foreach (var bid in Model.Project.Biddings)
 {
     @if (@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value != bid.User.Id.ToString())
     {
@@ -439,8 +912,83 @@
     }
 }
 
-
 <script>
+    // Add interactive animations for AI recommendations
+    document.addEventListener('DOMContentLoaded', function() {
+        // Animate confidence bars
+        const confidenceFills = document.querySelectorAll('.confidence-fill');
+        confidenceFills.forEach(fill => {
+            const width = fill.style.width;
+            fill.style.width = '0%';
+            setTimeout(() => {
+                fill.style.width = width;
+            }, 500);
+        });
+
+        // Add click tracking for recommendations
+        document.querySelectorAll('.recommendation-card').forEach((card, index) => {
+            card.addEventListener('click', function(e) {
+                // Only track if not clicking on action buttons
+                if (!e.target.closest('.action-buttons')) {
+                    console.log(`AI Recommendation ${index + 1} viewed`);
+                    // You can add analytics tracking here
+                }
+            });
+        });
+
+        // Initialize modals
+        initializeModals();
+    });
+
+    // Modal functions
+    function initializeModals() {
+        // Show modal
+        document.querySelectorAll('[data-modal-toggle]').forEach(button => {
+            button.addEventListener('click', function() {
+                const modalId = this.getAttribute('data-modal-toggle');
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                }
+            });
+        });
+
+        // Hide modal
+        document.querySelectorAll('[data-modal-hide]').forEach(button => {
+            button.addEventListener('click', function() {
+                const modalId = this.getAttribute('data-modal-hide');
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            });
+        });
+
+        // Close modal when clicking outside
+        document.querySelectorAll('[id^="acceptBidModal_"]').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.add('hidden');
+                    this.classList.remove('flex');
+                }
+            });
+        });
+
+        // Close modal on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('[id^="acceptBidModal_"]').forEach(modal => {
+                    if (!modal.classList.contains('hidden')) {
+                        modal.classList.add('hidden');
+                        modal.classList.remove('flex');
+                    }
+                });
+            }
+        });
+    }
+
     function openImageModal(imagePath) {
         document.getElementById('modalImage').src = imagePath;
         document.getElementById('imageModal').classList.remove('hidden');
@@ -453,13 +1001,11 @@
     }
 
     function openProfileBidModal(userId) {
-        // Show modal for specific user
         document.getElementById(`profileBidModal-${userId}`).classList.remove('hidden');
         document.body.style.overflow = 'hidden';
     }
 
     function closeProfileBidModal(userId) {
-        // Close modal for specific user
         document.getElementById(`profileBidModal-${userId}`).classList.add('hidden');
         document.body.style.overflow = 'auto';
     }
@@ -491,4 +1037,8 @@
             });
         }
     });
+
+    function acceptBid(bidId) {
+        document.getElementById(`acceptBidForm_${bidId}`).submit();
+    }
 </script>
