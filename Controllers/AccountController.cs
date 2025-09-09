@@ -97,6 +97,35 @@ namespace Freelancing.Controllers
         }
 
         [HttpGet]
+        public async Task<IActionResult> ConfirmEmail(string userId, string token)
+        {
+            if (userId == null || token == null)
+            {
+                return RedirectToAction("Index", "Home");
+            }
+
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return NotFound($"Unable to load user with ID '{userId}'.");
+            }
+
+            var decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token));
+            var result = await _userManager.ConfirmEmailAsync(user, decodedToken);
+
+            if (result.Succeeded)
+            {
+                ViewBag.Message = "Thank you for confirming your email. You can now log in.";
+            }
+            else
+            {
+                ViewBag.Error = "Error confirming your email.";
+            }
+
+            return View();
+        }
+
+        [HttpGet]
         public IActionResult Login(string returnUrl = null)
         {
             ViewData["ReturnUrl"] = returnUrl;
@@ -234,6 +263,81 @@ namespace Freelancing.Controllers
             }
 
             ModelState.AddModelError("", "Invalid authentication code.");
+            return View(model);
+        }
+
+        [HttpGet]
+        public IActionResult ForgotPassword()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                var user = await _userManager.FindByEmailAsync(model.Email);
+                if (user != null && await _userManager.IsEmailConfirmedAsync(user))
+                {
+                    var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+                    var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+                    var callbackUrl = Url.Action("ResetPassword", "Account",
+                        new { email = model.Email, token = encodedToken },
+                        Request.Scheme);
+
+                    await _emailService.SendPasswordResetAsync(user.Email!, callbackUrl!);
+                }
+
+                // Always show the same message to prevent email enumeration
+                ViewBag.Message = "If your email is registered, you will receive a password reset link.";
+                return View();
+            }
+
+            return View(model);
+        }
+
+        [HttpGet]
+        public IActionResult ResetPassword(string email, string token)
+        {
+            if (email == null || token == null)
+            {
+                return RedirectToAction("Index", "Home");
+            }
+
+            var model = new ResetPasswordViewModel
+            {
+                Email = email,
+                Token = token
+            };
+
+            return View(model);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                var user = await _userManager.FindByEmailAsync(model.Email);
+                if (user != null)
+                {
+                    var decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(model.Token));
+                    var result = await _userManager.ResetPasswordAsync(user, decodedToken, model.Password);
+
+                    if (result.Succeeded)
+                    {
+                        ViewBag.Message = "Your password has been reset successfully. You can now log in with your new password.";
+                        return View("Login");
+                    }
+
+                    foreach (var error in result.Errors)
+                    {
+                        ModelState.AddModelError("", error.Description);
+                    }
+                }
+            }
+
             return View(model);
         }
 
