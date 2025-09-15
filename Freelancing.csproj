@@ -10,6 +10,11 @@
   <ItemGroup>
     <Content Remove="Views\Client\ClientLogin.cshtml" />
     <Content Remove="Views\Client\ClientRegister.cshtml" />
+    <Content Remove="wwwroot\models\smart_hiring_model.pkl" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="wwwroot\models\smart_hiring_model.pkl" />
   </ItemGroup>
 
   <ItemGroup>
@@ -26,6 +31,12 @@
     <PackageReference Include="pythonnet" Version="3.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.6" />
     <PackageReference Include="QRCoder" Version="1.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="wwwroot\models\feature_columns.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

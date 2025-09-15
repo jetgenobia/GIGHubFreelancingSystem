@@ -25,13 +25,14 @@ def predict():
         data = request.json
         features = data.get('features', {})
         
-        # Define expected feature columns
+        # Define expected feature columns (now includes mentorship completion)
         feature_columns = [
             "skill_match_score", "avg_rating", "recommendation_rate", "completion_rate",
             "bid_success_rate", "category_experience", "response_time_hours", 
             "portfolio_quality", "budget_match_score", "delivery_time_days",
             "freelancer_tenure_days", "project_complexity", "client_history_score",
-            "past_collaboration", "skills_count_match", "workload_factor"
+            "past_collaboration", "skills_count_match", "workload_factor",
+            "mentorship_program_completed"  # New feature added
         ]
         
         # Create feature array in correct order
@@ -49,7 +50,8 @@ def predict():
         return jsonify({
             'success': True,
             'prediction': probability,
-            'message': 'Random Forest prediction successful'
+            'message': 'Random Forest prediction successful',
+            'features_used': len(feature_columns)
         })
         
     except Exception as e:
@@ -61,7 +63,8 @@ def predict():
 def health():
     return jsonify({
         'status': 'healthy',
-        'model_loaded': model is not None
+        'model_loaded': model is not None,
+        'features_count': 17  # Updated count
     })
 
 if __name__ == '__main__':

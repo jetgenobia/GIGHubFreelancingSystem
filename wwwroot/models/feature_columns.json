@@ -1,0 +1,19 @@
+[
+  "skill_match_score",
+  "avg_rating",
+  "recommendation_rate",
+  "completion_rate",
+  "bid_success_rate",
+  "category_experience",
+  "response_time_hours",
+  "portfolio_quality",
+  "budget_match_score",
+  "delivery_time_days",
+  "freelancer_tenure_days",
+  "project_complexity",
+  "client_history_score",
+  "past_collaboration",
+  "skills_count_match",
+  "workload_factor",
+  "mentorship_program_completed"
+]

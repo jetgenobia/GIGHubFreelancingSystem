@@ -1,4 +1,4 @@
-using Freelancing.Data;
+﻿using Freelancing.Data;
 using Freelancing.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
@@ -10,6 +10,7 @@ namespace Freelancing.Services
         Task<MLFeatures> ExtractFeaturesAsync(Guid projectId, string freelancerId);
         Task<List<SmartHiringTrainingData>> PrepareTrainingDataAsync();
         Task ExportTrainingDataToCsvAsync(string filePath);
+        Task<int> CalculateMentorshipProgramCompletion(string freelancerId); 
     }
 
     public class SmartHiringFeatureService : ISmartHiringFeatureService
@@ -61,7 +62,8 @@ namespace Freelancing.Services
                 ClientHistoryScore = await CalculateClientHistoryScore(project.UserId, freelancerId),
                 PastCollaboration = await HasPastCollaboration(project.UserId, freelancerId) ? 1 : 0,
                 SkillsCountMatch = CalculateSkillsCountMatch(project, freelancer),
-                WorkloadFactor = await CalculateWorkloadFactor(freelancerId)
+                WorkloadFactor = await CalculateWorkloadFactor(freelancerId),
+                MentorshipProgramCompleted = await CalculateMentorshipProgramCompletion(freelancerId) // Add this line
             };
 
             return features;
@@ -295,6 +297,37 @@ namespace Freelancing.Services
             return Math.Min(activeProjects / 5.0f, 1.0f);
         }
 
+        public async Task<int> CalculateMentorshipProgramCompletion(string freelancerId)
+        {
+            // Check if freelancer has completed the peer mentorship program
+            var mentorshipRecord = await _context.PeerMentorships
+                .FirstOrDefaultAsync(pm => pm.UserId == freelancerId);
+
+            if (mentorshipRecord == null)
+                return 0; // Not enrolled in mentorship program
+
+            // Check if they're a mentor (indicates they've likely completed as mentee first)
+            if (mentorshipRecord.Role?.ToLower() == "mentor")
+                return 1;
+
+            // ✅ FIX: Load data to client first, then check computed property
+            var goalCompletions = await _context.MentorshipGoalCompletions
+                .Where(mgc => mgc.CompletedByUserId == freelancerId &&
+                             mgc.CompletionType.ToLower() == "mentee")
+                .ToListAsync(); // ✅ Load to client first
+
+            var hasCompletedGoals = goalCompletions.Any(mgc => mgc.IsFullyCompleted); // ✅ Now use computed property
+
+            if (hasCompletedGoals)
+                return 1;
+
+            // Alternative: Check if they have a completed mentorship match
+            var hasSuccessfulMatch = await _context.MentorshipMatches
+                .AnyAsync(mm => mm.MenteeId == freelancerId && mm.Status.ToLower() == "completed");
+
+            return hasSuccessfulMatch ? 1 : 0;
+        }
+
         public async Task<List<SmartHiringTrainingData>> PrepareTrainingDataAsync()
         {
             var trainingData = new List<SmartHiringTrainingData>();
@@ -335,6 +368,7 @@ namespace Freelancing.Services
                     PastCollaboration = features.PastCollaboration,
                     SkillsCountMatch = features.SkillsCountMatch,
                     WorkloadFactor = features.WorkloadFactor,
+                    MentorshipProgramCompleted = features.MentorshipProgramCompleted,
                     IsSuccessfulMatch = isSuccessful ? 1 : 0
                 });
 
@@ -347,7 +381,7 @@ namespace Freelancing.Services
                 foreach (var bidder in otherBidders)
                 {
                     var negativeFeatures = await ExtractFeaturesAsync(project.Id, bidder.UserId);
-                    
+
                     trainingData.Add(new SmartHiringTrainingData
                     {
                         SkillMatchScore = negativeFeatures.SkillMatchScore,
@@ -366,6 +400,7 @@ namespace Freelancing.Services
                         PastCollaboration = negativeFeatures.PastCollaboration,
                         SkillsCountMatch = negativeFeatures.SkillsCountMatch,
                         WorkloadFactor = negativeFeatures.WorkloadFactor,
+                        MentorshipProgramCompleted = negativeFeatures.MentorshipProgramCompleted,
                         IsSuccessfulMatch = 0 // Not selected
                     });
                 }
@@ -377,23 +412,22 @@ namespace Freelancing.Services
         public async Task ExportTrainingDataToCsvAsync(string filePath)
         {
             var trainingData = await PrepareTrainingDataAsync();
-            
-            // If we don't have enough real data, supplement with sample data
+
             if (trainingData.Count < 50)
             {
                 var sampleData = GenerateSampleTrainingData(100);
                 trainingData.AddRange(sampleData);
             }
-            
+
             using var writer = new StreamWriter(filePath);
-            
-            // Write header
+
+            // Write header - add mentorship_program_completed
             writer.WriteLine("skill_match_score,avg_rating,recommendation_rate,completion_rate,bid_success_rate," +
                            "category_experience,response_time_hours,portfolio_quality,budget_match_score," +
                            "delivery_time_days,freelancer_tenure_days,project_complexity,client_history_score," +
-                           "past_collaboration,skills_count_match,workload_factor,is_successful_match");
+                           "past_collaboration,skills_count_match,workload_factor,mentorship_program_completed,is_successful_match");
 
-            // Write data
+            // Write data - add MentorshipProgramCompleted to the output
             foreach (var row in trainingData)
             {
                 writer.WriteLine($"{row.SkillMatchScore:F4},{row.AvgRating:F4},{row.RecommendationRate:F4}," +
@@ -401,25 +435,25 @@ namespace Freelancing.Services
                                $"{row.ResponseTimeHours:F2},{row.PortfolioQuality:F4},{row.BudgetMatchScore:F4}," +
                                $"{row.DeliveryTimeDays:F1},{row.FreelancerTenureDays:F1},{row.ProjectComplexity:F4}," +
                                $"{row.ClientHistoryScore:F4},{row.PastCollaboration},{row.SkillsCountMatch}," +
-                               $"{row.WorkloadFactor:F4},{row.IsSuccessfulMatch}");
+                               $"{row.WorkloadFactor:F4},{row.MentorshipProgramCompleted},{row.IsSuccessfulMatch}");
             }
         }
 
         private List<SmartHiringTrainingData> GenerateSampleTrainingData(int count)
         {
-            var random = new Random(42); // Fixed seed for reproducibility
+            var random = new Random(42);
             var sampleData = new List<SmartHiringTrainingData>();
 
             for (int i = 0; i < count; i++)
             {
-                // Generate realistic data patterns
                 var skillMatchScore = (float)random.NextDouble();
-                var avgRating = 3.0f + (float)random.NextDouble() * 2.0f; // 3.0-5.0
+                var avgRating = 3.0f + (float)random.NextDouble() * 2.0f;
                 var hasExperience = random.NextDouble() > 0.3;
-                
-                // Correlated features: higher skill match and rating = more likely success
-                var baseSuccessProbability = (skillMatchScore * 0.4f + (avgRating - 3.0f) / 2.0f * 0.4f);
-                
+                var mentorshipCompleted = random.NextDouble() > 0.7 ? 1 : 0; // 30% completion rate
+
+                // Adjust success probability to account for mentorship completion
+                var baseSuccessProbability = (skillMatchScore * 0.35f + (avgRating - 3.0f) / 2.0f * 0.35f + mentorshipCompleted * 0.1f);
+
                 sampleData.Add(new SmartHiringTrainingData
                 {
                     SkillMatchScore = skillMatchScore,
@@ -436,8 +470,9 @@ namespace Freelancing.Services
                     ProjectComplexity = (float)random.NextDouble() * 10f,
                     ClientHistoryScore = random.NextDouble() > 0.8 ? (float)random.NextDouble() : 0.5f,
                     PastCollaboration = random.NextDouble() > 0.85 ? 1 : 0,
-                    SkillsCountMatch = (int)(skillMatchScore * 5), // 0-5 matching skills
+                    SkillsCountMatch = (int)(skillMatchScore * 5),
                     WorkloadFactor = (float)random.NextDouble(),
+                    MentorshipProgramCompleted = mentorshipCompleted, // Add this line
                     IsSuccessfulMatch = random.NextDouble() < baseSuccessProbability + 0.2 ? 1 : 0
                 });
             }
@@ -465,6 +500,7 @@ namespace Freelancing.Services
         public int PastCollaboration { get; set; }
         public int SkillsCountMatch { get; set; }
         public float WorkloadFactor { get; set; }
+        public int MentorshipProgramCompleted { get; set; }
     }
 
     public class SmartHiringTrainingData : MLFeatures

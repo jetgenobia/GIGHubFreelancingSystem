@@ -397,25 +397,110 @@
                                     </div>
                                 </div>
 
-                                <div class="bid-details">
-                                    <div class="grid gap-4 mb-4 grid-cols-2">
+                                <div class="grid gap-4 grid-cols-2">
+                                    <div class="bid-details">
                                         <div class="col-span-2 sm:col-span-1">
-                                            <strong>Proposed Budget:</strong><br>
-                                            <span class="bid-amount">₱@recommendation.BidAmount.ToString("N0")</span>
+                                            <div class="grid gap-4 mb-4 grid-cols-2">
+                                                <div class="col-span-2">
+                                                    <strong>Proposal:</strong><br>
+                                                    <span class="text-muted">@recommendation.Proposal</span>"
+                                                </div>
+                                                <div class="col-span-2 sm:col-span-1">
+                                                    <strong>Proposed Budget:</strong><br>
+                                                    <span class="bid-amount">₱@recommendation.BidAmount.ToString("N0")</span>
+                                                </div>
+                                                <div class="col-span-2 sm:col-span-1">
+                                                    <strong>Proposed Delivery:</strong><br>
+                                                    <span class="bid-amount">@recommendation.ProposedDelivery</span>
+                                                </div>
+                                            </div>
                                         </div>
+                                    </div>
+
+                                    <div class="bid-details">
                                         <div class="col-span-2 sm:col-span-1">
-                                            <strong>Proposed Delivery:</strong><br>
-                                            <span class="bid-amount">@recommendation.ProposedDelivery</span>
-                                        </div>
-                                        <div class="col-span-2">
-                                            <strong>Analysis:</strong><br>
-                                            <span class="text-muted">@recommendation.Reasoning</span>
+                                            <div class="grid gap-4 mb-4 grid-cols-2">
+                                                <div class="col-span-2 sm:col-span-1">
+                                                    <strong>Previous Works:</strong><br>
+                                                    @if (!string.IsNullOrEmpty(recommendation.PreviousWorksPaths))
+                                                    {
+                                                    <div class="flex flex-wrap gap-2">
+                                                        @try
+                                                        {
+                                                            var filePaths = System.Text.Json.JsonSerializer.Deserialize<List<string>>(recommendation.PreviousWorksPaths);
+                                                            foreach (var filePath in filePaths)
+                                                            {
+                                                                var fileName = System.IO.Path.GetFileName(filePath);
+                                                                var fileExtension = System.IO.Path.GetExtension(filePath).ToLowerInvariant();
+                                                                var isImage = new[] { ".jpg", ".jpeg", ".png", ".gif", ".svg" }.Contains(fileExtension);
+
+                                                                <div class="flex items-center space-x-2 p-2 rounded bg-white border border-gray-300">
+                                                                    @if (isImage)
+                                                                    {
+                                                                        <img src="@filePath" alt="@fileName" class="w-8 h-8 object-cover rounded cursor-pointer" onclick="openImageModal('@filePath')" title="Click to view">
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <div class="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                                                                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                                            </svg>
+                                                                        </div>
+                                                                    }
+                                                                    <a href="@filePath" target="_blank" class="text-sm text-blue-600 hover:text-blue-800 truncate max-w-32" title="@fileName">
+                                                                        @fileName
+                                                                    </a>
+                                                                </div>
+                                                            }
+                                                        }
+                                                        catch
+                                                        {
+                                                            <span class="text-sm text-gray-500">Error loading files</span>
+                                                        }
+                                                    </div>
+                                                    }
+                                                </div>
+                                                <div class="col-span-2 sm:col-span-1">
+                                                    <strong>Repository/Drive Links:</strong><br>
+                                                    @if (!string.IsNullOrEmpty(recommendation.RepositoryLinks))
+                                                    {
+                                                    <div class="flex flex-wrap gap-2">
+                                                        @try
+                                                        {
+                                                            var links = System.Text.Json.JsonSerializer.Deserialize<List<string>>(recommendation.RepositoryLinks);
+                                                            foreach (var link in links)
+                                                            {
+                                                                <div class="flex items-center space-x-2 p-2 bg-blue-50 rounded border border-gray-300">
+                                                                    <div class="w-6 h-6 bg-blue-100 rounded flex items-center justify-center">
+                                                                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                                                        </svg>
+                                                                    </div>
+                                                                    <a href="@link" target="_blank" class="text-sm text-blue-600 hover:text-blue-800 truncate max-w-48" title="@link">
+                                                                        @link
+                                                                    </a>
+                                                                </div>
+                                                            }
+                                                        }
+                                                        catch
+                                                        {
+                                                            <span class="text-sm text-gray-500">Error loading links</span>
+                                                        }
+                                                    </div>
+                                                    }
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
 
+                                <div class="bid-details">
+                                    <strong>Analysis:</strong><br>
+                                    <span class="text-muted">@recommendation.Reasoning</span>
+                                </div>
+
                                 <div class="action-buttons">
-                                    <button type="button" 
+                                    <button type="button"
                                             class="btn btn-primary-custom"
                                             data-modal-target="acceptBidModal_@recommendation.BidId"
                                             data-modal-toggle="acceptBidModal_@recommendation.BidId">

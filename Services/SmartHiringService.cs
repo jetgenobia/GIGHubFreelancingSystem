@@ -73,7 +73,9 @@ namespace Freelancing.Services
                         prediction.BidAmount = bid.Budget;
                         prediction.ProposedDelivery = bid.Delivery;
                         prediction.Proposal = bid.Proposal;
-                        
+                        prediction.PreviousWorksPaths = bid.PreviousWorksPaths;
+                        prediction.RepositoryLinks = bid.RepositoryLinks;
+
                         predictions.Add(prediction);
                     }
                     catch (Exception ex)
@@ -91,7 +93,9 @@ namespace Freelancing.Services
                             BidId = bid.Id,
                             BidAmount = bid.Budget,
                             ProposedDelivery = bid.Delivery,
-                            Proposal = bid.Proposal
+                            Proposal = bid.Proposal,
+                            PreviousWorksPaths = bid.PreviousWorksPaths,
+                            RepositoryLinks = bid.RepositoryLinks
                         });
                     }
                 }
@@ -196,7 +200,8 @@ namespace Freelancing.Services
                         ["client_history_score"] = features.ClientHistoryScore,
                         ["past_collaboration"] = features.PastCollaboration,
                         ["skills_count_match"] = features.SkillsCountMatch,
-                        ["workload_factor"] = features.WorkloadFactor
+                        ["workload_factor"] = features.WorkloadFactor,
+                        ["mentorship_program_completed"] = features.MentorshipProgramCompleted
                     };
                     
                     // Get prediction from local Random Forest
@@ -303,13 +308,14 @@ namespace Freelancing.Services
             // Simple weighted scoring as fallback when ML model is unavailable
             float score = 0;
 
-            score += features.SkillMatchScore * 0.25f;        // 25% weight
-            score += (features.AvgRating / 5.0f) * 0.20f;    // 20% weight
-            score += features.RecommendationRate * 0.15f;     // 15% weight
-            score += features.CompletionRate * 0.15f;         // 15% weight
-            score += features.BidSuccessRate * 0.10f;         // 10% weight
-            score += (features.CategoryExperience / 10.0f) * 0.10f; // 10% weight (cap at 10)
+            score += features.SkillMatchScore * 0.23f;        // 23% weight (reduced)
+            score += (features.AvgRating / 5.0f) * 0.18f;    // 18% weight (reduced)
+            score += features.RecommendationRate * 0.14f;     // 14% weight (reduced)
+            score += features.CompletionRate * 0.14f;         // 14% weight (reduced)
+            score += features.BidSuccessRate * 0.09f;         // 9% weight (reduced)
+            score += (features.CategoryExperience / 10.0f) * 0.09f; // 9% weight (reduced)
             score += features.BudgetMatchScore * 0.05f;       // 5% weight
+            score += features.MentorshipProgramCompleted * 0.08f; // 8% weight for mentorship
 
             return Math.Min(Math.Max(score, 0), 1); // Clamp between 0 and 1
         }
@@ -342,6 +348,9 @@ namespace Freelancing.Services
 
             if (features.PastCollaboration == 1)
                 reasons.Add("Has successfully worked with you before");
+
+            if (features.MentorshipProgramCompleted == 1)
+                reasons.Add("Completed GIGBuddies (Mentorship) program");
 
             if (features.WorkloadFactor > 0.8f)
                 reasons.Add("Currently has high workload");
@@ -389,7 +398,10 @@ namespace Freelancing.Services
             if (features.PastCollaboration == 1)
                 strengths.Add("Proven collaboration history");
 
-            return strengths.Take(3).ToList(); // Limit to top 3
+            if (features.MentorshipProgramCompleted == 1)
+                strengths.Add("Mentorship for career growth");
+
+            return strengths.Take(3).ToList();
         }
 
         private List<string> IdentifyPotentialConcerns(MLFeatures features)
@@ -513,6 +525,8 @@ namespace Freelancing.Services
         public int BidAmount { get; set; }
         public string ProposedDelivery { get; set; } = string.Empty;
         public string Proposal { get; set; } = string.Empty;
+        public string? PreviousWorksPaths { get; set; }
+        public string? RepositoryLinks { get; set; }
     }
 
     public class SmartHiringInsights

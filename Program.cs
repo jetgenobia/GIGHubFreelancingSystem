@@ -95,7 +95,6 @@ builder.Services.AddScoped<IPdfGenerationService, PdfGenerationService>();
 builder.Services.AddScoped<ISmartHiringFeatureService, SmartHiringFeatureService>();
 builder.Services.AddScoped<ISmartHiringService, SmartHiringService>(); // Back to Scoped due to DbContext dependency
 builder.Services.AddSingleton<ILocalRandomForestService, LocalRandomForestService>(); // Local Random Forest
-builder.Services.AddHttpClient<SmartHiringService>(); // For Azure ML API calls
 builder.Services.AddHttpClient<LocalRandomForestService>(); // For Flask API calls
 
 // Identity Verification Services
