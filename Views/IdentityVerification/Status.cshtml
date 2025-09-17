@@ -49,17 +49,35 @@
                                                             </div>
                                                             <h5 class="font-bold text-2xl mt-2">Rejected</h5>
                                                             <p class="font-light">Verification was not successful</p>
-                                                            <div class="flex items-center justify-center mt-2">
-                                                                <div class="p-4 bg-orange-50 border rounded-lg text-start" style="border-color: #FEEBC8">
-                                                                    <div class="inline-flex items-center">
-                                                                        <i class="fas fa-info-circle text-orange-600 me-2"></i>
-                                                                        <p class="font-bold text-base">Tips for a Successful Identity Verification</p>
+                                                            @if (!string.IsNullOrEmpty(Model.RejectionReason))
+                                                            {
+                                                                <div class="flex items-center justify-center mt-2">
+                                                                    <div class="p-4 bg-orange-50 border rounded-lg text-start" style="border-color: #FEEBC8">
+                                                                        <div class="inline-flex items-center">
+                                                                            <i class="fas fa-info-circle text-orange-600 me-2"></i>
+                                                                            <p class="font-bold text-base">Rejection Reason@(Model.RejectionReason.Contains(";") ? "s" : "")</p>
+                                                                        </div>
+                                                                        @{
+                                                                            var rejectionReasons = Model.RejectionReason.Split(';', StringSplitOptions.RemoveEmptyEntries);
+                                                                        }
+                                                                        @if (rejectionReasons.Length == 1)
+                                                                        {
+                                                                            <p class="font-light text-sm mt-2">@rejectionReasons[0].Trim()</p>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <div class="mt-2">
+                                                                                @foreach (var reason in rejectionReasons)
+                                                                                {
+                                                                                    <div class="flex items-start font-light text-sm mb-1">
+                                                                                        <p class="font-light text-sm"><span class="mr-2">•</span>@reason.Trim()</p>
+                                                                                    </div>
+                                                                                }
+                                                                            </div>
+                                                                        }
                                                                     </div>
-                                                                    <p class="font-light text-sm"><span class="mr-2">•</span>Your ID name should match your registered name.</p>
-                                                                    <p class="font-light text-sm"><span class="mr-2">•</span>Make sure you are in a well-lit place with no shadows on your face.</p>
-                                                                    <p class="font-light text-sm"><span class="mr-2">•</span>Remove accessories such as hats, sunglasses, or masks.</p>
                                                                 </div>
-                                                            </div>
+                                                            }
                                                             <div class="flex items-center justify-center mt-5">
                                                                 <a asp-controller="IdentityVerification" asp-action="Verify" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                                                                     <svg class="w-4 h-4 mr-2 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">

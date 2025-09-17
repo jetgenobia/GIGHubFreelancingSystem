@@ -325,7 +325,7 @@ namespace Freelancing.Controllers
             }
 
             _logger.LogWarning("No session document data found in Verify GET, redirecting to Document");
-            TempData["ErrorMessage"] = "No document data found. Please complete the document verification step first.";
+            TempData["ErrorMessage"] = "No document data found. Submitted ID doesn't match with selected ID type.";
             return RedirectToAction("Document");
         }
 

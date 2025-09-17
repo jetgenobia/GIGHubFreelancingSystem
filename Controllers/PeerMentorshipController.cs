@@ -34,12 +34,70 @@ namespace Freelancing.Controllers
         {
             return View();
         }
-        public IActionResult Landing()
+        private async Task<bool> UserHasApprovedIdentityVerification(string userId)
         {
+            var identityVerification = await _context.IdentityVerifications
+                .FirstOrDefaultAsync(iv => iv.UserAccountId == userId && iv.Status == "APPROVED");
+
+            return identityVerification != null;
+        }
+        private async Task<(bool hasSkills, bool isVerified)> GetUserProfileStatus(string userId)
+        {
+            var hasSkills = await _context.UserAccountSkills
+                .AnyAsync(uas => uas.UserAccountId == userId);
+
+            var isVerified = await UserHasApprovedIdentityVerification(userId);
+
+            return (hasSkills, isVerified);
+        }
+        public async Task<IActionResult> Landing()
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            bool hasSkills = false;
+            bool isVerified = false;
+
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var profileStatus = await GetUserProfileStatus(userId);
+                hasSkills = profileStatus.hasSkills;
+                isVerified = profileStatus.isVerified;
+            }
+
+            ViewBag.HasSkills = hasSkills;
+            ViewBag.IsVerified = isVerified;
             return View();
         }
-        public IActionResult Registration()
+        public async Task<IActionResult> Registration()
         {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                TempData["ErrorMessage"] = "Please log in to access the mentorship program.";
+                return RedirectToAction("Landing");
+            }
+
+            // Check if user meets the requirements
+            var profileStatus = await GetUserProfileStatus(userId);
+
+            if (!profileStatus.hasSkills || !profileStatus.isVerified)
+            {
+                TempData["RequirementsNotMet"] = true;
+                TempData["HasSkills"] = profileStatus.hasSkills;
+                TempData["IsVerified"] = profileStatus.isVerified;
+                return RedirectToAction("Landing");
+            }
+
+            // Check if user is already registered for mentorship
+            var existingMentorship = await _context.PeerMentorships
+                .FirstOrDefaultAsync(pm => pm.UserId == userId);
+
+            if (existingMentorship != null)
+            {
+                TempData["InfoMessage"] = "You are already registered for the mentorship program.";
+                return RedirectToAction("Dashboard", new { Id = existingMentorship.Id });
+            }
+
             return View();
         }
         public IActionResult RegistrationSuccess()
@@ -53,6 +111,25 @@ namespace Freelancing.Controllers
         [HttpPost]
         public async Task<IActionResult> Registration(MentorshipRegistration model)
         {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                TempData["ErrorMessage"] = "Please log in to access the mentorship program.";
+                return RedirectToAction("Landing");
+            }
+
+            // Re-check requirements during POST to prevent bypassing
+            var profileStatus = await GetUserProfileStatus(userId);
+
+            if (!profileStatus.hasSkills || !profileStatus.isVerified)
+            {
+                TempData["RequirementsNotMet"] = true;
+                TempData["HasSkills"] = profileStatus.hasSkills;
+                TempData["IsVerified"] = profileStatus.isVerified;
+                return RedirectToAction("Landing");
+            }
+
             if (ModelState.IsValid)
             {
                 // Check if the email is already registered.

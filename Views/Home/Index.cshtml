@@ -1,182 +1,267 @@
 ﻿@{
-	Layout = null;
+    Layout = null;
 }
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<title>@ViewData["Title"]GIGHub</title>
-	<link rel="stylesheet" href="~/css/output.css" />
-	<link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
-	<style>
-		/* Aesthetic moving gradient animations */
-		@@keyframes gradient-move-1 {
-			0% { transform: translateX(-50%) rotate(0deg); }
-			50% { transform: translateX(-50%) rotate(180deg); }
-			100% { transform: translateX(-50%) rotate(360deg); }
-		}
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]GIGHub</title>
+    <link rel="stylesheet" href="~/css/output.css" />
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+    <style>
+        .page-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-repeat: no-repeat;
+            z-index: -1;
+            background-image: url('https://ik.imagekit.io/6txj3mofs/Desktop.png?updatedAt=1758112480559');
+            background-size: cover;
+            background-position: center right;
+        }
 
-		@@keyframes gradient-move-2 {
-			0% { transform: translateX(-50%) rotate(360deg); }
-			50% { transform: translateX(-50%) rotate(180deg); }
-			100% { transform: translateX(-50%) rotate(0deg); }
-		}
+        @@media (max-width: 1024px) {
+            .page-background {
+                background-image: url('https://ik.imagekit.io/6txj3mofs/Untitled%20design%20(5).png');
+                background-position: center;
+            }
+        }
 
-		@@keyframes gradient-shift {
-			0% { background-position: 0% 50%; }
-			50% { background-position: 100% 50%; }
-			100% { background-position: 0% 50%; }
-		}
+        @@media (max-width: 640px) {
+            .page-background {
+                background-image: url('https://ik.imagekit.io/6txj3mofs/Untitled%20design%20(6).png');
+                background-size: cover;
+                background-position: center;
+            }
+        }
 
-		@@keyframes float {
-			0%, 100% { transform: translateY(0px) rotate(30deg); }
-			50% { transform: translateY(-20px) rotate(30deg); }
-		}
+        /* Responsive navigation controls */
+        @@media (min-width: 1024px) {
+            .mobile-menu-btn {
+                display: none !important;
+            }
 
-		@@keyframes float-reverse {
-			0%, 100% { transform: translateY(0px) rotate(-30deg); }
-			50% { transform: translateY(20px) rotate(-30deg); }
-		}
+            .desktop-nav {
+                display: block !important;
+            }
 
-		@@keyframes pulse-glow {
-			0%, 100% { opacity: 0.25; filter: blur(40px); }
-			50% { opacity: 0.4; filter: blur(30px); }
-		}
+            #mobileMenu {
+                display: none !important;
+            }
+        }
 
-		.moving-gradient-1 {
-			animation: gradient-move-1 20s ease-in-out infinite, float 6s ease-in-out infinite;
-		}
+        @@media (max-width: 1023px) {
+            .mobile-menu-btn {
+                display: flex !important;
+            }
 
-		.moving-gradient-2 {
-			animation: gradient-move-2 25s ease-in-out infinite, float-reverse 8s ease-in-out infinite;
-		}
+            .desktop-nav {
+                display: none !important;
+            }
+        }
 
-		.moving-gradient-3 {
-			animation: gradient-shift 15s ease infinite;
-			background-size: 400% 400%;
-		}
+        /* Mobile menu positioning */
+        #mobileMenu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            z-index: 50;
+        }
 
-		/* Aesthetic floating gradient elements with new colors */
-		.floating-gradient {
-			position: absolute;
-			border-radius: 50%;
-			filter: blur(40px);
-			opacity: 0.25;
-			animation: float 10s ease-in-out infinite, pulse-glow 4s ease-in-out infinite;
-		}
+        :root {
+            --letter-duration: 490ms;
+            --letter-ease: cubic-bezier(.2,.8,.2,1);
+            --slide-duration: 420ms;
+            --slide-ease: cubic-bezier(.2,.8,.2,1);
+            --slide-offset: 18px;
+        }
 
-		.floating-gradient:nth-child(1) {
-			width: 350px;
-			height: 350px;
-			background: linear-gradient(45deg, #c7fff0, #faffb8);
-			top: 5%;
-			left: 5%;
-			animation-delay: 0s;
-		}
+        h1 .inline-flex > .inline-block {
+            opacity: 0;
+            transform: translateY(12px);
+            will-change: opacity, transform;
+        }
 
-		.floating-gradient:nth-child(2) {
-			width: 280px;
-			height: 280px;
-			background: linear-gradient(45deg, #faffb8, #c7fff0);
-			top: 50%;
-			right: 10%;
-			animation-delay: -3s;
-		}
+            h1 .inline-flex > .inline-block.animate {
+                animation: letterIn var(--letter-duration) var(--letter-ease) both;
+            }
 
-		.floating-gradient:nth-child(3) {
-			width: 220px;
-			height: 220px;
-			background: linear-gradient(45deg, #c7fff0, #faffb8);
-			bottom: 15%;
-			left: 15%;
-			animation-delay: -6s;
-		}
+        @@keyframes letterIn {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
 
-		.floating-gradient:nth-child(4) {
-			width: 180px;
-			height: 180px;
-			background: linear-gradient(45deg, #faffb8, #c7fff0);
-			top: 30%;
-			left: 60%;
-			animation-delay: -9s;
-		}
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
-		/* Enhanced background gradient with new colors */
-		.aesthetic-bg {
-			background: linear-gradient(-45deg, #c7fff0, #faffb8, #c7fff0, #faffb8, #c7fff0, #faffb8);
-			background-size: 400% 400%;
-			animation: gradient-shift 20s ease infinite;
-		}
-	</style>
+        .slide-up-init {
+            opacity: 0;
+            transform: translateY(var(--slide-offset));
+            will-change: opacity, transform;
+        }
+
+            .slide-up-init.animate {
+                animation: slideUp var(--slide-duration) var(--slide-ease) both;
+            }
+
+        @@keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(var(--slide-offset));
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert-delay {
+            opacity: 0;
+            transform: translateY(8px);
+            will-change: opacity, transform;
+            animation: fadeUp 420ms cubic-bezier(.2,.8,.2,1) both;
+            animation-delay: 0.7s;
+        }
+
+        @@keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
 </head>
-<body class="aesthetic-bg min-h-screen">
-	<header class="absolute inset-x-0 top-0 z-50">
-		<nav class="flex items-center justify-between p-6 lg:px-8" aria-label="Global">
-			<div class="flex lg:flex-1">
-				<a class="-m-1.5 p-4" asp-area="" asp-controller="Home" asp-action="Index">
-					<span class="sr-only">Your Company</span>
-					<img class="h-11 w-auto" src="https://ik.imagekit.io/6txj3mofs/logoTop.png?updatedAt=1750343114427" alt="">
-				</a>
-			</div>
-			@if (Context.User.Identity.Name != null)
-			{
-				<div class="hidden lg:flex lg:flex-1 lg:justify-end">
-					<a asp-controller="Client" asp-action="Dashboard" class="text-sm/6 font-semibold text-gray-900">Dashboard<span aria-hidden="true">&rarr;</span></a>
-				</div>
-			}
-			else
-			{
-				<div class="hidden me-4 lg:flex lg:flex-1 lg:justify-end">
-					<a asp-controller="Account" asp-action="Login" class="text-lg font-semibold text-gray-900">Log in<span aria-hidden="true">&rarr;</span></a>
-				</div>
-			}
-		</nav>
-	</header>
-	<div class="bg-white relative overflow-hidden">
-		<!-- Aesthetic floating gradient elements -->
-		<div class="floating-gradient"></div>
-		<div class="floating-gradient"></div>
-		<div class="floating-gradient"></div>
-		<div class="floating-gradient"></div>
-		
-		<div class="relative isolate px-6 pt-[10px] lg:px-8">
-			<div class="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80" aria-hidden="true">
-				<div class="relative left-1/2 aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#c7fff0] to-[#faffb8] opacity-30 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem] moving-gradient-1"
-					 style="clip-path: polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)">
-				</div>
-			</div>
-			
-			<!-- Aesthetic moving gradient background -->
-			<div class="absolute inset-0 -z-20">
-				<div class="absolute inset-0 aesthetic-bg"></div>
-			</div>
-			
-			<div class="grid grid-cols-1 lg:grid-cols-2 items-center py-16 sm:py-24 lg:py-32 px-4">
-				<div class="max-w-xl">
-					<div class="text-left">
-						<h1 class="text-5xl font-bold tracking-tight text-balance text-gray-800 sm:text-7xl">Unlock growth with every project</h1>
-						<p class="mt-5 text-xl font-light tracking-tight text-balance text-gray-700 sm:text-lg">Start your freelancing career with us. Post a project, bid, and interact with fellow freelancers. Get started now by choosing a role.</p>
-						<div class="mt-5 flex items-center justify-left gap-x-1">
-							<a type="button" class="text-white bg-gradient-to-r from-cyan-500 to-blue-500 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-cyan-300 dark:focus:ring-cyan-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2" asp-controller="Account" asp-action="Registration" asp-route-role="Freelancer">Freelancer</a>
-							<a type="button" class="text-white bg-gradient-to-br from-green-400 to-blue-600 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2" asp-controller="Account" asp-action="Registration" asp-route-role="Client">Client</a>
-						</div>
-					</div>
-				</div>
-				<div class="flex items-center justify-center w-full">
-					<img class="w-3/4 h-3/4" src="https://ik.imagekit.io/6txj3mofs/front.png?updatedAt=1750340542946" alt="">
-				</div>
-			</div>
-			<div class="absolute inset-x-0 top-[calc(100%-13rem)] -z-10 transform-gpu overflow-hidden blur-3xl sm:top-[calc(100%-30rem)]" aria-hidden="true">
-				<div class="relative left-[calc(50%+3rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 bg-gradient-to-tr from-[#faffb8] to-[#c7fff0] opacity-30 sm:left-[calc(50%+36rem)] sm:w-[72.1875rem] moving-gradient-2"
-					 style="clip-path: polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)">
-				</div>
-			</div>
-		</div>
-	</div>
-	<script src="~/js/site.js" asp-append-version="true"></script>
-	<script src="~/node_modules/flowbite/dist/flowbite.min.js"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js"></script>
+<body class="min-h-screen flex items-center justify-center">
+    <div class="page-background"></div>
+    <header id="site-header" class="slide-up-init fixed inset-x-0 top-0 z-50 px-4">
+        <nav class="relative flex items-center justify-between p-6 lg:px-8" aria-label="Global">
+            <div class="flex lg:flex-1">
+                <a class="-m-1.5 p-2" asp-area="" asp-controller="Home" asp-action="Index">
+                    <span class="sr-only">Your Company</span>
+                    <img class="h-20 w-auto" src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(2).png?updatedAt=1749718355580" alt="">
+                </a>
+            </div>
+
+            <button id="openMenuBtn" type="button" class="mobile-menu-btn inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200" aria-controls="mobile-menu" aria-expanded="false">
+                <span class="sr-only">Open main menu</span>
+                <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 17 14">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 1h15M1 7h15M1 13h15" />
+                </svg>
+            </button>
+
+            <div class="desktop-nav">
+                @if (Context.User.Identity.Name != null)
+                {
+                    <div class="lg:flex lg:flex-1 lg:justify-end">
+                        <a asp-controller="Client" asp-action="Dashboard" class="text-gray-900 focus:ring-4 focus:outline-none focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">Dashboard</a>
+                    </div>
+                }
+                else
+                {
+                    <div class="me-4 lg:flex lg:flex-1 lg:justify-end">
+                        <a asp-controller="Account" asp-action="Login" class="border border-gray-300 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-4 py-1.5 me-2 mb-2">Log in</a>
+                        <a asp-controller="Account" asp-action="Registration" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-1.5 me-2 mb-2">Sign Up</a>
+                    </div>
+                }
+            </div>
+
+            <!-- Mobile menu -->
+            <div class="hidden" id="mobileMenu">
+                <div class="px-4 py-4 space-y-3 bg-white border border-gray-200 rounded-lg shadow-lg">
+                    <div class="flex justify-end">
+                        <button id="closeMenuBtn" type="button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100">
+                            <span class="sr-only">Close menu</span>
+                            <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                    @if (Context.User.Identity.Name != null)
+                    {
+                        <a asp-controller="Client" asp-action="Dashboard" class="text-gray-900 bg-gray-100 hover:bg-gray-200 block px-4 py-3 rounded-md text-base font-medium text-center">Dashboard</a>
+                        <a asp-controller="Account" asp-action="LogOut" class="text-gray-900 bg-gray-100 hover:bg-gray-200 block px-4 py-3 rounded-md text-base font-medium text-center">Sign Out</a>
+                    }
+                    else
+                    {
+                        <a asp-controller="Account" asp-action="Login" class="text-gray-900 bg-gray-100 hover:bg-gray-200 block px-4 py-3 rounded-md text-base font-medium text-center">Login</a>
+                        <a asp-controller="Account" asp-action="Registration" class="text-white bg-blue-700 hover:bg-blue-800 block px-4 py-3 rounded-md text-base font-medium text-center">Sign Up</a>
+                    }
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <section class="pt-24 md:pt-28 lg:pt-32">
+        <div class="py-8 px-4 mx-auto max-w-screen-xl lg:py-16 lg:px-12">
+            <div class="grid gap-8 mb-4 grid-cols-2">
+                <div class="col-span-2 sm:col-span-1">
+                    <h1 class="tracking-tight sm:tracking-tighter text-[32px] sm:text-[72px] leading-[28px] sm:leading-[64px] max-w-4xl font-extrabold uppercase space-x-2 mb-8 mx-auto">
+                        <span class="inline-flex whitespace-nowrap" style="display:inline-flex;white-space:nowrap;">
+                            <span class="inline-block">Unlock</span>
+                        </span>
+
+                        <span class="inline-flex whitespace-nowrap" style="display:inline-flex;white-space:nowrap;">
+                            <span class="inline-block">Growth</span>
+                        </span>
+
+                        <span class="inline-flex whitespace-nowrap" style="display:inline-flex;white-space:nowrap;">
+                            <span class="inline-block">Every</span>
+                        </span>
+
+                        <span class="inline-flex whitespace-nowrap" style="display:inline-flex;white-space:nowrap;">
+                            <span class="inline-block">Project</span>
+                        </span>
+                    </h1>
+                    <p class="mb-8 text-lg font-medium lg:text-xl slide-up-init">Start your freelancing career with us. Get started now by choosing a role.</p>
+                    <div class="flex flex-col space-y-4 sm:flex-row sm:justify-start sm:space-y-0 sm:space-x-4">
+                        <a asp-controller="Account" asp-action="Registration" asp-route-role="Client" class="border border-gray-300 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-base px-7 py-2 me-2 mb-2 slide-up-init">Client</a>
+                        <a asp-controller="Account" asp-action="Registration" asp-route-role="Freelancer" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-base px-8 py-2 me-2 mb-2 slide-up-init">Freelancer</a>
+                    </div>
+                </div>
+
+                <div class="slide-up-init col-span-2 sm:col-span-1 relative">
+                    <div class="flex justify-center">
+                        <img src="https://ik.imagekit.io/6txj3mofs/Untitled%20design%20(4).png?updatedAt=1758106485550" class="w-full h-auto" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+          const letters = document.querySelectorAll('h1 .inline-flex > .inline-block');
+          letters.forEach((el, i) => {
+            el.style.animationDelay = (i * 0.2) + 's';
+            el.classList.add('animate');
+          });
+
+          const slideElements = document.querySelectorAll('.slide-up-init');
+            const base = 0.7;
+            const stagger = 0.12;
+            slideElements.forEach((el, i) => {
+                el.style.animationDelay = (base + i * stagger) + 's';
+                el.classList.add('animate');
+            });
+        });
+    </script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/node_modules/flowbite/dist/flowbite.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js"></script>
 </body>
 </html>
