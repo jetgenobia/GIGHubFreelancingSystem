@@ -656,6 +656,7 @@ namespace Freelancing.Controllers
             return View(viewModel);
         }
         // Accepts a bid for a specific project, marking it as the accepted bid and updating the project accordingly.
+        // Accepts a bid for a specific project, marking it as the accepted bid and updating the project accordingly.
         [HttpPost]
         public async Task<IActionResult> AcceptBid(Guid projectId, Guid bidId)
         {
@@ -684,6 +685,71 @@ namespace Freelancing.Controllers
             var bidToAccept = project.Biddings.FirstOrDefault(b => b.Id == bidId);
             if (bidToAccept == null)
                 return BadRequest("Invalid bid ID");
+
+            // Delete any terminated contracts for this project before accepting the new bid
+            var terminatedContracts = await dbContext.Contracts
+                .Where(c => c.ProjectId == projectId && c.Status == "Terminated")
+                .ToListAsync();
+
+            foreach (var terminatedContract in terminatedContracts)
+            {
+                // First, find and remove contract terminations for this contract
+                var contractTerminations = await dbContext.ContractTerminations
+                    .Where(ct => ct.ContractId == terminatedContract.Id)
+                    .ToListAsync();
+
+                foreach (var termination in contractTerminations)
+                {
+                    // Remove contract termination audit logs
+                    var terminationAuditLogs = await dbContext.ContractTerminationAuditLogs
+                        .Where(ctal => ctal.ContractTerminationId == termination.Id)
+                        .ToListAsync();
+
+                    if (terminationAuditLogs.Any())
+                    {
+                        dbContext.ContractTerminationAuditLogs.RemoveRange(terminationAuditLogs);
+                    }
+                }
+
+                // Remove contract terminations
+                if (contractTerminations.Any())
+                {
+                    dbContext.ContractTerminations.RemoveRange(contractTerminations);
+                }
+
+                // Remove contract audit logs
+                var contractAuditLogs = await dbContext.ContractAuditLogs
+                    .Where(cal => cal.ContractId == terminatedContract.Id)
+                    .ToListAsync();
+
+                if (contractAuditLogs.Any())
+                {
+                    dbContext.ContractAuditLogs.RemoveRange(contractAuditLogs);
+                }
+
+                // Remove contract revisions
+                var contractRevisions = await dbContext.ContractRevisions
+                    .Where(cr => cr.ContractId == terminatedContract.Id)
+                    .ToListAsync();
+
+                if (contractRevisions.Any())
+                {
+                    dbContext.ContractRevisions.RemoveRange(contractRevisions);
+                }
+
+                // Remove any deliverables associated with the terminated contract
+                var deliverables = await dbContext.Deliverables
+                    .Where(d => d.ContractId == terminatedContract.Id)
+                    .ToListAsync();
+
+                if (deliverables.Any())
+                {
+                    dbContext.Deliverables.RemoveRange(deliverables);
+                }
+
+                // Finally, remove the terminated contract
+                dbContext.Contracts.Remove(terminatedContract);
+            }
 
             foreach (var bid in project.Biddings)
             {

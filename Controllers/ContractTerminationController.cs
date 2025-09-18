@@ -287,7 +287,7 @@ namespace Freelancing.Controllers
             {
                 var userId = GetCurrentUserId();
                 var termination = await _terminationService.GetTerminationByIdAsync(id);
-                
+
                 if (termination == null)
                 {
                     TempData["ErrorMessage"] = "Termination request not found.";
@@ -312,15 +312,26 @@ namespace Freelancing.Controllers
                 await _terminationService.ExecuteTerminationAsync(id, userId);
 
                 // Update contract status to terminated
-                var contract = await _context.Contracts.FindAsync(termination.ContractId);
+                var contract = await _context.Contracts
+                    .Include(c => c.Project)
+                    .FirstOrDefaultAsync(c => c.Id == termination.ContractId);
+
                 if (contract != null)
                 {
                     contract.Status = "Terminated";
                     contract.TerminatedAt = DateTime.UtcNow.ToLocalTime();
+
+                    // Update project status back to "Open" when contract is terminated
+                    if (contract.Project != null)
+                    {
+                        contract.Project.Status = "Open";
+                        contract.Project.AcceptedBidId = null; // Clear the accepted bid
+                    }
+
                     await _context.SaveChangesAsync();
                 }
 
-                TempData["SuccessMessage"] = "Contract has been successfully terminated! The project is now closed.";
+                TempData["SuccessMessage"] = "Contract has been successfully terminated! The project is now open for new bids.";
                 return RedirectToAction("Details", "Contract", new { id = termination.ContractId });
             }
             catch (Exception ex)

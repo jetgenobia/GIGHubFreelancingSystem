@@ -12,7 +12,7 @@
 
                 @if (Model.OngoingProjects.Any())
                 {
-                    var activeProjects = Model.OngoingProjects.Where(p => p.ProjectStatus == "Active").ToList();
+                    var activeProjects = Model.OngoingProjects.Where(p => p.ProjectStatus == "Active" || p.ProjectStatus == "Draft").ToList();
                     var terminatedProjects = Model.OngoingProjects.Where(p => p.ProjectStatus == "Terminated").ToList();
                     var completedProjects = Model.OngoingProjects.Where(p => p.ProjectStatus == "Completed").ToList();
 
