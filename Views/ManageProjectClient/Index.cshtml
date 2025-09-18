@@ -9,82 +9,205 @@
         <div class="mt-4">
             <div class="block w-full p-6">
                 <h2 class="mb-4 text-2xl font-bold text-gray-900">Manage Projects</h2>
-                
+
                 @if (Model.OngoingProjects.Any())
                 {
-                    var activeProjects = Model.OngoingProjects.Count(p => p.ProjectStatus == "Active");
-                    var terminatedProjects = Model.OngoingProjects.Count(p => p.ProjectStatus == "Terminated");
-                    var completedProjects = Model.OngoingProjects.Count(p => p.ProjectStatus == "Completed");
-                    
-                    <div class="mb-4 flex flex-wrap gap-2">
-                        @if (activeProjects > 0)
+                    var activeProjects = Model.OngoingProjects.Where(p => p.ProjectStatus == "Active").ToList();
+                    var terminatedProjects = Model.OngoingProjects.Where(p => p.ProjectStatus == "Terminated").ToList();
+                    var completedProjects = Model.OngoingProjects.Where(p => p.ProjectStatus == "Completed").ToList();
+
+                    <!-- Summary Cards -->
+                    <div class="mb-6 flex flex-wrap gap-2">
+                        @if (activeProjects.Any())
                         {
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                                @activeProjects Active Project@(activeProjects != 1 ? "s" : "")
-                            </span>
+                            <a href="#active-projects-section" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 hover:bg-green-200 transition duration-200 cursor-pointer">
+                                @activeProjects.Count Active Project@(activeProjects.Count != 1 ? "s" : "")
+                            </a>
                         }
-                        @if (terminatedProjects > 0)
+                        @if (terminatedProjects.Any())
                         {
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                                @terminatedProjects Terminated Project@(terminatedProjects != 1 ? "s" : "")
-                            </span>
+                            <a href="#terminated-projects-section" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 hover:bg-red-200 transition duration-200 cursor-pointer">
+                                @terminatedProjects.Count Terminated Project@(terminatedProjects.Count != 1 ? "s" : "")
+                            </a>
                         }
-                        @if (completedProjects > 0)
+                        @if (completedProjects.Any())
                         {
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                                @completedProjects Completed Project@(completedProjects != 1 ? "s" : "")
-                            </span>
+                            <a href="#completed-projects-section" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 hover:bg-blue-200 transition duration-200 cursor-pointer">
+                                @completedProjects.Count Completed Project@(completedProjects.Count != 1 ? "s" : "")
+                            </a>
                         }
                     </div>
 
-                    <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-                        @foreach (var project in Model.OngoingProjects)
-                        {
-                            <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-                                <div class="flex items-start justify-between mb-4">
-                                    <h3 class="text-lg font-semibold text-gray-900 truncate">@project.ProjectName</h3>
-                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium @(project.ProjectStatus == "Active" ? "bg-green-100 text-green-800" : project.ProjectStatus == "Terminated" ? "bg-red-100 text-red-800" : project.ProjectStatus == "Completed" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800")">
-                                @project.ProjectStatus
-                            </span>
-                                </div>
-                                
-                                <div class="space-y-3">
-                                    
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-sm text-gray-500">Accepted Amount:</span>
-                                        <span class="text-sm font-medium text-green-600">₱@project.AcceptedBidAmount</span>
-                                    </div>
-                                    
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-sm text-gray-500">Category:</span>
-                                        <span class="text-sm font-medium text-gray-900">@project.ProjectCategory</span>
-                                    </div>
-                                    
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-sm text-gray-500">Delivery:</span>
-                                        <span class="text-sm font-medium text-gray-900">@project.AcceptedBidDelivery</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="mt-4 pt-4 border-t border-gray-100">
-                                    <div class="flex items-center space-x-2">
-                                        <img src="@project.FreelancerPhoto" alt="@project.FreelancerName" class="w-8 h-8 rounded-full">
-                                        <div>
-                                            <p class="text-sm font-medium text-gray-900">@project.FreelancerName</p>
-                                            <p class="text-xs text-gray-500">Freelancer</p>
+                    <!-- Active Projects Section -->
+                    @if (activeProjects.Any())
+                    {
+                        <div id="active-projects-section" class="mb-8 scroll-mt-24">
+                            <div class="flex items-center mb-4">
+                                <h3 class="text-xl font-semibold text-gray-900">Active Projects</h3>
+                            </div>
+                            <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                @foreach (var project in activeProjects)
+                                {
+                                    <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200 border-l-4 border-l-green-500">
+                                        <div class="flex items-start justify-between mb-4">
+                                            <h4 class="text-lg font-semibold text-gray-900 truncate">@project.ProjectName</h4>
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                @project.ProjectStatus
+                                            </span>
+                                        </div>
+
+                                        <div class="space-y-3">
+                                            <div class="flex items-center justify-between">
+                                                <span class="text-sm text-gray-500">Accepted Amount:</span>
+                                                <span class="text-sm font-medium text-green-600">₱@project.AcceptedBidAmount</span>
+                                            </div>
+
+                                            <div class="flex items-center justify-between">
+                                                <span class="text-sm text-gray-500">Category:</span>
+                                                <span class="text-sm font-medium text-gray-900">@project.ProjectCategory</span>
+                                            </div>
+
+                                            <div class="flex items-center justify-between">
+                                                <span class="text-sm text-gray-500">Delivery:</span>
+                                                <span class="text-sm font-medium text-gray-900">@project.AcceptedBidDelivery</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-4 pt-4 border-t border-gray-100">
+                                            <div class="flex items-center space-x-2">
+                                                <img src="@project.FreelancerPhoto" alt="@project.FreelancerName" class="w-8 h-8 rounded-full">
+                                                <div>
+                                                    <p class="text-sm font-medium text-gray-900">@project.FreelancerName</p>
+                                                    <p class="text-xs text-gray-500">Freelancer</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-4 flex space-x-2">
+                                            <a href="@Url.Action("Details", new { id = project.ProjectId })"
+                                               class="flex-1 bg-blue-600 text-white text-center py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 transition duration-200">
+                                                View Details
+                                            </a>
                                         </div>
                                     </div>
-                                </div>
-                                
-                                <div class="mt-4 flex space-x-2">
-                                    <a href="@Url.Action("Details", new { id = project.ProjectId })" 
-                                       class="flex-1 bg-blue-600 text-white text-center py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 transition duration-200">
-                                        View Details
-                                    </a>
-                                </div>
+                                }
                             </div>
-                        }
-                    </div>
+                        </div>
+                    }
+
+                    <!-- Completed Projects Section -->
+                    @if (completedProjects.Any())
+                    {
+                        <div id="completed-projects-section" class="mb-8 scroll-mt-24">
+                            <div class="flex items-center mb-4">
+                                <h3 class="text-xl font-semibold text-gray-900">Completed Projects</h3>
+                            </div>
+                            <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                @foreach (var project in completedProjects)
+                                {
+                                    <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200 border-l-4 border-l-blue-500">
+                                        <div class="flex items-start justify-between mb-4">
+                                            <h4 class="text-lg font-semibold text-gray-900 truncate">@project.ProjectName</h4>
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                @project.ProjectStatus
+                                            </span>
+                                        </div>
+
+                                        <div class="space-y-3">
+                                            <div class="flex items-center justify-between">
+                                                <span class="text-sm text-gray-500">Accepted Amount:</span>
+                                                <span class="text-sm font-medium text-green-600">₱@project.AcceptedBidAmount</span>
+                                            </div>
+
+                                            <div class="flex items-center justify-between">
+                                                <span class="text-sm text-gray-500">Category:</span>
+                                                <span class="text-sm font-medium text-gray-900">@project.ProjectCategory</span>
+                                            </div>
+
+                                            <div class="flex items-center justify-between">
+                                                <span class="text-sm text-gray-500">Delivery:</span>
+                                                <span class="text-sm font-medium text-gray-900">@project.AcceptedBidDelivery</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-4 pt-4 border-t border-gray-100">
+                                            <div class="flex items-center space-x-2">
+                                                <img src="@project.FreelancerPhoto" alt="@project.FreelancerName" class="w-8 h-8 rounded-full">
+                                                <div>
+                                                    <p class="text-sm font-medium text-gray-900">@project.FreelancerName</p>
+                                                    <p class="text-xs text-gray-500">Freelancer</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-4 flex space-x-2">
+                                            <a href="@Url.Action("Details", new { id = project.ProjectId })"
+                                               class="flex-1 bg-blue-600 text-white text-center py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 transition duration-200">
+                                                View Details
+                                            </a>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Terminated Projects Section -->
+                    @if (terminatedProjects.Any())
+                    {
+                        <div id="terminated-projects-section" class="mb-8 scroll-mt-24">
+                            <div class="flex items-center mb-4">
+                                <h3 class="text-xl font-semibold text-gray-900">Terminated Projects</h3>
+                            </div>
+                            <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                @foreach (var project in terminatedProjects)
+                                {
+                                    <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200 border-l-4 border-l-red-500 opacity-75">
+                                        <div class="flex items-start justify-between mb-4">
+                                            <h4 class="text-lg font-semibold text-gray-900 truncate">@project.ProjectName</h4>
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                @project.ProjectStatus
+                                            </span>
+                                        </div>
+
+                                        <div class="space-y-3">
+                                            <div class="flex items-center justify-between">
+                                                <span class="text-sm text-gray-500">Accepted Amount:</span>
+                                                <span class="text-sm font-medium text-green-600">₱@project.AcceptedBidAmount</span>
+                                            </div>
+
+                                            <div class="flex items-center justify-between">
+                                                <span class="text-sm text-gray-500">Category:</span>
+                                                <span class="text-sm font-medium text-gray-900">@project.ProjectCategory</span>
+                                            </div>
+
+                                            <div class="flex items-center justify-between">
+                                                <span class="text-sm text-gray-500">Delivery:</span>
+                                                <span class="text-sm font-medium text-gray-900">@project.AcceptedBidDelivery</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-4 pt-4 border-t border-gray-100">
+                                            <div class="flex items-center space-x-2">
+                                                <img src="@project.FreelancerPhoto" alt="@project.FreelancerName" class="w-8 h-8 rounded-full">
+                                                <div>
+                                                    <p class="text-sm font-medium text-gray-900">@project.FreelancerName</p>
+                                                    <p class="text-xs text-gray-500">Freelancer</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-4 flex space-x-2">
+                                            <a href="@Url.Action("Details", new { id = project.ProjectId })"
+                                               class="flex-1 bg-gray-600 text-white text-center py-2 px-4 rounded-md text-sm font-medium hover:bg-gray-700 transition duration-200">
+                                                View Details
+                                            </a>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
                 }
                 else
                 {
@@ -100,3 +223,9 @@
         </div>
     </div>
 </div>
+
+<style>
+    html {
+        scroll-behavior: smooth;
+    }
+</style>

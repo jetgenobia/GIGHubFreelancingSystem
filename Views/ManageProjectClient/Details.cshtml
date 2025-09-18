@@ -140,10 +140,20 @@
                                     <span class="text-gray-500">Category:</span>
                                     <span class="font-medium">@Model.ProjectCategory</span>
                                 </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-500">Delivery:</span>
-                                    <span class="font-medium">@Model.AcceptedBidDelivery</span>
-                                </div>
+                                @if (Model.ProjectDeadline.HasValue)
+                                {
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-500">Deadline:</span>
+                                        <span class="font-medium text-orange-600">@Model.ProjectDeadline.Value.ToString("MMM dd, yyyy 'at' h:mm tt")</span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-500">Deadline:</span>
+                                        <span class="font-medium text-orange-600">No deadline set</span>
+                                    </div>
+                                }
                                 @if (Model.BiddingAcceptedDate.HasValue)
                                 {
                                     <div class="flex justify-between">
@@ -239,7 +249,7 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div class="flex justify-center">
                                 <a href="@Url.Action("Feedback", "ManageProjectClient", new { id = ViewBag.AcceptBidId })" class="text-white inline-flex items-center justify-center focus:outline-none bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-3 me-2 mb-2 text-center mt-2 w-full">
                                     <svg viewBox="0 -18 1060 1060" fill="#ffffff" class="w-4 h-4 mr-1" version="1.1" xmlns="http://www.w3.org/2000/svg" stroke="#ffffff" stroke-width="21.2">
@@ -313,10 +323,41 @@
                                     }
                                 }
                             </div>
+
+                            <div class="mt-8 bg-gray-50 rounded-lg">
+                                <form asp-action="SetDeadline" asp-controller="ManageProjectClient" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="projectId" value="@Model.ProjectId" />
+
+                                    <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
+                                        <div class="flex-1">
+                                            <label for="deadline" class="block mb-2 text-sm font-medium text-gray-900">Set Deliverables Deadline</label>
+                                            <div class="relative">
+                                                <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                                                    <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path d="M20 4a2 2 0 0 0-2-2h-2V1a1 1 0 0 0-2 0v1h-3V1a1 1 0 0 0-2 0v1H6V1a1 1 0 0 0-2 0v1H2a2 2 0 0 0-2 2v2h20V4ZM0 18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8H0v10Zm5-8h10a1 1 0 0 1 0 2H5a1 1 0 0 1 0-2Z" />
+                                                    </svg>
+                                                </div>
+                                                <input name="deadline"
+                                                       type="datetime-local"
+                                                       min="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")"
+                                                       value="@(Model.ProjectDeadline?.ToString("yyyy-MM-ddTHH:mm"))"
+                                                       class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5"
+                                                       required>
+                                            </div>
+                                        </div>
+                                        <button type="submit"
+                                                class="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2">
+                                            Set
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+
                             <div class="flex justify-center">
                                 @if (ViewBag.ContractId == null || ViewBag.ContractStatus != "Active")
                                 {
-                                    <a class="text-white inline-flex items-center justify-center bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-3 me-2 mb-2 text-center mt-4 w-full opacity-50 cursor-not-allowed">
+                                    <a class="text-white inline-flex items-center justify-center bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-3 me-2 mb-2 text-center w-full opacity-50 cursor-not-allowed">
                                         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1">
                                             <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
                                             <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
@@ -330,7 +371,7 @@
                                 }
                                 else
                                 {
-                                    <a href="@Url.Action("Index", "Deliverable", new { id = ViewBag.ContractId })" class="text-white inline-flex items-center justify-center bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-3 me-2 mb-2 text-center mt-4 w-full">
+                                    <a href="@Url.Action("Index", "Deliverable", new { id = ViewBag.ContractId })" class="text-white inline-flex items-center justify-center bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-3 me-2 mb-2 text-center w-full">
                                         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1">
                                             <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
                                             <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
@@ -369,14 +410,14 @@
                     {
                         <img src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497" alt="Default Profile Picture" class="w-32 h-32 rounded-full object-cover border-4 border-gray-200 shadow-lg">
                     }
-                    
+
                     <!-- Mentorship Badges -->
                     @{
                         var mentorshipData = ViewBag.MentorshipData as (bool, bool)?;
                         var hasCompletedAsMentor = mentorshipData?.Item1 ?? false;
                         var hasCompletedAsMentee = mentorshipData?.Item2 ?? false;
                     }
-                    
+
                     @if (hasCompletedAsMentor || hasCompletedAsMentee)
                     {
                         <div class="mt-4">
@@ -487,6 +528,24 @@
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             closeProfileModal();
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form[asp-action="SetDeadline"]');
+        const deadlineInput = document.querySelector('input[name="deadline"]');
+
+        if (form && deadlineInput) {
+            form.addEventListener('submit', function(e) {
+                const selectedDate = new Date(deadlineInput.value);
+                const now = new Date();
+
+                if (selectedDate <= now) {
+                    e.preventDefault();
+                    alert('Please select a deadline in the future.');
+                    return false;
+                }
+            });
         }
     });
 </script>

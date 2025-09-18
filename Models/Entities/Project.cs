@@ -16,7 +16,8 @@
         public string Status { get; set; } = "Open"; // Open, Active, Completed, Cancelled
         public Guid? AcceptedBidId { get; set; }
         public Bidding? AcceptedBid { get; set; }
-        
+        public DateTime? Deadline { get; set; }
+
         // Contract relationship
         public Contract? Contract { get; set; }
     }

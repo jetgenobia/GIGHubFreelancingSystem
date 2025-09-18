@@ -147,7 +147,8 @@ namespace Freelancing.Controllers
                 ProjectCategory = project.Category,
                 ProjectCreatedAt = project.CreatedAt,
                 ProjectImageUrls = ParseJsonArray(project.ImagePaths),
-                
+                ProjectDeadline = project.Deadline,
+
                 ClientId = client.Id,
                 ClientName = $"{client.FirstName} {client.LastName}",
                 ClientEmail = client.Email,

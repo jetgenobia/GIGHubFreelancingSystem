@@ -33,14 +33,21 @@ namespace Freelancing.Services
 
                 // Create a new page
                 using var page = await _browser.NewPageAsync();
-                
+
                 // Set content and wait for it to load
                 await page.SetContentAsync(htmlContent);
                 await page.WaitForTimeoutAsync(1000); // Wait for any dynamic content
 
+                // Emulate print media so @page and print CSS are honored
+                await page.EmulateMediaTypeAsync(PuppeteerSharp.Media.MediaType.Print);
+
                 // Generate PDF with proper settings
-                var pdfBytes = await page.PdfDataAsync();
-                
+                var pdfBytes = await page.PdfDataAsync(new PuppeteerSharp.PdfOptions
+                {
+                    PreferCSSPageSize = true,
+                    PrintBackground = true
+                });
+
                 // Validate the generated PDF
                 if (pdfBytes == null || pdfBytes.Length == 0)
                 {
@@ -61,7 +68,6 @@ namespace Freelancing.Services
             }
             catch (Exception ex)
             {
-                // Log the error (you might want to use a proper logging framework)
                 Console.WriteLine($"Error generating PDF: {ex.Message}");
                 Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 throw new InvalidOperationException($"Failed to generate PDF: {ex.Message}", ex);
@@ -104,7 +110,7 @@ namespace Freelancing.Services
             html.AppendLine("<title>Freelance Contract</title>");
             html.AppendLine("<style>");
             html.AppendLine(@"
-                @page { margin: 1in; }
+                @page { margin: 0.5in; }
                 * {
                     margin: 0;
                     padding: 0;
@@ -125,6 +131,23 @@ namespace Freelancing.Services
                     margin: 0 auto;
                     background: white;
                     padding: 0;
+                }
+                .contract-header-logo {
+                    text-align: center;
+                    margin-bottom: 1rem;
+                    padding-bottom: 1rem;
+                    border-bottom: 2px solid #1d4ed8;
+                }
+                .logo-image {
+                    max-width: 200px;
+                    max-height: 80px;
+                    object-fit: contain;
+                    margin-bottom: 1rem;
+                }
+                .company-info {
+                    font-size: 10pt;
+                    color: #6b7280;
+                    line-height: 1.4;
                 }
                 .mb-6 { margin-bottom: 1.5rem; }
                 .mb-2 { margin-bottom: 0.5rem; }
@@ -170,14 +193,6 @@ namespace Freelancing.Services
                 }
                 .terms-section li {
                     margin: 5px 0;
-                }
-                .agreement-section {
-                    margin-top: 30px;
-                    padding: 20px;
-                    background: #f8fafc;
-                    border: 1px solid #e2e8f0;
-                    border-radius: 0.5rem;
-                    text-align: center;
                 }
                 .signature-section { 
                     margin-top: 50px; 
@@ -227,9 +242,16 @@ namespace Freelancing.Services
             html.AppendLine("</style>");
             html.AppendLine("</head>");
             html.AppendLine("<body>");
+
+            html.AppendLine("<div class='contract-header-logo'>");
+            html.AppendLine("<img src='https://ik.imagekit.io/6txj3mofs/GIGHub%20(2).png?updatedAt=1749718355580' class='logo-image' alt='GIGHub Logo' />");
+            html.AppendLine("<div class='company-info'>");
+            html.AppendLine("<strong>GIGHub Freelancing Platform | Website: https://www.gighub.com/</strong><br>");
+            html.AppendLine("</div>");
+            html.AppendLine("</div>");
+
             html.AppendLine("<div class='contract-container'>");
-            
-            // Use the contract content that contains the proper "DESIGN & MEDIA SERVICE AGREEMENT" structure
+
             if (!string.IsNullOrEmpty(contract.ContractContent))
             {
                 html.AppendLine(contract.ContractContent);
@@ -273,10 +295,9 @@ namespace Freelancing.Services
                 html.AppendLine("<p><strong>Description:</strong></p>");
                 html.AppendLine($"<div class='project-description'>{contract.Project?.ProjectDescription}</div>");
                 html.AppendLine("</div>");
-                
+
                 // Terms Section
                 html.AppendLine("<div class='terms-section mb-6'>");
-                html.AppendLine("<div class='rounded-lg bg-blue-700 p-2 mb-2'>");
                 html.AppendLine("<h2 class='text-center text-white font-bold'>TERMS AND CONDITIONS</h2>");
                 html.AppendLine("</div>");
                 
@@ -310,14 +331,6 @@ namespace Freelancing.Services
                 html.AppendLine("</ul>");
                 
                 html.AppendLine("</div>");
-                
-                // Agreement Section
-                html.AppendLine("<div class='agreement-section mb-6'>");
-                html.AppendLine("<div class='rounded-lg bg-blue-700 p-2 mb-2'>");
-                html.AppendLine("<h2 class='text-center text-white font-bold'>AGREEMENT</h2>");
-                html.AppendLine("</div>");
-                html.AppendLine("<p>By signing below, both parties agree to the terms and conditions set forth in this agreement.</p>");
-                html.AppendLine("</div>");
             }
             
             // Signatures section - Always include signatures regardless of content source
@@ -339,7 +352,7 @@ namespace Freelancing.Services
                 {
                     html.AppendLine($"<div style='font-family: cursive; font-size: 20px;'>{contract.ClientSignatureData}</div>");
                 }
-                html.AppendLine($"<div class='signature-details'>Signed on: {contract.ClientSignedAt:MMMM dd, yyyy 'at' HH:mm} | IP: {contract.ClientIPAddress}</div>");
+                html.AppendLine($"<div class='signature-details'>Signed on: {contract.ClientSignedAt:MMMM dd, yyyy 'at' HH:mm}</div>");
             }
             else
             {
@@ -360,7 +373,7 @@ namespace Freelancing.Services
                 {
                     html.AppendLine($"<div style='font-family: cursive; font-size: 20px;'>{contract.FreelancerSignatureData}</div>");
                 }
-                html.AppendLine($"<div class='signature-details'>Signed on: {contract.FreelancerSignedAt:MMMM dd, yyyy 'at' HH:mm} | IP: {contract.FreelancerIPAddress}</div>");
+                html.AppendLine($"<div class='signature-details'>Signed on: {contract.FreelancerSignedAt:MMMM dd, yyyy 'at' HH:mm}</div>");
             }
             else
             {
@@ -376,7 +389,7 @@ namespace Freelancing.Services
                 html.AppendLine("<div class='document-footer'>");
                 html.AppendLine($"Document Hash: {contract.DocumentHash}<br>");
                 html.AppendLine($"Contract ID: {contract.Id}<br>");
-                html.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss} UTC");
+                html.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
                 html.AppendLine("</div>");
             }
             

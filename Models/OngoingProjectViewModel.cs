@@ -12,7 +12,8 @@ namespace Freelancing.Models
         public string ProjectCategory { get; set; }
         public DateTime ProjectCreatedAt { get; set; }
         public List<string> ProjectImageUrls { get; set; } = new();
-        
+        public DateTime? ProjectDeadline { get; set; }
+
         // Client Information
         public string ClientId { get; set; }
         public string ClientName { get; set; }

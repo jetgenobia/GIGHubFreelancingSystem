@@ -3,6 +3,29 @@
     ViewData["Title"] = "Deliverables";
     var userIsClient = User.IsInRole("Client");
     var userIsFreelancer = User.IsInRole("Freelancer");
+    var contract = (Freelancing.Models.Entities.Contract)ViewBag.Contract;
+    var projectDeadline = contract?.Project?.Deadline;
+
+    string GetDeliverableStatus(Freelancing.Models.Entities.Deliverable deliverable)
+    {
+        return deliverable.Status;
+    }
+
+    bool IsDeliverableLate(Freelancing.Models.Entities.Deliverable deliverable)
+    {
+        return projectDeadline.HasValue && deliverable.SubmittedAt > projectDeadline.Value;
+    }
+
+    string GetStatusClass(string status)
+    {
+        return status switch
+        {
+            "Approved" => "bg-green-100 text-green-800",
+            "For Revision" => "bg-orange-100 text-orange-800",
+            "Late" => "bg-red-100 text-red-800",
+            _ => "bg-yellow-100 text-yellow-800"
+        };
+    }
 }
 
 <div class="p-4 sm:ml-64">
@@ -122,10 +145,20 @@
                                 <div class="border border-gray-200 rounded-lg p-4 bg-white">
                                     <div class="flex items-center justify-between mb-2">
                                         <h3 class="text-lg font-medium text-gray-900">@deliverable.Title</h3>
-                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                                                        @(deliverable.Status == "Approved" ? "bg-green-100 text-green-800" : deliverable.Status == "For Revision" ? "bg-orange-100 text-orange-800" : "bg-yellow-100 text-yellow-800")">
-                                            @deliverable.Status
-                                        </span>
+                                        <div class="flex gap-2">
+                                            @{
+                                                var effectiveStatus = GetDeliverableStatus(deliverable);
+                                            }
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium @GetStatusClass(effectiveStatus)">
+                                                @effectiveStatus
+                                            </span>
+                                            @if (IsDeliverableLate(deliverable))
+                                            {
+                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                    Late
+                                                </span>
+                                            }
+                                        </div>
                                     </div>
                                     <div class="text-sm text-gray-500 mb-4">
                                         Submitted on @deliverable.SubmittedAt.ToString("MMM dd, yyyy 'at' h:mm tt")
@@ -215,10 +248,20 @@
                                 <div class="border border-gray-200 rounded-lg p-4 bg-white">
                                     <div class="flex items-center justify-between mb-2">
                                         <h3 class="text-lg font-medium text-gray-900">@deliverable.Title</h3>
-                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                                                        @(deliverable.Status == "Approved" ? "bg-green-100 text-green-800" : deliverable.Status == "For Revision" ? "bg-orange-100 text-orange-800" : "bg-yellow-100 text-yellow-800")">
-                                            @deliverable.Status
-                                        </span>
+                                        <div class="flex gap-2">
+                                            @{
+                                                var effectiveStatus = GetDeliverableStatus(deliverable);
+                                            }
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium @GetStatusClass(effectiveStatus)">
+                                                @effectiveStatus
+                                            </span>
+                                            @if (IsDeliverableLate(deliverable))
+                                            {
+                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                    Late
+                                                </span>
+                                            }
+                                        </div>
                                     </div>
                                     <div class="text-sm text-gray-500 mb-4">
                                         Submitted on @deliverable.SubmittedAt.ToString("MMM dd, yyyy 'at' h:mm tt")
@@ -273,21 +316,21 @@
                                         </div>
                                     }
 
-                                                                         @if (deliverable.Status == "Submitted")
-                                     {
-                                         <div class="mt-4 flex gap-1">
-                                             <button type="button"
-                                                     onclick="openAcceptModal('@deliverable.Id', '@deliverable.Title')"
-                                                     class="focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2">
-                                                 Approve
-                                             </button>
-                                             <button type="button"
-                                                     onclick="openRevisionModal('@deliverable.Id', '@deliverable.Title')"
-                                                     class="focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2">
-                                                 Request Revision
-                                             </button>
-                                         </div>
-                                     }
+                                    @if (GetDeliverableStatus(deliverable) == "Submitted")
+                                    {
+                                        <div class="mt-4 flex gap-1">
+                                            <button type="button"
+                                                    onclick="openAcceptModal('@deliverable.Id', '@deliverable.Title')"
+                                                    class="focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2">
+                                                Approve
+                                            </button>
+                                            <button type="button"
+                                                    onclick="openRevisionModal('@deliverable.Id', '@deliverable.Title')"
+                                                    class="focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2">
+                                                Request Revision
+                                            </button>
+                                        </div>
+                                    }
                                 </div>
                             }
                         </div>
