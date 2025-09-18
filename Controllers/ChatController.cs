@@ -380,6 +380,29 @@ namespace Freelancing.Controllers
             return Json(new { success = true, chatList = chatList });
         }
 
+        [HttpGet("api/messages/unread-count")]
+        public async Task<IActionResult> GetUnreadCount()
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+
+                // Get total unread count across all chat rooms for the user
+                var totalUnreadCount = await _context.ChatMessages
+                    .Include(m => m.ChatRoom)
+                    .Where(m => (m.ChatRoom.User1Id == userId || m.ChatRoom.User2Id == userId)
+                               && m.SenderId != userId
+                               && !m.IsRead
+                               && !m.IsDeleted)
+                    .CountAsync();
+
+                return Ok(new { count = totalUnreadCount });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Failed to get unread message count" });
+            }
+        }
 
         private string GetRoomName(ChatRoom chatRoom, UserAccount partner)
         {

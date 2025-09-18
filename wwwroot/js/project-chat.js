@@ -388,15 +388,14 @@ function addMessageToChat(message) {
     const senderName = message.SenderName || message.senderName || 'Unknown User';
 
     messageDiv.innerHTML = `
-        <div class="message-bubble">
-            ${!isOwnMessage ? `<div class="message-sender">${escapeHtml(senderName)}</div>` : ''}
-            <div class="message-content">${escapeHtml(messageContent)}</div>
-            <div class="message-time" data-timestamp="${message.SentAt || message.sentAt}">
-                ${timeDisplay}
-                ${isOwnMessage ? '<i class="fas fa-check" title="Sent"></i>' : ''}
-            </div>
+    <div class="message-bubble">
+        <div class="message-content">${escapeHtml(messageContent)}</div>
+        <div class="message-time" data-timestamp="${message.SentAt || message.sentAt}">
+            ${timeDisplay}
+            ${isOwnMessage ? '<i class="fas fa-check" title="Sent"></i>' : ''}
         </div>
-    `;
+    </div>
+`;
 
     messagesContainer.appendChild(messageDiv);
     scrollToBottom();
@@ -480,15 +479,15 @@ function addFileMessageToChat(fileMessage) {
     }
 
     messageDiv.innerHTML = `
-        <div class="message-bubble">
-            ${!isOwnMessage ? `<div class="message-sender">${escapeHtml(senderName)}</div>` : ''}
-            ${contentHtml}
-            <div class="message-time" data-timestamp="${fileMessage.SentAt || fileMessage.sentAt}">
-                ${timeDisplay}
-                ${isOwnMessage ? '<i class="fas fa-check" title="Sent"></i>' : ''}
-            </div>
+    <div class="message-bubble">
+        <!-- ${!isOwnMessage ? `<div class="message-sender">${escapeHtml(senderName)}</div>` : ''} -->
+        ${contentHtml}
+        <div class="message-time" data-timestamp="${fileMessage.SentAt || fileMessage.sentAt}">
+            ${timeDisplay}
+            ${isOwnMessage ? '<i class="fas fa-check" title="Sent"></i>' : ''}
         </div>
-    `;
+    </div>
+`;
 
     messagesContainer.appendChild(messageDiv);
     scrollToBottom();

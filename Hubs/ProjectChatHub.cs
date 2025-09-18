@@ -80,7 +80,7 @@ namespace Freelancing.Hubs
             {
                 UserConnections.TryGetValue(userId, out connectionId);
             }
-            
+
             if (!string.IsNullOrEmpty(connectionId))
             {
                 await hubContext.Clients.Client(connectionId).SendAsync("UpdateNotificationCount", count);
@@ -135,7 +135,7 @@ namespace Freelancing.Hubs
             {
                 // Verify the user ID matches the authenticated user
                 var authenticatedUserId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                
+
                 if (string.IsNullOrEmpty(authenticatedUserId) || authenticatedUserId != userId)
                 {
                     await Clients.Caller.SendAsync("Error", "Access denied");
@@ -167,7 +167,7 @@ namespace Freelancing.Hubs
             try
             {
                 Console.WriteLine($"SendMessage called with: chatRoomId={chatRoomId}, message={message}, messageType={messageType}, targetUserId={targetUserId}");
-                
+
                 var userIdClaim = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userIdClaim))
                 {
@@ -187,19 +187,19 @@ namespace Freelancing.Hubs
 
                 ChatRoom chatRoom = null;
                 string actualChatRoomId = chatRoomId;
-                
+
                 Console.WriteLine($"Initial chatRoomId: {chatRoomId}, actualChatRoomId: {actualChatRoomId}");
 
                 // Check if this is a new chat (chatRoomId is "new" and targetUserId is provided)
                 if (chatRoomId == "new" && !string.IsNullOrEmpty(targetUserId))
                 {
                     var targetUserIdString = targetUserId;
-                    
+
                     // Check if a chat room already exists between these users
                     chatRoom = await _context.ChatRooms
-                        .FirstOrDefaultAsync(cr => 
-                            ((cr.User1Id == userId && cr.User2Id == targetUserIdString) || 
-                             (cr.User1Id == targetUserIdString && cr.User2Id == userId)) && 
+                        .FirstOrDefaultAsync(cr =>
+                            ((cr.User1Id == userId && cr.User2Id == targetUserIdString) ||
+                             (cr.User1Id == targetUserIdString && cr.User2Id == userId)) &&
                             cr.RoomType == "General" && cr.IsActive);
 
                     if (chatRoom == null)
@@ -225,26 +225,26 @@ namespace Freelancing.Hubs
 
                         _context.ChatRooms.Add(chatRoom);
                         await _context.SaveChangesAsync();
-                        
+
                         actualChatRoomId = chatRoom.Id.ToString();
                         Console.WriteLine($"Created new chat room: {actualChatRoomId}");
-                        
+
                         // Join the new room
                         var newRoomName = $"chat_{actualChatRoomId}";
                         await Groups.AddToGroupAsync(Context.ConnectionId, newRoomName);
-                        
+
                         // Also add the target user to the group if they're online
                         string targetUserConnectionId = null;
                         lock (_lockObject)
                         {
                             UserConnections.TryGetValue(targetUserIdString, out targetUserConnectionId);
                         }
-                        
+
                         if (!string.IsNullOrEmpty(targetUserConnectionId))
                         {
                             await Groups.AddToGroupAsync(targetUserConnectionId, newRoomName);
                         }
-                        
+
                         // Update room connections tracking
                         lock (_lockObject)
                         {
@@ -258,7 +258,7 @@ namespace Freelancing.Hubs
                                 RoomConnections[newRoomName].Add(targetUserConnectionId);
                             }
                         }
-                        
+
                         // Notify the caller about the new chat room
                         await Clients.Caller.SendAsync("ChatRoomCreated", actualChatRoomId);
                     }
@@ -281,7 +281,7 @@ namespace Freelancing.Hubs
                         await Clients.Caller.SendAsync("Error", "Access denied or chat room not found");
                         return;
                     }
-                    
+
                     Console.WriteLine($"Using existing chat room: {actualChatRoomId}");
                 }
 
@@ -304,10 +304,10 @@ namespace Freelancing.Hubs
                 };
 
                 _context.ChatMessages.Add(chatMessage);
-                
+
                 // Update last activity
                 chatRoom.LastActivityAt = DateTime.UtcNow.ToLocalTime();
-                
+
                 await _context.SaveChangesAsync();
 
                 // Send to all users in the room
@@ -322,9 +322,9 @@ namespace Freelancing.Hubs
                     SentAt = chatMessage.SentAt.ToString("yyyy-MM-ddTHH:mm:ss"),
                     IsRead = false
                 };
-                
+
                 Console.WriteLine($"Sending message to room {roomName}: {System.Text.Json.JsonSerializer.Serialize(messageObject)}");
-                
+
                 // Check if sender is in the group
                 lock (_lockObject)
                 {
@@ -347,17 +347,25 @@ namespace Freelancing.Hubs
                         }
                     }
                 }
-                
+
                 await Clients.Group(roomName).SendAsync("ReceiveMessage", messageObject);
 
                 // Update notification count for other user
                 var otherUserId = chatRoom.User1Id == userId ? chatRoom.User2Id : chatRoom.User1Id;
-                var unreadCount = await _context.ChatMessages
-                    .CountAsync(m => m.ChatRoomId == chatRoom.Id && 
-                                    m.SenderId != otherUserId && 
-                                    !m.IsRead && 
-                                    !m.IsDeleted);
-                await UpdateNotificationCount(Context.GetHttpContext().RequestServices.GetRequiredService<IHubContext<ChatHub>>(), otherUserId, unreadCount);
+
+                var totalUnreadCount = await _context.ChatMessages
+                    .Include(m => m.ChatRoom)
+                    .Where(m => (m.ChatRoom.User1Id == otherUserId || m.ChatRoom.User2Id == otherUserId)
+                                && m.SenderId != otherUserId
+                                && !m.IsRead
+                                && !m.IsDeleted)
+                    .CountAsync();
+
+                await UpdateNotificationCount(
+                    Context.GetHttpContext().RequestServices.GetRequiredService<IHubContext<ChatHub>>(),
+                    otherUserId,
+                    totalUnreadCount
+                );
             }
             catch (Exception ex)
             {
@@ -456,10 +464,10 @@ namespace Freelancing.Hubs
                 };
 
                 _context.ChatMessages.Add(chatMessage);
-                
+
                 // Update last activity
                 chatRoom.LastActivityAt = DateTime.UtcNow.ToLocalTime();
-                
+
                 await _context.SaveChangesAsync();
 
                 // Send to all users in the room
@@ -477,19 +485,25 @@ namespace Freelancing.Hubs
                     SentAt = chatMessage.SentAt.ToString("yyyy-MM-ddTHH:mm:ss"),
                     IsRead = false
                 };
-                
+
                 Console.WriteLine($"Sending file message to room {roomName}: {System.Text.Json.JsonSerializer.Serialize(fileMessageObject)}");
-                
+
                 await Clients.Group(roomName).SendAsync("ReceiveFile", fileMessageObject);
 
                 // Update notification count for other user
                 var otherUserId = chatRoom.User1Id == userId ? chatRoom.User2Id : chatRoom.User1Id;
-                var unreadCount = await _context.ChatMessages
-                    .CountAsync(m => m.ChatRoomId == chatRoom.Id && 
-                                    m.SenderId != otherUserId && 
-                                    !m.IsRead && 
-                                    !m.IsDeleted);
-                await UpdateNotificationCount(Context.GetHttpContext().RequestServices.GetRequiredService<IHubContext<ChatHub>>(), otherUserId, unreadCount);
+                var totalUnreadCount = await _context.ChatMessages
+                    .Include(m => m.ChatRoom)
+                    .Where(m => (m.ChatRoom.User1Id == otherUserId || m.ChatRoom.User2Id == otherUserId)
+                                && m.SenderId != otherUserId
+                                && !m.IsRead
+                                && !m.IsDeleted)
+                    .CountAsync();
+                await UpdateNotificationCount(
+                    Context.GetHttpContext().RequestServices.GetRequiredService<IHubContext<ChatHub>>(),
+                    otherUserId,
+                    totalUnreadCount
+                );
             }
             catch (Exception ex)
             {
@@ -525,9 +539,9 @@ namespace Freelancing.Hubs
 
                 // Mark messages as read
                 var unreadMessages = await _context.ChatMessages
-                    .Where(m => m.ChatRoomId == chatRoom.Id && 
-                               m.SenderId != userId && 
-                               !m.IsRead && 
+                    .Where(m => m.ChatRoomId == chatRoom.Id &&
+                               m.SenderId != userId &&
+                               !m.IsRead &&
                                !m.IsDeleted)
                     .ToListAsync();
 
@@ -654,7 +668,7 @@ namespace Freelancing.Hubs
                 // Also send to the partner's personal room (for global notifications)
                 var partnerId = chatRoom.User1Id == userId ? chatRoom.User2Id : chatRoom.User1Id;
                 var partnerRoomName = $"user_{partnerId}";
-                
+
                 await Clients.Group(partnerRoomName).SendAsync("IncomingVideoCall", new
                 {
                     CallerId = userId.ToString(),
@@ -959,6 +973,68 @@ namespace Freelancing.Hubs
             {
                 Console.WriteLine($"Error in SendIceCandidate: {ex.Message}");
                 await Clients.Caller.SendAsync("Error", "Failed to send ICE candidate");
+            }
+        }
+
+        public async Task GetTotalUnreadCount()
+        {
+            try
+            {
+                var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    await Clients.Caller.SendAsync("Error", "User not authenticated");
+                    return;
+                }
+
+                var totalUnreadCount = await _context.ChatMessages
+                    .Include(m => m.ChatRoom)
+                    .Where(m => (m.ChatRoom.User1Id == userId || m.ChatRoom.User2Id == userId)
+                               && m.SenderId != userId
+                               && !m.IsRead
+                               && !m.IsDeleted)
+                    .CountAsync();
+
+                await Clients.Caller.SendAsync("TotalUnreadCount", totalUnreadCount);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting total unread count: {ex.Message}");
+                await Clients.Caller.SendAsync("Error", "Failed to get unread count");
+            }
+        }
+        public async Task MarkAllMessagesAsRead(string chatRoomId)
+        {
+            try
+            {
+                var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return;
+                }
+
+                // Mark messages as read (reuse existing MarkAsRead logic)
+                await MarkAsRead(chatRoomId);
+
+                // Get updated total unread count
+                var totalUnreadCount = await _context.ChatMessages
+                    .Include(m => m.ChatRoom)
+                    .Where(m => (m.ChatRoom.User1Id == userId || m.ChatRoom.User2Id == userId)
+                               && m.SenderId != userId
+                               && !m.IsRead
+                               && !m.IsDeleted)
+                    .CountAsync();
+
+                // Update the user's notification count
+                await UpdateNotificationCount(
+                    Context.GetHttpContext().RequestServices.GetRequiredService<IHubContext<ChatHub>>(),
+                    userId,
+                    totalUnreadCount
+                );
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error marking all messages as read: {ex.Message}");
             }
         }
     }
