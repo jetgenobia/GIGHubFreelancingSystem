@@ -233,7 +233,7 @@
                                                 </g>
                                             </svg>
                                             View Contract
-                                            @if (!string.IsNullOrEmpty(contractStatus))
+                                            @* @if (!string.IsNullOrEmpty(contractStatus))
                                             {
                                                 <span class="ml-2 text-xs px-2 py-1 rounded-full
                                                                             @(contractStatus == "Active" ? "bg-green-500 text-white" :
@@ -242,7 +242,7 @@
                                                                                                                                                           contractStatus == "Draft" ? "bg-gray-500 text-white" : "bg-blue-500 text-white")">
                                     @contractStatus
                                 </span>
-                                                                }
+                                                                } *@
                                         </a>
                                     }
                                 }

@@ -1,0 +1,107 @@
+﻿@{
+    Layout = "_LayoutClient";
+    ViewData["Title"] = "Biddings";
+}
+
+@model Freelancing.Models.Biddings
+
+<div class="p-4 sm:ml-64">
+    <div class="p-4 mt-20">
+        <div class="mt-4">
+            <div class="block w-full p-6">
+                <div class="flex items-center space-x-4">
+                    <a href="@Url.Action("Dashboard", "Client")" class="text-blue-600 hover:text-blue-800">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                    </a>
+                    <h2 class="text-2xl font-bold text-gray-900">Manage Biddings</h2>
+                </div>
+
+                <div class="w-full max-w mt-4 p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <h5 class="text-xl font-bold leading-none text-gray-900">Open Projects</h5>
+                    </div>
+                    <div class="flow-root">
+                        <ul role="list" class="divide-y divide-gray-300">
+                            @{
+                                var openProjects = (Model.Projects ?? Enumerable.Empty<Freelancing.Models.Entities.Project>())
+                                .Where(p => p.AcceptedBidId == null)
+                                .ToList();
+                            }
+
+                            @if (openProjects.Any())
+                            {
+                                @foreach (var project in openProjects)
+                                {
+                                    <li class="py-3 sm:py-4">
+                                        <div class="flex items-center">
+                                            <div class="flex-1 min-w-0">
+                                                <p class="me-1 text-sm font-medium text-gray-900 truncate">
+                                                    @project.ProjectName
+                                                </p>
+                                                <p class="text-xs text-gray-500">Created: @project.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt")</p>
+                                            </div>
+                                            <div class="inline-flex items-center text-base font-semibold text-gray-900">
+                                                <a class="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-3 py-2 me-2 mb-2"
+                                                   asp-controller="Client" asp-action="ManageBid" asp-route-id="@project.Id"> Manage </a>
+                                            </div>
+                                        </div>
+                                    </li>
+                                }
+                            }
+                            else
+                            {
+                                <li class="py-3 sm:py-4 text-center">
+                                    <div class="text-sm text-gray-500">No projects currently open for bidding.</div>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="w-full max-w mt-4 p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <h5 class="text-xl font-bold leading-none text-gray-900">Archived Projects</h5>
+                    </div>
+                    <div class="flow-root">
+                        <ul role="list" class="divide-y divide-gray-300">
+                            @{
+                                var archivedProjects = (Model.Projects ?? Enumerable.Empty<Freelancing.Models.Entities.Project>())
+                                .Where(p => p.AcceptedBidId != null)
+                                .ToList();
+                            }
+
+                            @if (archivedProjects.Any())
+                            {
+                                @foreach (var project in archivedProjects)
+                                {
+                                    <li class="py-3 sm:py-4">
+                                        <div class="flex items-center">
+                                            <div class="flex-1 min-w-0">
+                                                <p class="me-1 text-sm font-medium text-gray-900 truncate">
+                                                    @project.ProjectName
+                                                </p>
+                                                <p class="text-xs text-gray-500">Created: @project.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt")</p>
+                                            </div>
+                                            <div class="inline-flex items-center text-base font-semibold text-gray-900">
+                                                <a class="text-gray-900 bg-gray-200 border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-3 py-2 me-2 mb-2"
+                                                   asp-controller="Client" asp-action="ManageBid" asp-route-id="@project.Id"> View </a>
+                                            </div>
+                                        </div>
+                                    </li>
+                                }
+                            }
+                            else
+                            {
+                                <li class="py-3 sm:py-4 text-center">
+                                    <div class="text-sm text-gray-500">No projects currently open for bidding.</div>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

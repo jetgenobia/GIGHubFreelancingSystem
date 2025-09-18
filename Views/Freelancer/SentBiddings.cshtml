@@ -1,0 +1,187 @@
+﻿@{
+    Layout = "_LayoutFreelancer";
+    ViewData["Title"] = "Biddings Status";
+}
+
+@model Freelancing.Models.FreelancerDashboard
+
+<div class="p-4 sm:ml-64">
+    <div class="p-4 mt-20">
+        <div class="mt-4">
+            <div class="block w-full p-6">
+                <div class="flex items-center space-x-4">
+                    <a href="@Url.Action("Dashboard", "Freelancer")" class="text-blue-600 hover:text-blue-800">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                    </a>
+                    <h2 class="text-2xl font-bold text-gray-900">Sent Biddings</h2>
+                </div>
+
+                <div class="w-full max-w mt-4 p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <h5 class="text-xl font-bold leading-none text-gray-900">Pending Bids</h5>
+                    </div>
+                    <div class="flow-root">
+                        <ul role="list" class="divide-y divide-gray-300">
+                            @{
+                                var pendingBids = (Model.Biddings ?? Enumerable.Empty<Freelancing.Models.Entities.Bidding>())
+                                .Where(b => b.Project != null && b.Project.AcceptedBidId == null)
+                                .ToList();
+                            }
+
+                            @foreach (var bid in pendingBids)
+                            {
+                                <li class="py-3 sm:py-4">
+                                    <div class="flex items-center">
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-md font-medium text-gray-900 truncate">
+                                                @bid.Project.ProjectName
+                                            </p>
+                                            <div class="flex items-center">
+                                                <h5 class="text-sm font-light tracking-tight text-gray-900">Proposed Budget:</h5>
+                                                <span class="ms-2 text-sm font-light tracking-tight text-gray-900">₱@bid.Budget</span>
+                                            </div>
+                                            <div class="flex items-center mb-2">
+                                                <h5 class="text-sm font-light tracking-tight text-gray-900">Proposed Delivery Time:</h5>
+                                                <span class="ms-2 text-sm font-light tracking-tight text-gray-900">@bid.Delivery</span>
+                                            </div>
+                                        </div>
+                                        <div class="flex-items justify-center items-center ">
+                                            @if (bid.Project.AcceptedBidId != null)
+                                            {
+                                                @if (bid.Project.AcceptedBidId == bid.Id)
+                                                {
+                                                    <div class="inline-block">
+                                                        <img class="w-auto h-7" src="https://ik.imagekit.io/6txj3mofs/accept.png?updatedAt=1750270981334" />
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="inline-block">
+                                                        <img class="w-auto h-8" src="https://ik.imagekit.io/6txj3mofs/reject.png?updatedAt=1750270981446" />
+                                                    </div>
+                                                }
+
+                                            }
+                                            else
+                                            {
+
+                                            }
+                                        </div>
+                                    </div>
+                                </li>
+                            }
+                            @if (!pendingBids.Any())
+                            {
+                                <li class="py-3 sm:py-4 text-center">
+                                    <div class="text-sm text-gray-500">No pending bids.</div>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="w-full max-w mt-4 p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <h5 class="text-xl font-bold leading-none text-gray-900">Accepted Bids</h5>
+                    </div>
+                    <div class="flow-root">
+                        <ul role="list" class="divide-y divide-gray-300">
+                            @{
+                                var acceptedBids = (Model.Biddings ?? Enumerable.Empty<Freelancing.Models.Entities.Bidding>())
+                                .Where(b => b.Project != null
+                                && b.Project.AcceptedBidId != null
+                                && b.Project.AcceptedBidId == b.Id)
+                                .ToList();
+                            }
+
+                            @foreach (var bid in acceptedBids)
+                            {
+                                <li class="py-3 sm:py-4">
+                                    <div class="flex items-center">
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-md font-medium text-gray-900 truncate">
+                                                @bid.Project.ProjectName
+                                            </p>
+                                            <div class="flex items-center">
+                                                <h5 class="text-sm font-light tracking-tight text-gray-900">Proposed Budget:</h5>
+                                                <span class="ms-2 text-sm font-light tracking-tight text-gray-900">₱@bid.Budget</span>
+                                            </div>
+                                            <div class="flex items-center mb-2">
+                                                <h5 class="text-sm font-light tracking-tight text-gray-900">Proposed Delivery Time:</h5>
+                                                <span class="ms-2 text-sm font-light tracking-tight text-gray-900">@bid.Delivery</span>
+                                            </div>
+                                        </div>
+                                        <div class="flex-items justify-center items-center ">
+                                            <div class="inline-block">
+                                                <img class="w-auto h-8" src="https://ik.imagekit.io/6txj3mofs/accept.png?updatedAt=1750270981334" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </li>
+                            }
+
+                            @if (!acceptedBids.Any())
+                            {
+                                <li class="py-3 sm:py-4 text-center">
+                                    <div class="text-sm text-gray-500">No rejected bids.</div>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="w-full max-w mt-4 p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <h5 class="text-xl font-bold leading-none text-gray-900">Rejected Bids</h5>
+                    </div>
+                    <div class="flow-root">
+                        <ul role="list" class="divide-y divide-gray-300">
+                            @{
+                                var rejectedBids = (Model.Biddings ?? Enumerable.Empty<Freelancing.Models.Entities.Bidding>())
+                                .Where(b => b.Project != null
+                                && b.Project.AcceptedBidId != null
+                                && b.Project.AcceptedBidId != b.Id)
+                                .ToList();
+                            }
+
+                            @foreach (var bid in rejectedBids)
+                            {
+                                <li class="py-3 sm:py-4">
+                                    <div class="flex items-center">
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-md font-medium text-gray-900 truncate">
+                                                @bid.Project.ProjectName
+                                            </p>
+                                            <div class="flex items-center">
+                                                <h5 class="text-sm font-light tracking-tight text-gray-900">Proposed Budget:</h5>
+                                                <span class="ms-2 text-sm font-light tracking-tight text-gray-900">₱@bid.Budget</span>
+                                            </div>
+                                            <div class="flex items-center mb-2">
+                                                <h5 class="text-sm font-light tracking-tight text-gray-900">Proposed Delivery Time:</h5>
+                                                <span class="ms-2 text-sm font-light tracking-tight text-gray-900">@bid.Delivery</span>
+                                            </div>
+                                        </div>
+                                        <div class="flex-items justify-center items-center ">
+                                            <div class="inline-block">
+                                                <img class="w-auto h-8" src="https://ik.imagekit.io/6txj3mofs/reject.png?updatedAt=1750270981446" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </li>
+                            }
+
+                            @if (!rejectedBids.Any())
+                            {
+                                <li class="py-3 sm:py-4 text-center">
+                                    <div class="text-sm text-gray-500">No rejected bids.</div>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

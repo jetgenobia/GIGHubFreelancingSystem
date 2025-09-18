@@ -62,6 +62,7 @@ namespace Freelancing.Controllers
             // Fetch projects associated with the logged-in user, including accepted bids.
             var projects = await dbContext.Projects
                 .Include(p => p.AcceptedBid)
+                .ThenInclude(b => b.User)
                 .Where(p => p.UserId == userId)
                 .ToListAsync();
 
@@ -107,6 +108,138 @@ namespace Freelancing.Controllers
             {
                 ViewBag.Message = message;
             }
+
+            return View(viewModel);
+        }
+
+        public async Task<IActionResult> ActiveProjects(string message = null)
+        {
+            // Get the user ID from the claims to filter projects by the logged-in user.
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            // Fetch projects associated with the logged-in user, including accepted bids.
+            var projects = await dbContext.Projects
+                .Include(p => p.AcceptedBid)
+                .ThenInclude(b => b.User)
+                .Where(p => p.UserId == userId)
+                .ToListAsync();
+
+            // Sum budgets of accepted bids only for projects with Status == "Completed"
+            var totalAcceptedBudgetForCompleted = await dbContext.Biddings
+                .Where(b => b.Project.UserId == userId && b.IsAccepted && b.Project.Status == "Completed")
+                .SumAsync(b => (int?)b.Budget) ?? 0;
+
+            ViewBag.TotalAcceptedBudget = totalAcceptedBudgetForCompleted;
+
+            var biddings = await dbContext.Biddings
+                .Where(b => b.Project.UserId == userId)
+                .ToListAsync();
+
+            var terminatedContracts = await dbContext.Contracts
+                .Include(c => c.Project)
+                .Where(c => c.Project != null && c.Project.UserId == userId && c.Status == "Terminated")
+                .ToListAsync();
+
+            var terminatedProjectIds = terminatedContracts.Select(c => c.ProjectId).ToHashSet();
+
+            ViewBag.TerminatedProjectIds = terminatedProjectIds;
+
+            var feedbacks = await dbContext.FreelancerFeedbacks
+                .Where(f => f.AcceptBidding != null && f.AcceptBidding.Project.UserId == userId)
+                .Include(f => f.Freelancer)
+                .Include(f => f.AcceptBidding)
+                    .ThenInclude(b => b.Project)
+                .Where(f => f.AcceptBidding != null && f.AcceptBidding.Project.UserId == userId)
+                .ToListAsync();
+
+            // Create a view model to hold project statistics and the list of projects.
+            var viewModel = new ClientDashboard
+            {
+                Projects = projects,
+                TotalProjects = projects.Count,
+                OpenProjects = projects.Count(p => !p.AcceptedBidId.HasValue),
+                ClosedProjects = projects.Count(p => p.AcceptedBidId.HasValue),
+                freelancerFeedbacks = feedbacks
+            };
+
+            if (!string.IsNullOrEmpty(message))
+            {
+                ViewBag.Message = message;
+            }
+
+            return View(viewModel);
+        }
+
+        public async Task<IActionResult> Biddings()
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            var projects = await dbContext.Projects
+                .Include(p => p.AcceptedBid)
+                .Where(p => p.UserId == userId)
+                .ToListAsync();
+
+            var biddings = await dbContext.Biddings
+                .Where(b => b.Project.UserId == userId)
+                .ToListAsync();
+
+            var viewModel = new Biddings
+            {
+                Projects = projects,
+                OpenProjects = projects.Count(p => !p.AcceptedBidId.HasValue),
+                ClosedProjects = projects.Count(p => p.AcceptedBidId.HasValue),
+            };
+
+            return View(viewModel);
+        }
+
+        public async Task<IActionResult> Postings()
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            var projects = await dbContext.Projects
+                .Include(p => p.AcceptedBid)
+                .Where(p => p.UserId == userId)
+                .ToListAsync();
+
+            var biddings = await dbContext.Biddings
+                .Where(b => b.Project.UserId == userId)
+                .ToListAsync();
+
+            var viewModel = new Postings
+            {
+                Projects = projects,
+                OpenProjects = projects.Count(p => !p.AcceptedBidId.HasValue),
+                ClosedProjects = projects.Count(p => p.AcceptedBidId.HasValue),
+            };
+
+            return View(viewModel);
+        }
+
+        public async Task<IActionResult> Feedbacks()
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            var feedbacks = await dbContext.FreelancerFeedbacks
+                .Where(f => f.AcceptBidding != null && f.AcceptBidding.Project.UserId == userId)
+                .Include(f => f.Freelancer)
+                .Include(f => f.AcceptBidding)
+                    .ThenInclude(b => b.Project)
+                .Where(f => f.AcceptBidding != null && f.AcceptBidding.Project.UserId == userId)
+                .ToListAsync();
+
+            var viewModel = new Feedbacks
+            {
+                freelancerFeedbacks = feedbacks
+            };
 
             return View(viewModel);
         }

@@ -117,6 +117,258 @@ namespace Freelancing.Controllers
 
             return View(viewModel);
         }
+
+        public async Task<IActionResult> ActiveProjects(Guid projectId)
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            int totalAccepted = dbContext.Biddings.Count(p => p.UserId == userId && p.IsAccepted != false);
+            ViewBag.TotalAccepted = totalAccepted;
+
+            var biddings = await dbContext.Biddings
+                .Include(b => b.Project)
+                .ThenInclude(p => p.User)
+                .Where(b => b.UserId == userId)
+                .ToListAsync();
+
+            var totalCompletedProjects = await dbContext.Biddings
+                .Where(b => b.UserId == userId && b.IsAccepted && b.Project.Status == "Completed")
+                .Select(b => b.ProjectId)
+                .Distinct()
+                .CountAsync();
+
+            ViewBag.TotalAcceptedProjects = totalCompletedProjects;
+
+            var totalAcceptedBudget = await dbContext.Biddings
+                .Where(b => b.UserId == userId && b.IsAccepted && b.Project.Status == "Completed")
+                .SumAsync(b => (int?)b.Budget) ?? 0;
+
+            ViewBag.TotalAcceptedBudget = totalAcceptedBudget;
+
+            var terminatedContracts = await dbContext.Contracts
+                .Include(c => c.Project)
+                .Include(c => c.Bidding)
+                .Where(c => c.Bidding.UserId == userId && c.Status == "Terminated")
+                .ToListAsync();
+
+            var terminatedProjectIds = terminatedContracts.Select(c => c.ProjectId).ToHashSet();
+
+            ViewBag.TerminatedProjectIds = terminatedProjectIds;
+
+            var projects = await dbContext.Projects
+                .Include(p => p.Biddings)
+                .ThenInclude(b => b.User)
+                .FirstOrDefaultAsync(p => p.Id == projectId);
+
+            var receivedFeedbacks = await dbContext.FreelancerFeedbacks
+                .Include(f => f.AcceptBidding)
+                    .ThenInclude(b => b.Project)
+                        .ThenInclude(p => p.User)
+                .Include(f => f.Freelancer)
+                .Where(f => f.FreelancerId == userId)
+                .OrderByDescending(f => f.CreatedAt)
+                .ToListAsync();
+
+            var viewModel = new FreelancerDashboard
+            {
+                Biddings = biddings,
+                Project = projects,
+                ReceivedFeedbacks = receivedFeedbacks
+            };
+
+            return View(viewModel);
+        }
+
+        public async Task<IActionResult> SentBiddings(Guid projectId)
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            int totalAccepted = dbContext.Biddings.Count(p => p.UserId == userId && p.IsAccepted != false);
+            ViewBag.TotalAccepted = totalAccepted;
+
+            var biddings = await dbContext.Biddings
+                .Include(b => b.Project)
+                .ThenInclude(p => p.User)
+                .Where(b => b.UserId == userId)
+                .ToListAsync();
+
+            var totalCompletedProjects = await dbContext.Biddings
+                .Where(b => b.UserId == userId && b.IsAccepted && b.Project.Status == "Completed")
+                .Select(b => b.ProjectId)
+                .Distinct()
+                .CountAsync();
+
+            ViewBag.TotalAcceptedProjects = totalCompletedProjects;
+
+            var totalAcceptedBudget = await dbContext.Biddings
+                .Where(b => b.UserId == userId && b.IsAccepted && b.Project.Status == "Completed")
+                .SumAsync(b => (int?)b.Budget) ?? 0;
+
+            ViewBag.TotalAcceptedBudget = totalAcceptedBudget;
+
+            var terminatedContracts = await dbContext.Contracts
+                .Include(c => c.Project)
+                .Include(c => c.Bidding)
+                .Where(c => c.Bidding.UserId == userId && c.Status == "Terminated")
+                .ToListAsync();
+
+            var terminatedProjectIds = terminatedContracts.Select(c => c.ProjectId).ToHashSet();
+
+            ViewBag.TerminatedProjectIds = terminatedProjectIds;
+
+            var projects = await dbContext.Projects
+                .Include(p => p.Biddings)
+                .ThenInclude(b => b.User)
+                .FirstOrDefaultAsync(p => p.Id == projectId);
+
+            var receivedFeedbacks = await dbContext.FreelancerFeedbacks
+                .Include(f => f.AcceptBidding)
+                    .ThenInclude(b => b.Project)
+                        .ThenInclude(p => p.User)
+                .Include(f => f.Freelancer)
+                .Where(f => f.FreelancerId == userId)
+                .OrderByDescending(f => f.CreatedAt)
+                .ToListAsync();
+
+            var viewModel = new FreelancerDashboard
+            {
+                Biddings = biddings,
+                Project = projects,
+                ReceivedFeedbacks = receivedFeedbacks
+            };
+
+            return View(viewModel);
+        }
+
+        public async Task<IActionResult> ManageSentBiddings(Guid projectId)
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            int totalAccepted = dbContext.Biddings.Count(p => p.UserId == userId && p.IsAccepted != false);
+            ViewBag.TotalAccepted = totalAccepted;
+
+            var biddings = await dbContext.Biddings
+                .Include(b => b.Project)
+                .ThenInclude(p => p.User)
+                .Where(b => b.UserId == userId)
+                .ToListAsync();
+
+            var totalCompletedProjects = await dbContext.Biddings
+                .Where(b => b.UserId == userId && b.IsAccepted && b.Project.Status == "Completed")
+                .Select(b => b.ProjectId)
+                .Distinct()
+                .CountAsync();
+
+            ViewBag.TotalAcceptedProjects = totalCompletedProjects;
+
+            var totalAcceptedBudget = await dbContext.Biddings
+                .Where(b => b.UserId == userId && b.IsAccepted && b.Project.Status == "Completed")
+                .SumAsync(b => (int?)b.Budget) ?? 0;
+
+            ViewBag.TotalAcceptedBudget = totalAcceptedBudget;
+
+            var terminatedContracts = await dbContext.Contracts
+                .Include(c => c.Project)
+                .Include(c => c.Bidding)
+                .Where(c => c.Bidding.UserId == userId && c.Status == "Terminated")
+                .ToListAsync();
+
+            var terminatedProjectIds = terminatedContracts.Select(c => c.ProjectId).ToHashSet();
+
+            ViewBag.TerminatedProjectIds = terminatedProjectIds;
+
+            var projects = await dbContext.Projects
+                .Include(p => p.Biddings)
+                .ThenInclude(b => b.User)
+                .FirstOrDefaultAsync(p => p.Id == projectId);
+
+            var receivedFeedbacks = await dbContext.FreelancerFeedbacks
+                .Include(f => f.AcceptBidding)
+                    .ThenInclude(b => b.Project)
+                        .ThenInclude(p => p.User)
+                .Include(f => f.Freelancer)
+                .Where(f => f.FreelancerId == userId)
+                .OrderByDescending(f => f.CreatedAt)
+                .ToListAsync();
+
+            var viewModel = new FreelancerDashboard
+            {
+                Biddings = biddings,
+                Project = projects,
+                ReceivedFeedbacks = receivedFeedbacks
+            };
+
+            return View(viewModel);
+        }
+
+        public async Task<IActionResult> Feedbacks(Guid projectId)
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            int totalAccepted = dbContext.Biddings.Count(p => p.UserId == userId && p.IsAccepted != false);
+            ViewBag.TotalAccepted = totalAccepted;
+
+            var biddings = await dbContext.Biddings
+                .Include(b => b.Project)
+                .ThenInclude(p => p.User)
+                .Where(b => b.UserId == userId)
+                .ToListAsync();
+
+            var totalCompletedProjects = await dbContext.Biddings
+                .Where(b => b.UserId == userId && b.IsAccepted && b.Project.Status == "Completed")
+                .Select(b => b.ProjectId)
+                .Distinct()
+                .CountAsync();
+
+            ViewBag.TotalAcceptedProjects = totalCompletedProjects;
+
+            var totalAcceptedBudget = await dbContext.Biddings
+                .Where(b => b.UserId == userId && b.IsAccepted && b.Project.Status == "Completed")
+                .SumAsync(b => (int?)b.Budget) ?? 0;
+
+            ViewBag.TotalAcceptedBudget = totalAcceptedBudget;
+
+            var terminatedContracts = await dbContext.Contracts
+                .Include(c => c.Project)
+                .Include(c => c.Bidding)
+                .Where(c => c.Bidding.UserId == userId && c.Status == "Terminated")
+                .ToListAsync();
+
+            var terminatedProjectIds = terminatedContracts.Select(c => c.ProjectId).ToHashSet();
+
+            ViewBag.TerminatedProjectIds = terminatedProjectIds;
+
+            var projects = await dbContext.Projects
+                .Include(p => p.Biddings)
+                .ThenInclude(b => b.User)
+                .FirstOrDefaultAsync(p => p.Id == projectId);
+
+            var receivedFeedbacks = await dbContext.FreelancerFeedbacks
+                .Include(f => f.AcceptBidding)
+                    .ThenInclude(b => b.Project)
+                        .ThenInclude(p => p.User)
+                .Include(f => f.Freelancer)
+                .Where(f => f.FreelancerId == userId)
+                .OrderByDescending(f => f.CreatedAt)
+                .ToListAsync();
+
+            var viewModel = new FreelancerDashboard
+            {
+                Biddings = biddings,
+                Project = projects,
+                ReceivedFeedbacks = receivedFeedbacks
+            };
+
+            return View(viewModel);
+        }
         // Displays the feed of all projects available for bidding.
         [HttpGet]
         public async Task<IActionResult> Feed()

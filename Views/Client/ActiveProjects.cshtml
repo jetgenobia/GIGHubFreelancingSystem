@@ -1,0 +1,66 @@
+﻿@{
+    Layout = "_LayoutClient";
+    ViewData["Title"] = "Active Projects";
+}
+
+@model Freelancing.Models.ClientDashboard
+
+<div class="p-4 sm:ml-64">
+    <div class="p-4 mt-20">
+        <div class="mt-4">
+            <div class="block w-full p-6">
+                <div class="flex items-center space-x-4">
+                    <a href="@Url.Action("Dashboard", "Client")" class="text-blue-600 hover:text-blue-800">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                    </a>
+                    <h2 class="text-2xl font-bold text-gray-900">Active Projects</h2>
+                </div>
+
+                <div class="w-full max-w mt-4 p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
+                    <div class="flow-root">
+                        <ul role="list" class="divide-y divide-gray-300">
+                            @{
+                                var activeProjects = (Model.Projects ?? Enumerable.Empty<dynamic>())
+                                .Where(p => !string.IsNullOrWhiteSpace((string?)p.Status) &&
+                                string.Equals((string?)p.Status, "Active", StringComparison.OrdinalIgnoreCase) &&
+                                !((HashSet<Guid>)ViewBag.TerminatedProjectIds).Contains(p.Id))
+                                .ToList();
+                            }
+
+                            @if (activeProjects.Any())
+                            {
+                                @foreach (var project in activeProjects)
+                                {
+                                    <li class="py-3 sm:py-4">
+                                        <div class="flex items-center">
+                                            <div class="flex-1 min-w-0">
+                                                <p class="text-sm font-medium text-gray-900 truncate">
+                                                    @project.ProjectName
+                                                </p>
+                                                <p class="text-xs text-gray-500">
+                                                    Freelancer: @(project.AcceptedBid?.User != null ? $"{project.AcceptedBid.User.FirstName} {project.AcceptedBid.User.LastName}" : "—")
+                                                </p>
+                                            </div>
+                                            <div class="inline-flex items-center text-base font-semibold text-gray-900">
+                                                <a class="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-6 py-2 me-2 mb-2"
+                                                   asp-controller="ManageProjectClient" asp-action="Details" asp-route-id="@project.Id"> View </a>
+                                            </div>
+                                        </div>
+                                    </li>
+                                }
+                            }
+                            else
+                            {
+                                <li class="py-3 sm:py-4 text-center">
+                                    <div class="text-sm text-gray-500">No active projects.</div>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
