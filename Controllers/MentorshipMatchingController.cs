@@ -30,13 +30,23 @@ namespace Freelancing.Controllers
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
-            // Check if user is registered in mentorship program
+            var userAccount = await _context.UserAccounts
+                .FirstOrDefaultAsync(ua => ua.Id == userId);
+
+            if (userAccount == null)
+                return Unauthorized();
+
             var mentorship = await _context.PeerMentorships
                 .FirstOrDefaultAsync(pm => pm.UserId == userId);
 
             if (mentorship == null)
             {
                 return RedirectToAction("Registration", "PeerMentorship");
+            }
+
+            if (mentorship.Role.ToLower() != "mentee")
+            {
+                return RedirectToAction("MentorDashboard", "MentorshipMatching", new { Id = mentorship.Id });
             }
 
             // Get user's skills
@@ -340,7 +350,27 @@ namespace Freelancing.Controllers
         }
         public async Task<IActionResult> MenteeDashboard()
         {
-            var currentUserId = GetCurrentUserId(); // Implement this method based on your auth system
+            var currentUserId = GetCurrentUserId();
+
+            var userAccount = await _context.UserAccounts
+                .FirstOrDefaultAsync(ua => ua.Id == currentUserId);
+
+            if (userAccount == null)
+                return Unauthorized();
+
+            var mentorship = await _context.PeerMentorships
+                .FirstOrDefaultAsync(pm => pm.UserId == currentUserId);
+
+            if (mentorship == null)
+            {
+                TempData["ErrorMessage"] = "You are not registered in the mentorship program.";
+                return RedirectToAction("Registration", "PeerMentorship");
+            }
+
+            if (mentorship.Role.ToLower() != "mentee")
+            {
+                return RedirectToAction("MentorDashboard", "MentorshipMatching", new { Id = mentorship.Id });
+            }
 
             var dashboardModel = new MenteeDashboard();
 
@@ -428,6 +458,27 @@ namespace Freelancing.Controllers
         public async Task<IActionResult> MentorDashboard()
         {
             var currentUserId = GetUserId();
+
+            var userAccount = await _context.UserAccounts
+                .FirstOrDefaultAsync(ua => ua.Id == currentUserId);
+
+            if (userAccount == null)
+                return Unauthorized();
+
+            var mentorship = await _context.PeerMentorships
+                .FirstOrDefaultAsync(pm => pm.UserId == currentUserId);
+
+            if (mentorship == null)
+            {
+                TempData["ErrorMessage"] = "You are not registered in the mentorship program.";
+                return RedirectToAction("Registration", "PeerMentorship");
+            }
+
+            if (mentorship.Role.ToLower() != "mentor")
+            {
+                return RedirectToAction("MenteeDashboard", "MentorshipMatching", new { Id = mentorship.Id });
+            }
+
             var dashboardModel = new MentorDashboard();
 
             // Get mentorship requests RECEIVED by this mentor
