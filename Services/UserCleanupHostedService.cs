@@ -70,11 +70,11 @@ namespace Freelancing.Services
             {
                 try
                 {
-                    user.Email = $"deleted+{user.Id}@deleted.local";
-                    user.UserName = $"deleted_{user.Id}";
+                    user.Email = $"gighubuser@gighub.local";
+                    user.UserName = $"gighubuser";
                     user.NormalizedEmail = user.Email.ToUpperInvariant();
                     user.NormalizedUserName = user.UserName.ToUpperInvariant();
-                    user.FirstName = "Deleted";
+                    user.FirstName = "Gighub";
                     user.LastName = "User";
                     user.Photo = null;
                     user.PhoneNumber = null;
