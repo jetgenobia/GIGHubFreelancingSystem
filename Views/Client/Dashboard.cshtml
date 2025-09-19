@@ -240,7 +240,15 @@
                         </ul>
                     </div>
                 </div>
-
+            </div>
+            <div class="grid grid-cols-1 gap-4 mb-4">
+                <div class="w-full max-w p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
+                    <div class="mb-4">
+                        <h5 class="text-xl font-bold leading-none text-gray-900">Reports</h5>
+                        <p class="text-sm italic font-light">Select Report Range</p>
+                    </div>
+                    @await Html.PartialAsync("_ReportButtons")
+                </div>
             </div>
         </div>
     </div>

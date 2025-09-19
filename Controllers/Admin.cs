@@ -31,6 +31,11 @@ namespace Freelancing.Controllers
             _logger = logger;
         }
 
+        public IActionResult Reports()
+        {
+            return View();
+        }
+
         // GET: Admin/IdentityVerification
         public async Task<IActionResult> IdentityVerification()
         {

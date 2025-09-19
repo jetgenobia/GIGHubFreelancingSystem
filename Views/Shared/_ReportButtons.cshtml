@@ -1,0 +1,77 @@
+<div class="report-buttons">
+    <div class="flex justify-center">
+        <div class="grid grid-cols-2 gap-8 mb-4">
+            <div>
+                <div class="flex gap-4 items-end">
+                    <div>
+                        <label for="startDate" class="block text-xs font-medium text-gray-700">From</label>
+                        <input type="date" id="startDate" class="mt-1 block w-full text-sm border-gray-300 rounded-md">
+                    </div>
+                    <div>
+                        <label for="endDate" class="block text-xs font-medium text-gray-700">To</label>
+                        <input type="date" id="endDate" class="mt-1 block w-full text-sm border-gray-300 rounded-md">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report Buttons -->
+            <div class="flex items-end">
+                @if (User.IsInRole("Freelancer"))
+                {
+                    <button onclick="downloadReport('@Url.Action("FreelancerPerformance", "Report")')"
+                            class="inline-flex items-center text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-6 py-2 me-2"
+                            title="Download Performance Report">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        Download Report
+                    </button>
+                }
+
+                @if (User.IsInRole("Client"))
+                {
+                    <button onclick="downloadReport('@Url.Action("ClientProjects", "Report")')"
+                            class="inline-flex items-center text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-6 py-2 me-2"
+                            title="Download Project Report">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        Download Report
+                    </button>
+                }
+
+                @if (User.IsInRole("Admin"))
+                {
+                    <button onclick="downloadReport('@Url.Action("SystemAnalytics", "Report")')"
+                            class="inline-flex items-center text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-6 py-2 me-2"
+                            title="Download System Analytics">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        Download Report
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function downloadReport(baseUrl) {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+
+        let url = baseUrl;
+        const params = new URLSearchParams();
+
+        if (startDate) params.append('startDate', startDate);
+        if (endDate) params.append('endDate', endDate);
+
+        if (params.toString()) {
+            url += '?' + params.toString();
+        }
+
+        // Open in new tab to trigger download
+        window.open(url, '_blank');
+    }
+</script>

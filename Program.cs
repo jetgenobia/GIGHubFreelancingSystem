@@ -112,6 +112,9 @@ builder.Services.AddSignalR(options =>
 
 builder.Services.AddHostedService<UserCleanupHostedService>();
 
+builder.Services.AddScoped<IPdfService, PdfService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
