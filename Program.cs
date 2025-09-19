@@ -110,6 +110,8 @@ builder.Services.AddSignalR(options =>
     options.HandshakeTimeout = TimeSpan.FromSeconds(15);
 });
 
+builder.Services.AddHostedService<UserCleanupHostedService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

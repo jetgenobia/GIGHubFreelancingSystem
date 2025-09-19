@@ -150,12 +150,31 @@ namespace Freelancing.Controllers
                     }
                 }
 
+                var user = await _userManager.FindByNameAsync(userNameToSignIn);
+
+                // Check if account is soft deleted and within recovery period
+                if (user != null && user.IsDeleted)
+                {
+                    var daysSinceDeletion = user.DeletedAt.HasValue ?
+                        (DateTime.UtcNow - user.DeletedAt.Value).TotalDays : 31;
+
+                    if (daysSinceDeletion <= 30)
+                    {
+                        // Account can be recovered
+                        return RedirectToAction("RecoverAccount", new { userId = user.Id });
+                    }
+                    else
+                    {
+                        // Account is permanently deleted
+                        ModelState.AddModelError("", "This account has been permanently deleted and cannot be recovered.");
+                        return View(model);
+                    }
+                }
+
                 var result = await _signInManager.PasswordSignInAsync(userNameToSignIn, model.Password, model.RememberMe, lockoutOnFailure: true);
 
                 if (result.Succeeded)
                 {
-                    var user = await _userManager.FindByNameAsync(userNameToSignIn);
-
                     if (user != null)
                     {
                         var roles = await _userManager.GetRolesAsync(user);
@@ -172,7 +191,6 @@ namespace Freelancing.Controllers
                         }
                         else if (role?.ToLower() == "admin")
                         {
-                            // Admin: go to admin area / page
                             return RedirectToAction("IdentityVerification", "Admin");
                         }
                         else
@@ -184,7 +202,6 @@ namespace Freelancing.Controllers
 
                 if (result.RequiresTwoFactor)
                 {
-                    // preserve ReturnUrl and RememberMe when redirecting
                     TempData["ReturnUrl"] = returnUrl;
                     TempData["RememberMe"] = model.RememberMe;
                     return RedirectToAction("LoginWith2fa");
@@ -203,10 +220,97 @@ namespace Freelancing.Controllers
                     return View(model);
                 }
 
-                ModelState.AddModelError("", "Invalid login attempt.");
+                ModelState.AddModelError("", "That didn’t work. Check your credentials and try again.");
             }
 
             return View(model);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> RecoverAccount(string userId)
+        {
+            if (string.IsNullOrEmpty(userId))
+                return NotFound();
+
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null || !user.IsDeleted)
+                return NotFound();
+
+            var daysSinceDeletion = user.DeletedAt.HasValue ?
+                (DateTime.UtcNow - user.DeletedAt.Value).TotalDays : 31;
+
+            if (daysSinceDeletion > 30)
+            {
+                ViewBag.Message = "This account has been permanently deleted and cannot be recovered.";
+                return View("AccountRecoveryExpired");
+            }
+
+            ViewBag.DaysRemaining = Math.Max(0, 30 - (int)daysSinceDeletion);
+            ViewBag.UserName = user.UserName;
+            return View(new RecoverAccountViewModel { UserId = userId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RecoverAccount(RecoverAccountViewModel model)
+        {
+            if (!ModelState.IsValid)
+                return View(model);
+
+            var user = await _userManager.FindByIdAsync(model.UserId);
+            if (user == null || !user.IsDeleted)
+                return NotFound();
+
+            var daysSinceDeletion = user.DeletedAt.HasValue ?
+                (DateTime.UtcNow - user.DeletedAt.Value).TotalDays : 31;
+
+            if (daysSinceDeletion > 30)
+            {
+                ViewBag.Message = "This account has been permanently deleted and cannot be recovered.";
+                return View("AccountRecoveryExpired");
+            }
+
+            // Verify password
+            var passwordValid = await _userManager.CheckPasswordAsync(user, model.Password);
+            if (!passwordValid)
+            {
+                ModelState.AddModelError("Password", "Invalid password.");
+                return View(model);
+            }
+
+            // Restore account
+            user.IsDeleted = false;
+            user.DeletedAt = null;
+            user.DeletionReason = null;
+
+            var result = await _userManager.UpdateAsync(user);
+            if (result.Succeeded)
+            {
+                await _signInManager.SignInAsync(user, isPersistent: false);
+
+                var roles = await _userManager.GetRolesAsync(user);
+                var role = roles.FirstOrDefault();
+
+                TempData["Message"] = "Welcome back! Your account has been successfully recovered.";
+
+                if (role?.ToLower() == "client")
+                {
+                    return RedirectToAction("Dashboard", "Client");
+                }
+                else if (role?.ToLower() == "freelancer")
+                {
+                    return RedirectToAction("Dashboard", "Freelancer");
+                }
+            }
+
+            ModelState.AddModelError("", "An error occurred while recovering your account.");
+            return View(model);
+        }
+
+        [HttpGet]
+        public IActionResult AccountDeleted()
+        {
+            return View();
         }
 
         [HttpGet]

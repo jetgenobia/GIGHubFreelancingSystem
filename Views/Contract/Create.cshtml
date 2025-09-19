@@ -31,22 +31,29 @@
                 <!-- Contract Template Selection -->
                 <div class="bg-white rounded-lg shadow p-6">
                     @{
-                        Func<string, string> Normalize = s =>
-                        string.IsNullOrWhiteSpace(s) ? string.Empty :
-                        System.Text.RegularExpressions.Regex.Replace(s.ToLowerInvariant().Trim(), @"\W+", "");
+                        Func<string, string[]> Tokenize = s =>
+                        string.IsNullOrWhiteSpace(s) ? Array.Empty<string>() :
+                        System.Text.RegularExpressions.Regex.Split(s.ToLowerInvariant().Trim(), @"\W+")
+                        .Where(x => !string.IsNullOrWhiteSpace(x))
+                        .ToArray();
 
                         Func<string, string> MapToCanonical = raw =>
                         {
-                            if (string.IsNullOrWhiteSpace(raw)) return "General";
-                            var n = Normalize(raw);
+                            var tokens = Tokenize(raw);
+                            if (tokens.Length == 0) return "General";
 
-                            if ((n.Contains("design") && n.Contains("media")) || n.Contains("designmedia"))
+                            // Design & Media exact combination
+                            if ((tokens.Contains("design") && tokens.Contains("media")) || tokens.Contains("designmedia"))
                                 return "Design & Media";
 
-                            if (n.Contains("web") || n.Contains("website") || n.Contains("it") || n.Contains("software"))
+                            // Websites / IT / Software synonyms
+                            var webSigns = new[] { "web", "website", "websites", "it", "software", "app", "apps", "development", "developer", "dev" };
+                            if (tokens.Intersect(webSigns).Any())
                                 return "Websites, IT & Software";
 
-                            if (n.Contains("write") || n.Contains("writing") || n.Contains("content"))
+                            // Writing / Content synonyms
+                            var writingSigns = new[] { "write", "writing", "content", "copy", "copywriting", "article", "blog" };
+                            if (tokens.Intersect(writingSigns).Any())
                                 return "Writing";
 
                             return "General";
@@ -54,21 +61,28 @@
 
                         var canonicalProjectCategory = MapToCanonical(Model.ProjectCategory);
 
+                        // Use token intersection and prefer exact category match on template
                         var firstMatch = Model.AvailableTemplates
                         .FirstOrDefault(t =>
                         {
-                            var tc = Normalize(t.Category);
-                            var cc = Normalize(canonicalProjectCategory);
-                            return !string.IsNullOrEmpty(tc) && (tc.Contains(cc) || cc.Contains(tc));
+                            if (string.IsNullOrWhiteSpace(t?.Category)) return false;
+
+                            // prefer exact match (case-insensitive)
+                            if (string.Equals(t.Category.Trim(), canonicalProjectCategory, StringComparison.OrdinalIgnoreCase))
+                                return true;
+
+                            var templateTokens = Tokenize(t.Category);
+                            var canonicalTokens = Tokenize(canonicalProjectCategory);
+
+                            // if tokens intersect, consider it a match (stronger than simple substring)
+                            return templateTokens.Intersect(canonicalTokens).Any();
                         });
 
                         Guid? autoSelectedTemplateId = firstMatch?.Id;
 
-                        Guid? selectedId;
-                        if (Model.SelectedTemplateId != null && Model.SelectedTemplateId != Guid.Empty)
-                            selectedId = Model.SelectedTemplateId;
-                        else
-                            selectedId = autoSelectedTemplateId;
+                        Guid? selectedId = (Model.SelectedTemplateId != null && Model.SelectedTemplateId != Guid.Empty)
+                        ? Model.SelectedTemplateId
+                        : autoSelectedTemplateId;
 
                         Model.SelectedTemplateId = selectedId;
                     }

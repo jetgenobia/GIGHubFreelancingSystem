@@ -32,7 +32,7 @@ namespace Freelancing.Controllers
         {
             var userId = GetCurrentUserId();
 
-            // Get all chat rooms where user is a participant
+            // Get all chat rooms where user is a participant (including those with soft deleted users)
             var userChatRooms = await _context.ChatRooms
                 .Include(cr => cr.User1)
                 .Include(cr => cr.User2)
@@ -54,12 +54,16 @@ namespace Freelancing.Controllers
                     .OrderByDescending(m => m.SentAt)
                     .FirstOrDefaultAsync();
 
-                // Get unread count
-                var unreadCount = await _context.ChatMessages
-                    .CountAsync(m => m.ChatRoomId == chatRoom.Id && 
-                                    m.SenderId != userId && 
-                                    !m.IsRead && 
-                                    !m.IsDeleted);
+                // Get unread count (don't count unread messages if partner is soft deleted)
+                var unreadCount = 0;
+                if (!partner.IsDeleted)
+                {
+                    unreadCount = await _context.ChatMessages
+                        .CountAsync(m => m.ChatRoomId == chatRoom.Id &&
+                                        m.SenderId != userId &&
+                                        !m.IsRead &&
+                                        !m.IsDeleted);
+                }
 
                 string lastMessageText = "No messages yet";
                 DateTime lastMessageTime = chatRoom.CreatedAt;
@@ -71,7 +75,7 @@ namespace Freelancing.Controllers
                         var encryptionKey = _encryptionService.GenerateRoomKey(chatRoom.Id.ToString());
                         var decryptedMessage = _encryptionService.DecryptMessage(lastMessage.Message, encryptionKey);
                         lastMessageTime = lastMessage.SentAt;
-                        
+
                         // Check if it's a file, image, or video message
                         if (lastMessage.MessageType == "file" || lastMessage.MessageType == "image" || lastMessage.MessageType == "video")
                         {
@@ -89,10 +93,17 @@ namespace Freelancing.Controllers
                     }
                 }
 
+                // Modify room name to indicate if user is unavailable
+                var roomName = GetRoomName(chatRoom, partner);
+                if (partner.IsDeleted)
+                {
+                    roomName += " (User unavailable)";
+                }
+
                 chatList.Add(new ChatListItemViewModel
                 {
                     ChatRoomId = chatRoom.Id,
-                    RoomName = GetRoomName(chatRoom, partner),
+                    RoomName = roomName,
                     RoomType = chatRoom.RoomType,
                     Partner = partner,
                     LastMessage = lastMessageText,
@@ -124,10 +135,16 @@ namespace Freelancing.Controllers
                     var encryptionKey = _encryptionService.GenerateRoomKey(chatRoomId.Value.ToString());
                     messages = await GetDecryptedMessages(chatRoomId.Value, userId, encryptionKey);
 
+                    var roomName = GetRoomName(chatRoom, partner);
+                    if (partner.IsDeleted)
+                    {
+                        roomName += " (User unavailable)";
+                    }
+
                     selectedChat = new ChatViewModel
                     {
                         ChatRoomId = chatRoom.Id,
-                        RoomName = GetRoomName(chatRoom, partner),
+                        RoomName = roomName,
                         RoomType = chatRoom.RoomType,
                         Partner = partner,
                         CurrentUserId = userId,
@@ -135,15 +152,19 @@ namespace Freelancing.Controllers
                         MentorshipMatch = chatRoom.MentorshipMatch
                     };
 
-                    // Mark messages as read
-                    await MarkMessagesAsRead(chatRoomId.Value, userId);
+                    // Mark messages as read (only if partner is not soft deleted)
+                    if (!partner.IsDeleted)
+                    {
+                        await MarkMessagesAsRead(chatRoomId.Value, userId);
+                    }
                 }
             }
             else if (!string.IsNullOrEmpty(targetUserId))
             {
                 // Handle case where we want to start a new chat with a target user
+                // Only allow if target user is not soft deleted
                 var targetUser = await _context.UserAccounts
-                    .FirstOrDefaultAsync(u => u.Id == targetUserId);
+                    .FirstOrDefaultAsync(u => u.Id == targetUserId && !u.IsDeleted);
 
                 if (targetUser != null)
                 {
@@ -172,8 +193,10 @@ namespace Freelancing.Controllers
         {
             var userId = GetCurrentUserId();
 
-            // Verify user has access to this chat room
+            // Verify user has access to this chat room (allow even if partner is soft deleted)
             var chatRoom = await _context.ChatRooms
+                .Include(cr => cr.User1)
+                .Include(cr => cr.User2)
                 .FirstOrDefaultAsync(cr => cr.Id == chatRoomId &&
                                          (cr.User1Id == userId || cr.User2Id == userId) &&
                                          cr.IsActive);
@@ -186,16 +209,35 @@ namespace Freelancing.Controllers
             var encryptionKey = _encryptionService.GenerateRoomKey(chatRoomId.ToString());
             var messages = await GetDecryptedMessagesPage(chatRoomId, userId, encryptionKey, page, pageSize);
 
-            return Json(new { success = true, messages = messages });
+            // Check if chat is disabled due to soft deleted partner
+            var partner = chatRoom.User1Id == userId ? chatRoom.User2 : chatRoom.User1;
+            var isChatDisabled = partner.IsDeleted;
+
+            return Json(new { success = true, messages = messages, isChatDisabled = isChatDisabled });
         }
 
         [HttpGet]
         public async Task<IActionResult> StartChat(string targetUserId)
         {
             var currentUserId = GetCurrentUserId();
-            
+
             if (currentUserId == targetUserId)
             {
+                return RedirectToAction("Index");
+            }
+
+            // Check if target user exists and is not soft deleted
+            var targetUser = await _context.UserAccounts
+                .FirstOrDefaultAsync(u => u.Id == targetUserId);
+
+            if (targetUser == null)
+            {
+                return NotFound("User not found");
+            }
+
+            if (targetUser.IsDeleted)
+            {
+                TempData["ErrorMessage"] = "Cannot start a chat with this user as their account is no longer available.";
                 return RedirectToAction("Index");
             }
 
@@ -203,24 +245,15 @@ namespace Freelancing.Controllers
             var existingChatRoom = await _context.ChatRooms
                 .Include(cr => cr.User1)
                 .Include(cr => cr.User2)
-                .FirstOrDefaultAsync(cr => 
-                    ((cr.User1Id == currentUserId && cr.User2Id == targetUserId) || 
-                     (cr.User1Id == targetUserId && cr.User2Id == currentUserId)) && 
+                .FirstOrDefaultAsync(cr =>
+                    ((cr.User1Id == currentUserId && cr.User2Id == targetUserId) ||
+                     (cr.User1Id == targetUserId && cr.User2Id == currentUserId)) &&
                     cr.RoomType == "General");
 
             if (existingChatRoom != null)
             {
                 // Chat room exists, redirect to it
                 return RedirectToAction("Index", new { chatRoomId = existingChatRoom.Id });
-            }
-
-            // Get target user details
-            var targetUser = await _context.UserAccounts
-                .FirstOrDefaultAsync(u => u.Id == targetUserId);
-
-            if (targetUser == null)
-            {
-                return NotFound("User not found");
             }
 
             // Instead of creating a chat room, redirect to a temporary chat view
@@ -235,8 +268,10 @@ namespace Freelancing.Controllers
             {
                 var userId = GetCurrentUserId();
 
-                // Verify user has access to this chat room
+                // Verify user has access to this chat room and partner is not soft deleted
                 var chatRoom = await _context.ChatRooms
+                    .Include(cr => cr.User1)
+                    .Include(cr => cr.User2)
                     .FirstOrDefaultAsync(cr => cr.Id == chatRoomId &&
                                              (cr.User1Id == userId || cr.User2Id == userId) &&
                                              cr.IsActive);
@@ -244,6 +279,13 @@ namespace Freelancing.Controllers
                 if (chatRoom == null)
                 {
                     return Json(new { success = false, message = "Access denied or chat room not found" });
+                }
+
+                // Check if partner is soft deleted
+                var partner = chatRoom.User1Id == userId ? chatRoom.User2 : chatRoom.User1;
+                if (partner.IsDeleted)
+                {
+                    return Json(new { success = false, message = "Cannot send files to this user as their account is no longer available" });
                 }
 
                 if (file == null || file.Length == 0)
@@ -301,7 +343,7 @@ namespace Freelancing.Controllers
         {
             var userId = GetCurrentUserId();
 
-            // Get all chat rooms where user is a participant
+            // Get all chat rooms where user is a participant (including those with soft deleted users)
             var userChatRooms = await _context.ChatRooms
                 .Include(cr => cr.User1)
                 .Include(cr => cr.User2)
@@ -323,12 +365,16 @@ namespace Freelancing.Controllers
                     .OrderByDescending(m => m.SentAt)
                     .FirstOrDefaultAsync();
 
-                // Get unread count
-                var unreadCount = await _context.ChatMessages
-                    .CountAsync(m => m.ChatRoomId == chatRoom.Id && 
-                                    m.SenderId != userId && 
-                                    !m.IsRead && 
-                                    !m.IsDeleted);
+                // Get unread count (don't count unread messages if partner is soft deleted)
+                var unreadCount = 0;
+                if (!partner.IsDeleted)
+                {
+                    unreadCount = await _context.ChatMessages
+                        .CountAsync(m => m.ChatRoomId == chatRoom.Id &&
+                                        m.SenderId != userId &&
+                                        !m.IsRead &&
+                                        !m.IsDeleted);
+                }
 
                 string lastMessageText = "No messages yet";
                 DateTime lastMessageTime = chatRoom.CreatedAt;
@@ -340,7 +386,7 @@ namespace Freelancing.Controllers
                         var encryptionKey = _encryptionService.GenerateRoomKey(chatRoom.Id.ToString());
                         var decryptedMessage = _encryptionService.DecryptMessage(lastMessage.Message, encryptionKey);
                         lastMessageTime = lastMessage.SentAt;
-                        
+
                         // Check if it's a file, image, or video message
                         if (lastMessage.MessageType == "file" || lastMessage.MessageType == "image" || lastMessage.MessageType == "video")
                         {
@@ -358,22 +404,31 @@ namespace Freelancing.Controllers
                     }
                 }
 
+                // Modify room name to indicate if user is unavailable
+                var roomName = GetRoomName(chatRoom, partner);
+                if (partner.IsDeleted)
+                {
+                    roomName += " (User unavailable)";
+                }
+
                 chatList.Add(new
                 {
                     ChatRoomId = chatRoom.Id,
-                    RoomName = GetRoomName(chatRoom, partner),
+                    RoomName = roomName,
                     RoomType = chatRoom.RoomType,
                     Partner = new
                     {
                         Id = partner.Id,
                         FirstName = partner.FirstName,
                         LastName = partner.LastName,
-                        Photo = partner.Photo
+                        Photo = partner.Photo,
+                        IsDeleted = partner.IsDeleted
                     },
                     LastMessage = lastMessageText,
                     LastMessageTime = lastMessageTime,
                     UnreadCount = unreadCount,
-                    MentorshipMatch = chatRoom.MentorshipMatch
+                    MentorshipMatch = chatRoom.MentorshipMatch,
+                    IsChatDisabled = partner.IsDeleted
                 });
             }
 
@@ -388,12 +443,18 @@ namespace Freelancing.Controllers
                 var userId = GetCurrentUserId();
 
                 // Get total unread count across all chat rooms for the user
+                // Only count messages from active users (not soft deleted)
                 var totalUnreadCount = await _context.ChatMessages
                     .Include(m => m.ChatRoom)
+                    .ThenInclude(cr => cr.User1)
+                    .Include(m => m.ChatRoom)
+                    .ThenInclude(cr => cr.User2)
+                    .Include(m => m.Sender)
                     .Where(m => (m.ChatRoom.User1Id == userId || m.ChatRoom.User2Id == userId)
                                && m.SenderId != userId
                                && !m.IsRead
-                               && !m.IsDeleted)
+                               && !m.IsDeleted
+                               && !m.Sender.IsDeleted) // Only count messages from non-deleted users
                     .CountAsync();
 
                 return Ok(new { count = totalUnreadCount });
@@ -402,6 +463,141 @@ namespace Freelancing.Controllers
             {
                 return StatusCode(500, new { error = "Failed to get unread message count" });
             }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> VideoCall(Guid? chatRoomId = null)
+        {
+            var userId = GetCurrentUserId();
+
+            // If chatRoomId is provided, try to find that specific chat room
+            if (chatRoomId.HasValue)
+            {
+                var chatRoom = await _context.ChatRooms
+                    .Include(cr => cr.User1)
+                    .Include(cr => cr.User2)
+                    .FirstOrDefaultAsync(cr => cr.Id == chatRoomId.Value &&
+                                             (cr.User1Id == userId || cr.User2Id == userId) &&
+                                             cr.IsActive);
+
+                if (chatRoom != null)
+                {
+                    // Get the partner (other user in the chat)
+                    var partner = chatRoom.User1Id == userId ? chatRoom.User2 : chatRoom.User1;
+
+                    // Check if partner is soft deleted
+                    if (partner.IsDeleted)
+                    {
+                        TempData["ErrorMessage"] = "Cannot start a video call with this user as their account is no longer available.";
+                        return RedirectToAction("Index", new { chatRoomId = chatRoomId });
+                    }
+
+                    var viewModel = new ProjectVideoCallViewModel
+                    {
+                        ChatRoomId = chatRoom.Id.ToString(),
+                        CurrentUserId = userId,
+                        Partner = partner
+                    };
+
+                    return View(viewModel);
+                }
+            }
+
+            // If no chat room found or no chatRoomId provided, try to find by targetUserId
+            var targetUserId = Request.Query["targetUserId"].ToString();
+            if (!string.IsNullOrEmpty(targetUserId))
+            {
+                // Check if target user exists and is not soft deleted
+                var targetUser = await _context.UserAccounts
+                    .FirstOrDefaultAsync(u => u.Id == targetUserId);
+
+                if (targetUser == null || targetUser.IsDeleted)
+                {
+                    TempData["ErrorMessage"] = "Cannot start a video call with this user as their account is no longer available.";
+                    return RedirectToAction("Index");
+                }
+
+                var existingChatRoom = await _context.ChatRooms
+                    .Include(cr => cr.User1)
+                    .Include(cr => cr.User2)
+                    .FirstOrDefaultAsync(cr =>
+                        ((cr.User1Id == userId && cr.User2Id == targetUserId) ||
+                         (cr.User1Id == targetUserId && cr.User2Id == userId)) &&
+                        cr.RoomType == "General" && cr.IsActive);
+
+                if (existingChatRoom != null)
+                {
+                    var existingPartner = existingChatRoom.User1Id == userId ? existingChatRoom.User2 : existingChatRoom.User1;
+
+                    // Double check if partner is soft deleted
+                    if (existingPartner.IsDeleted)
+                    {
+                        TempData["ErrorMessage"] = "Cannot start a video call with this user as their account is no longer available.";
+                        return RedirectToAction("Index", new { chatRoomId = existingChatRoom.Id });
+                    }
+
+                    var existingViewModel = new ProjectVideoCallViewModel
+                    {
+                        ChatRoomId = existingChatRoom.Id.ToString(),
+                        CurrentUserId = userId,
+                        Partner = existingPartner
+                    };
+                    return View(existingViewModel);
+                }
+
+                // If no existing chat room, create a temporary one for the video call
+                var tempChatRoom = new ChatRoom
+                {
+                    Id = Guid.NewGuid(),
+                    User1Id = userId,
+                    User2Id = targetUserId,
+                    RoomType = "General",
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.ChatRooms.Add(tempChatRoom);
+                await _context.SaveChangesAsync();
+
+                var tempViewModel = new ProjectVideoCallViewModel
+                {
+                    ChatRoomId = tempChatRoom.Id.ToString(),
+                    CurrentUserId = userId,
+                    Partner = targetUser
+                };
+                return View(tempViewModel);
+            }
+
+            return NotFound("Chat room not found or access denied");
+        }
+
+        // New method to check if chat is disabled
+        [HttpGet]
+        public async Task<IActionResult> CheckChatStatus(Guid chatRoomId)
+        {
+            var userId = GetCurrentUserId();
+
+            var chatRoom = await _context.ChatRooms
+                .Include(cr => cr.User1)
+                .Include(cr => cr.User2)
+                .FirstOrDefaultAsync(cr => cr.Id == chatRoomId &&
+                                         (cr.User1Id == userId || cr.User2Id == userId) &&
+                                         cr.IsActive);
+
+            if (chatRoom == null)
+            {
+                return Json(new { success = false, message = "Chat room not found" });
+            }
+
+            var partner = chatRoom.User1Id == userId ? chatRoom.User2 : chatRoom.User1;
+            var isChatDisabled = partner.IsDeleted;
+
+            return Json(new
+            {
+                success = true,
+                isChatDisabled = isChatDisabled,
+                message = isChatDisabled ? "This user's account is no longer available" : ""
+            });
         }
 
         private string GetRoomName(ChatRoom chatRoom, UserAccount partner)
@@ -530,9 +726,9 @@ namespace Freelancing.Controllers
         private async Task MarkMessagesAsRead(Guid chatRoomId, string userId)
         {
             var unreadMessages = await _context.ChatMessages
-                .Where(m => m.ChatRoomId == chatRoomId && 
-                           m.SenderId != userId && 
-                           !m.IsRead && 
+                .Where(m => m.ChatRoomId == chatRoomId &&
+                           m.SenderId != userId &&
+                           !m.IsRead &&
                            !m.IsDeleted)
                 .ToListAsync();
 
@@ -543,91 +739,6 @@ namespace Freelancing.Controllers
             }
 
             await _context.SaveChangesAsync();
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> VideoCall(Guid? chatRoomId = null)
-        {
-            var userId = GetCurrentUserId();
-
-            // If chatRoomId is provided, try to find that specific chat room
-            if (chatRoomId.HasValue)
-            {
-                var chatRoom = await _context.ChatRooms
-                    .Include(cr => cr.User1)
-                    .Include(cr => cr.User2)
-                    .FirstOrDefaultAsync(cr => cr.Id == chatRoomId.Value &&
-                                             (cr.User1Id == userId || cr.User2Id == userId) &&
-                                             cr.IsActive);
-
-                if (chatRoom != null)
-                {
-                    // Get the partner (other user in the chat)
-                    var partner = chatRoom.User1Id == userId ? chatRoom.User2 : chatRoom.User1;
-
-                    var viewModel = new ProjectVideoCallViewModel
-                    {
-                        ChatRoomId = chatRoom.Id.ToString(),
-                        CurrentUserId = userId,
-                        Partner = partner
-                    };
-
-                    return View(viewModel);
-                }
-            }
-
-            // If no chat room found or no chatRoomId provided, try to find by targetUserId
-            var targetUserId = Request.Query["targetUserId"].ToString();
-            if (!string.IsNullOrEmpty(targetUserId))
-            {
-                var existingChatRoom = await _context.ChatRooms
-                    .Include(cr => cr.User1)
-                    .Include(cr => cr.User2)
-                    .FirstOrDefaultAsync(cr => 
-                        ((cr.User1Id == userId && cr.User2Id == targetUserId) || 
-                         (cr.User1Id == targetUserId && cr.User2Id == userId)) && 
-                        cr.RoomType == "General" && cr.IsActive);
-
-                if (existingChatRoom != null)
-                {
-                    var existingPartner = existingChatRoom.User1Id == userId ? existingChatRoom.User2 : existingChatRoom.User1;
-                    var existingViewModel = new ProjectVideoCallViewModel
-                    {
-                        ChatRoomId = existingChatRoom.Id.ToString(),
-                        CurrentUserId = userId,
-                        Partner = existingPartner
-                    };
-                    return View(existingViewModel);
-                }
-
-                // If no existing chat room, create a temporary one for the video call
-                var targetUser = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id == targetUserId);
-                if (targetUser != null)
-                {
-                    var tempChatRoom = new ChatRoom
-                    {
-                        Id = Guid.NewGuid(),
-                        User1Id = userId,
-                        User2Id = targetUserId,
-                        RoomType = "General",
-                        IsActive = true,
-                        CreatedAt = DateTime.UtcNow
-                    };
-
-                    _context.ChatRooms.Add(tempChatRoom);
-                    await _context.SaveChangesAsync();
-
-                    var tempViewModel = new ProjectVideoCallViewModel
-                    {
-                        ChatRoomId = tempChatRoom.Id.ToString(),
-                        CurrentUserId = userId,
-                        Partner = targetUser
-                    };
-                    return View(tempViewModel);
-                }
-            }
-            
-            return NotFound("Chat room not found or access denied");
         }
     }
 }

@@ -28,7 +28,7 @@ namespace Freelancing.Data
         // New chat-related entities
         public DbSet<MentorshipChatMessage> MentorshipChatMessages { get; set; }
         public DbSet<MentorshipChatFile> MentorshipChatFiles { get; set; }
-        
+
         // Chat entities
         public DbSet<ChatMessage> ChatMessages { get; set; }
         public DbSet<ChatRoom> ChatRooms { get; set; }
@@ -36,37 +36,39 @@ namespace Freelancing.Data
 
         // Notification entity
         public DbSet<Notification> Notifications { get; set; }
-        
+
         // Contract entities
         public DbSet<Contract> Contracts { get; set; }
         public DbSet<ContractAuditLog> ContractAuditLogs { get; set; }
         public DbSet<ContractRevision> ContractRevisions { get; set; }
         public DbSet<ContractTemplate> ContractTemplates { get; set; }
-        
+
         // Contract Termination entities
         public DbSet<ContractTermination> ContractTerminations { get; set; }
         public DbSet<ContractTerminationAuditLog> ContractTerminationAuditLogs { get; set; }
-        
+
         // Deliverable entity
         public DbSet<Deliverable> Deliverables { get; set; }
-        
+
         // FreelancerFeedback entity
         public DbSet<FreelancerFeedback> FreelancerFeedbacks { get; set; }
-        
+
         // Smart Hiring entities
         public DbSet<HiringOutcome> HiringOutcomes { get; set; }
-        
+
         // Identity Verification entities
         public DbSet<IdentityVerification> IdentityVerifications { get; set; }
-        
+
         // Portfolio entity
         public DbSet<Portfolio> Portfolios { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Project>()
                 .HasOne(p => p.User)
                 .WithMany(u => u.Projects)
-                .HasForeignKey(p => p.UserId);
+                .HasForeignKey(p => p.UserId)
+                .OnDelete(DeleteBehavior.NoAction); // Prevent cascading delete when user is hard-removed
 
             modelBuilder.Entity<Bidding>()
                 .HasOne(b => b.User)
@@ -83,11 +85,6 @@ namespace Freelancing.Data
             modelBuilder.Entity<Bidding>()
                 .HasIndex(b => new { b.UserId, b.ProjectId })
                 .IsUnique();
-
-            modelBuilder.Entity<Project>()
-                .HasOne(p => p.User)
-                .WithMany(u => u.Projects)
-                .HasForeignKey(p => p.UserId);
 
             modelBuilder.Entity<Project>()
                 .HasOne(p => p.AcceptedBid)
@@ -117,7 +114,7 @@ namespace Freelancing.Data
                 .HasOne(u => u.User)
                 .WithOne(p => p.Mentorship)
                 .HasForeignKey<PeerMentorship>(u => u.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<UserAccountSkill>()
                 .HasKey(uas => new { uas.UserAccountId, uas.UserSkillId });
@@ -125,12 +122,14 @@ namespace Freelancing.Data
             modelBuilder.Entity<UserAccountSkill>()
                 .HasOne(uas => uas.UserAccount)
                 .WithMany(ua => ua.UserAccountSkills)
-                .HasForeignKey(uas => uas.UserAccountId);
+                .HasForeignKey(uas => uas.UserAccountId)
+                .OnDelete(DeleteBehavior.NoAction); // avoid cascade removing many-to-many entries unexpectedly
 
             modelBuilder.Entity<UserAccountSkill>()
                 .HasOne(uas => uas.UserSkill)
                 .WithMany()
-                .HasForeignKey(uas => uas.UserSkillId);
+                .HasForeignKey(uas => uas.UserSkillId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // New MentorshipMatch relationships
             modelBuilder.Entity<MentorshipMatch>()
@@ -162,13 +161,11 @@ namespace Freelancing.Data
                 .HasIndex(mm => new { mm.MentorId, mm.MenteeId })
                 .IsUnique();
 
-            // Add indexes for better performance
             modelBuilder.Entity<MentorshipMatch>()
                 .HasIndex(mm => mm.Status);
 
             modelBuilder.Entity<MentorshipMatch>()
                 .HasIndex(mm => mm.MatchedDate);
-
 
             // MentorshipChatMessage relationships and configurations
             modelBuilder.Entity<MentorshipChatMessage>()
@@ -183,9 +180,6 @@ namespace Freelancing.Data
                 .WithMany()
                 .HasForeignKey(ms => ms.MentorshipMatchId)
                 .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<MentorshipSession>()
-                .HasIndex(ms => ms.MentorshipMatchId);
 
             modelBuilder.Entity<MentorshipChatMessage>()
                 .HasOne(mcm => mcm.Sender)
@@ -242,7 +236,7 @@ namespace Freelancing.Data
                 .HasOne(n => n.User)
                 .WithMany()
                 .HasForeignKey(n => n.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction); // avoid cascade deletion of notifications when user removed
 
             modelBuilder.Entity<Notification>()
                 .HasIndex(n => n.UserId);
@@ -283,7 +277,6 @@ namespace Freelancing.Data
             modelBuilder.Entity<MentorshipGoalCompletion>()
                 .HasIndex(mgc => mgc.CompletedAt);
 
-            // Configure default values
             modelBuilder.Entity<MentorshipGoalCompletion>()
                 .Property(mgc => mgc.CompletedAt)
                 .HasDefaultValueSql("GETUTCDATE()");
@@ -312,7 +305,6 @@ namespace Freelancing.Data
                 .HasIndex(mr => mr.MentorshipMatchId)
                 .IsUnique();
 
-            // Add indexes for better performance
             modelBuilder.Entity<MentorReview>()
                 .HasIndex(mr => mr.MentorId);
 
@@ -322,7 +314,6 @@ namespace Freelancing.Data
             modelBuilder.Entity<MentorReview>()
                 .HasIndex(mr => mr.CreatedAt);
 
-            // Configure default values
             modelBuilder.Entity<MentorReview>()
                 .Property(mr => mr.CreatedAt)
                 .HasDefaultValueSql("GETUTCDATE()");
@@ -370,7 +361,6 @@ namespace Freelancing.Data
             modelBuilder.Entity<ContractAuditLog>()
                 .HasIndex(cal => cal.Timestamp);
 
-            // ContractRevision relationships
             modelBuilder.Entity<ContractRevision>()
                 .HasOne(cr => cr.Contract)
                 .WithMany(c => c.Revisions)
@@ -394,21 +384,6 @@ namespace Freelancing.Data
             modelBuilder.Entity<ContractTemplate>()
                 .HasIndex(ct => ct.IsActive);
 
-            // Removed IsDefault index as it's no longer used
-
-            // Configure default values for contracts
-            modelBuilder.Entity<Contract>()
-                .Property(c => c.CreatedAt)
-                .HasDefaultValueSql("GETUTCDATE()");
-
-            modelBuilder.Entity<ContractAuditLog>()
-                .Property(cal => cal.Timestamp)
-                .HasDefaultValueSql("GETUTCDATE()");
-
-            modelBuilder.Entity<ContractRevision>()
-                .Property(cr => cr.CreatedAt)
-                .HasDefaultValueSql("GETUTCDATE()");
-
             modelBuilder.Entity<ContractTemplate>()
                 .Property(ct => ct.CreatedAt)
                 .HasDefaultValueSql("GETUTCDATE()");
@@ -420,20 +395,10 @@ namespace Freelancing.Data
                 .HasForeignKey(ct => ct.ContractId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // ContractTermination indexes
             modelBuilder.Entity<ContractTermination>()
-                .HasIndex(ct => ct.ContractId);
+                .Property(ct => ct.FinalPayment)
+                .HasPrecision(18, 2);
 
-            modelBuilder.Entity<ContractTermination>()
-                .HasIndex(ct => ct.Status);
-
-            modelBuilder.Entity<ContractTermination>()
-                .HasIndex(ct => ct.RequestedAt);
-
-            modelBuilder.Entity<ContractTermination>()
-                .HasIndex(ct => ct.RequestedByUserId);
-
-            // ContractTerminationAuditLog relationships
             modelBuilder.Entity<ContractTerminationAuditLog>()
                 .HasOne(ctal => ctal.ContractTermination)
                 .WithMany(ct => ct.AuditLogs)
@@ -452,19 +417,21 @@ namespace Freelancing.Data
             modelBuilder.Entity<ContractTerminationAuditLog>()
                 .HasIndex(ctal => ctal.Timestamp);
 
-            // Configure default values for contract termination
+            modelBuilder.Entity<ContractTermination>()
+                .HasIndex(ct => ct.ContractId);
+
+            modelBuilder.Entity<ContractTermination>()
+                .HasIndex(ct => ct.Status);
+
+            modelBuilder.Entity<ContractTermination>()
+                .HasIndex(ct => ct.RequestedAt);
+
+            modelBuilder.Entity<ContractTermination>()
+                .HasIndex(ct => ct.RequestedByUserId);
+
             modelBuilder.Entity<ContractTermination>()
                 .Property(ct => ct.RequestedAt)
                 .HasDefaultValueSql("GETUTCDATE()");
-
-                    modelBuilder.Entity<ContractTerminationAuditLog>()
-            .Property(ctal => ctal.Timestamp)
-            .HasDefaultValueSql("GETUTCDATE()");
-
-        // Configure decimal precision for FinalPayment
-        modelBuilder.Entity<ContractTermination>()
-            .Property(ct => ct.FinalPayment)
-            .HasPrecision(18, 2);
 
             // Deliverable relationships and configurations
             modelBuilder.Entity<Deliverable>()
@@ -504,7 +471,6 @@ namespace Freelancing.Data
             modelBuilder.Entity<Deliverable>()
                 .HasIndex(d => d.SubmittedAt);
 
-            // Configure default values for deliverables
             modelBuilder.Entity<Deliverable>()
                 .Property(d => d.SubmittedAt)
                 .HasDefaultValueSql("GETUTCDATE()");
@@ -595,7 +561,6 @@ namespace Freelancing.Data
                 .HasForeignKey(ff => ff.FreelancerId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            // FreelancerFeedback indexes
             modelBuilder.Entity<FreelancerFeedback>()
                 .HasIndex(ff => ff.AcceptBidId)
                 .IsUnique(); // One feedback per accepted bid
@@ -606,7 +571,6 @@ namespace Freelancing.Data
             modelBuilder.Entity<FreelancerFeedback>()
                 .HasIndex(ff => ff.CreatedAt);
 
-            // Configure default values for freelancer feedback
             modelBuilder.Entity<FreelancerFeedback>()
                 .Property(ff => ff.CreatedAt)
                 .HasDefaultValueSql("GETUTCDATE()");
@@ -621,7 +585,6 @@ namespace Freelancing.Data
             modelBuilder.Entity<HiringOutcome>()
                 .HasIndex(ho => ho.RecordedAt);
 
-            // Configure default values for hiring outcomes
             modelBuilder.Entity<HiringOutcome>()
                 .Property(ho => ho.RecordedAt)
                 .HasDefaultValueSql("GETUTCDATE()");
@@ -631,7 +594,7 @@ namespace Freelancing.Data
                 .HasOne(p => p.User)
                 .WithMany(u => u.Portfolios)
                 .HasForeignKey(p => p.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction); // avoid cascade deletion of portfolios when user removed
 
             modelBuilder.Entity<Portfolio>()
                 .HasIndex(p => p.UserId);

@@ -23,6 +23,10 @@ namespace Freelancing.Models.Entities
         public string? Bio { get; set; }
         public string? ExperienceLevel { get; set; }
 
+        public bool IsDeleted { get; set; } = false;
+        public DateTime? DeletedAt { get; set; }
+        public string? DeletionReason { get; set; }
+
         public ICollection<Portfolio> Portfolios { get; set; } = new List<Portfolio>();
         public Guid? MentorshipId { get; set; }
         

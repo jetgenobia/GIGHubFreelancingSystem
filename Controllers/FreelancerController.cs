@@ -1165,6 +1165,72 @@ namespace Freelancing.Controllers
             return View(finalViewModel);
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteAccount()
+        {
+            try
+            {
+                // Get the current user ID
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized();
+
+                // Get user account
+                var userAccount = await _userManager.FindByIdAsync(userId);
+                if (userAccount == null)
+                    return NotFound();
+
+                // Check for active/ongoing projects for clients
+                var hasActiveProjects = await dbContext.Projects
+                    .AnyAsync(p => p.UserId == userId &&
+                             (p.Status == "Active") &&
+                             p.AcceptedBidId.HasValue);
+
+                if (hasActiveProjects)
+                {
+                    TempData["ErrorMessage"] = "Cannot delete account. You have active or ongoing projects. Please complete or cancel them first.";
+                    return RedirectToAction("EditAccount");
+                }
+
+                // For freelancers, check if they have any accepted bids on active projects
+                var hasActiveBids = await dbContext.Biddings
+                    .AnyAsync(b => b.UserId == userId &&
+                             b.IsAccepted &&
+                             (b.Project.Status == "Active"));
+
+                if (hasActiveBids)
+                {
+                    TempData["ErrorMessage"] = "Cannot delete account. You have active or ongoing projects. Please complete or cancel them first.";
+                    return RedirectToAction("EditAccount");
+                }
+
+                // Perform soft delete
+                userAccount.IsDeleted = true;
+                userAccount.DeletedAt = DateTime.UtcNow.ToLocalTime();
+                userAccount.DeletionReason = "User requested account deletion";
+
+                // Update the user account
+                var result = await _userManager.UpdateAsync(userAccount);
+                if (!result.Succeeded)
+                {
+                    TempData["ErrorMessage"] = "An error occurred while deleting your account. Please try again.";
+                    return RedirectToAction("EditAccount");
+                }
+
+                // Sign out the user
+                await _signInManager.SignOutAsync();
+
+                // Redirect to a confirmation page
+                return RedirectToAction("AccountDeleted", "Account");
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "An unexpected error occurred. Please try again later.";
+                return RedirectToAction("EditAccount");
+            }
+        }
+
         // Portfolio Management Actions
         [HttpGet]
         public async Task<IActionResult> ManagePortfolio()
