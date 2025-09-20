@@ -9,8 +9,8 @@
 }
 
 <div class="p-4 sm:ml-64">
-    <div class="p-4 mt-20">
-        <div class="mt-4">
+    <div class="pt-2 mt-20">
+        <div class="mt-1">
             <div class="block w-full p-6">
                 <div class="flex items-center space-x-4">
                     <a href="@Url.Action("Profile", "Freelancer")" class="text-blue-600 hover:text-blue-800">
@@ -226,22 +226,26 @@
                     <!-- Skills Section -->
                     <div class="mb-4">
                         <label asp-for="SavedSkills" class="block mb-2 text-sm font-medium text-gray-900">Skills</label>
-                        <div class="flex">
-                            <a class="inline-flex items-center text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2" asp-area="" asp-controller="Skill" asp-action="EditSkills">
+                        <a class="inline-flex items-center text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2" asp-area="" asp-controller="Skill" asp-action="EditSkills">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-7 7V5" />
                                 </svg>
                                 Add Skills
                             </a>
+                        <div class="flex flex-col sm:items-start sm:gap-3">
+                            
+                         <div class="mt-2 sm:mt-0 flex gap-2 overflow-x-auto no-scrollbar flex-nowrap sm:flex-wrap sm:overflow-visible w-full">
                             @foreach (var skill in Model.SavedSkills)
                             {
-                                <div class="inline-flex items-center">
-                                    <button type="button"
-                                            class="py-2.5 px-5 me-2 mb-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100">
-                                        @skill.Name
-                                    </button>
-                                </div>
+                                <div class="flex-shrink-0">
+    <button type="button"
+            class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-900 bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-gray-100 whitespace-nowrap"
+            title="@skill.Name">
+        @skill.Name
+    </button>
+</div>
                             }
+                            </div>
                         </div>
                     </div>
 

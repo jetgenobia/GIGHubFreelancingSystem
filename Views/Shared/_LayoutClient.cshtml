@@ -8,7 +8,18 @@
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.0/signalr.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js" rel="stylesheet"/>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js" rel="stylesheet" />
+    <style>
+        .hide-mobile {
+            display: none;
+        }
+
+        @@media (min-width: 640px) {
+            .hide-mobile {
+                display: block;
+            }
+        }
+    </style>
 </head>
 <body data-user-id="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value">
     <nav class="fixed top-0 z-50 w-full bg-white border-b border-gray-200">
@@ -21,7 +32,7 @@
                             <path clip-rule="evenodd" fill-rule="evenodd" d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zm0 10.5a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75zM2 10a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 10z"></path>
                         </svg>
                     </button>
-                    <a class="-m-1.5 p-1.5 ms-5" asp-area="" asp-controller="Home" asp-action="Index">
+                    <a class="-m-1.5 p-1.5 ms-5 hide-mobile" asp-area="" asp-controller="Home" asp-action="Index">
                         <span class="sr-only">Your Company</span>
                         <img class="h-16 w-auto" src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(2).png?updatedAt=1749718355580" alt="">
                     </a>
@@ -172,6 +183,16 @@
                             </g>
                         </svg>
                         <span class="flex-1 ms-3 whitespace-nowrap font-light">Manage Projects</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="flex items-center p-2 text-gray-900 rounded-lg hover:bg-gray-100 group" asp-area="" asp-controller="Contract" asp-action="MyContracts">
+                        <svg fill="#000000" viewBox="0 0 24 24" id="contract-right" data-name="Flat Color" xmlns="http://www.w3.org/2000/svg" class="shrink-0 w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900">
+                            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                            <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                            <g id="SVGRepo_iconCarrier"><rect id="primary" x="2" y="2" width="16" height="20" rx="2" style="fill: #000000;"></rect><path id="secondary" d="M4,17a1,1,0,0,1,1-1H9a1,1,0,0,1,0,2H5A1,1,0,0,1,4,17ZM18.91,5.3l-6.62,6.61a1,1,0,0,0-.29.71V14a1,1,0,0,0,1,1h1.39a1,1,0,0,0,.71-.3L21.71,8.1a1,1,0,0,0,0-1.4l-1.4-1.4A1,1,0,0,0,18.91,5.3Z" style="fill: #2ca9bc;"></path></g>
+                        </svg>
+                        <span class="flex-1 ms-3 whitespace-nowrap font-light">My Contracts</span>
                     </a>
                 </li>
             </ul>

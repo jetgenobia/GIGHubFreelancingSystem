@@ -5,8 +5,8 @@
 @model List<Freelancing.Models.Entities.Portfolio>
 
 <div class="p-4 sm:ml-64">
-    <div class="p-4 mt-20">
-        <div class="mt-4">
+    <div class="pt-2 mt-20">
+        <div class="mt-1">
             <div class="block w-full p-6">
                 <!-- Header with navigation -->
                 <div class="mb-6">
@@ -106,7 +106,7 @@
                                     </div>
 
                                     <!-- Description -->
-                                    <p class="text-sm text-gray-600 mb-4 leading-relaxed">@portfolio.Description</p>
+                                    <p class="text-sm text-gray-600 mb-4 leading-relaxed whitespace-pre-line break-words leading-relaxed mt-auto">@portfolio.Description</p>
 
                                     <!-- Project Link -->
                                     @if (!string.IsNullOrEmpty(portfolio.ProjectLink))

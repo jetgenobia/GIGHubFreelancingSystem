@@ -84,8 +84,8 @@
                 }
             }
         </div>
-        <div class="grid grid-cols-2 gap-4 mb-4">
-            <div class="w-full max-w p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div class="md:col-span-2 w-full max-w p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
                 <div class="flex items-center justify-between mb-4">
                     <h5 class="text-xl font-bold leading-none text-gray-900">My Mentor</h5>
                 </div>
@@ -257,15 +257,6 @@
             </div>
             <div class="w-full max-w p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
                 <div class="flex items-center justify-between mb-4">
-                    <h5 class="text-xl font-bold leading-none text-gray-900">Session History</h5>
-                </div>
-                <div class="flow-root">
-                    <ul role="list" class="divide-y divide-gray-300">
-                    </ul>
-                </div>
-            </div>
-            <div class="w-full max-w p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
-                <div class="flex items-center justify-between mb-4">
                     <h5 class="text-xl font-bold leading-none text-gray-900">Upcoming Sessions</h5>
                 </div>
                 <div class="flow-root">
@@ -322,7 +313,7 @@
                                                 <div class="text-sm font-medium text-gray-900">@(!string.IsNullOrWhiteSpace(s.Title) ? s.Title : "Proposed Session")</div>
                                                 <div class="text-sm text-gray-600">From @s.PartnerName • @s.StartUtc.ToString("MMM dd, yyyy h:mm tt")</div>
                                             </div>
-                                            <div class="flex gap-2">
+                                            <div class="flex flex-col md:flex-row items-center md:items-end ml-auto space-y-2 md:space-y-0 md:space-x-2">
                                                 <form asp-controller="MentorshipManage" asp-action="AcceptSession" method="post">
                                                     @Html.AntiForgeryToken()
                                                     <input type="hidden" name="sessionId" value="@s.SessionId" />

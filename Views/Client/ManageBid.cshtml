@@ -268,8 +268,8 @@
 </style>
 
 <div class="p-4 sm:ml-64">
-    <div class="p-4 mt-20">
-        <div class="mt-4">
+    <div class="pt-2 mt-20">
+        <div class="mt-1">
             <div class="block w-full p-6">
                 <div class="flex items-center space-x-4 mb-4">
                     <a href="@Url.Action("Dashboard", "Client")" class="text-blue-600 hover:text-blue-800">
@@ -442,23 +442,27 @@
                                                                 var fileExtension = System.IO.Path.GetExtension(filePath).ToLowerInvariant();
                                                                 var isImage = new[] { ".jpg", ".jpeg", ".png", ".gif", ".svg" }.Contains(fileExtension);
 
-                                                                <div class="flex items-center space-x-2 p-2 rounded bg-white border border-gray-300">
-                                                                    @if (isImage)
-                                                                    {
-                                                                        <img src="@filePath" alt="@fileName" class="w-8 h-8 object-cover rounded cursor-pointer" onclick="openImageModal('@filePath')" title="Click to view">
-                                                                    }
-                                                                    else
-                                                                    {
-                                                                        <div class="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
-                                                                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                                                            </svg>
-                                                                        </div>
-                                                                    }
-                                                                    <a href="@filePath" target="_blank" class="text-sm text-blue-600 hover:text-blue-800 truncate max-w-32" title="@fileName">
-                                                                        @fileName
-                                                                    </a>
-                                                                </div>
+                                                                    <div class="flex items-center space-x-2 p-2 rounded bg-white border border-gray-300 min-w-0">
+                                                                        @if (isImage)
+                                                                        {
+                                                                            <img src="@filePath" alt="@fileName" class="w-8 h-8 object-cover rounded cursor-pointer" onclick="openImageModal('@filePath')" title="Click to view">
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <div class="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                                                                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                                                </svg>
+                                                                            </div>
+                                                                        }
+
+                                                                        <a href="@filePath"
+                                                                           target="_blank"
+                                                                           class="inline-block text-sm text-blue-600 hover:text-blue-800 truncate max-w-[8ch] sm:max-w-32"
+                                                                           title="@fileName">
+                                                                            @fileName
+                                                                        </a>
+                                                                    </div>
                                                             }
                                                         }
                                                         catch
@@ -478,13 +482,13 @@
                                                             var links = System.Text.Json.JsonSerializer.Deserialize<List<string>>(recommendation.RepositoryLinks);
                                                             foreach (var link in links)
                                                             {
-                                                                <div class="flex items-center space-x-2 p-2 bg-blue-50 rounded border border-gray-300">
-                                                                    <div class="w-6 h-6 bg-blue-100 rounded flex items-center justify-center">
+                                                                <div class="flex items-center space-x-2 p-2 bg-blue-50 rounded border border-gray-300 min-w-0">
+                                                                    <div class="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
                                                                         <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
                                                                         </svg>
                                                                     </div>
-                                                                    <a href="@link" target="_blank" class="text-sm text-blue-600 hover:text-blue-800 truncate max-w-48" title="@link">
+                                                                        <a href="@link" target="_blank" class="inline-block text-sm text-blue-600 hover:text-blue-800 truncate max-w-[8ch] sm:max-w-32" title="@link">
                                                                         @link
                                                                     </a>
                                                                 </div>

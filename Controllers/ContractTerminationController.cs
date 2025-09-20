@@ -6,6 +6,7 @@ using Freelancing.Models;
 using Freelancing.Models.Entities;
 using Freelancing.Services;
 using System.Security.Claims;
+using System;
 
 namespace Freelancing.Controllers
 {
@@ -364,8 +365,14 @@ namespace Freelancing.Controllers
                     return RedirectToAction("Details", new { id });
                 }
 
-                // Verify termination can be cancelled
-                if (termination.Status != "Pending")
+                var status = termination.Status ?? string.Empty;
+                var cancellable = status.Equals("Pending", StringComparison.OrdinalIgnoreCase)
+                    || status.Equals("AwaitingFreelancer", StringComparison.OrdinalIgnoreCase)
+                    || status.Equals("AwaitingClient", StringComparison.OrdinalIgnoreCase)
+                    || status.Equals("Awaiting Freelancer", StringComparison.OrdinalIgnoreCase)
+                    || status.Equals("Awaiting Client", StringComparison.OrdinalIgnoreCase);
+
+                if (!cancellable)
                 {
                     TempData["ErrorMessage"] = "This termination request cannot be cancelled at this time.";
                     return RedirectToAction("Details", new { id });
@@ -406,6 +413,15 @@ namespace Freelancing.Controllers
 
         private TerminationViewModel MapToTerminationViewModel(ContractTermination termination, string userId)
         {
+            var status = termination.Status ?? string.Empty;
+            bool isCancellable = termination.RequestedByUserId == userId && (
+                status.Equals("Pending", StringComparison.OrdinalIgnoreCase)
+                || status.Equals("AwaitingFreelancer", StringComparison.OrdinalIgnoreCase)
+                || status.Equals("AwaitingClient", StringComparison.OrdinalIgnoreCase)
+                || status.Equals("Awaiting Freelancer", StringComparison.OrdinalIgnoreCase)
+                || status.Equals("Awaiting Client", StringComparison.OrdinalIgnoreCase)
+            );
+
             return new TerminationViewModel
             {
                 Id = termination.Id,
@@ -435,7 +451,7 @@ namespace Freelancing.Controllers
                 FreelancerId = termination.Contract.Bidding.UserId,
                 RequestedByUserId = termination.RequestedByUserId,
                 CanUserSign = _terminationService.CanUserSignTerminationAsync(termination.Id, userId).Result,
-                CanUserCancel = termination.RequestedByUserId == userId && termination.Status == "Pending",
+                CanUserCancel = isCancellable,
                 CanUserDownload = !string.IsNullOrEmpty(termination.DocumentPath),
                 CanUserExecute = termination.RequestedByUserId == userId && termination.Status == "Signed"
             };

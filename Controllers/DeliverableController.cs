@@ -7,6 +7,7 @@ using Freelancing.Models.Entities;
 using System.Security.Claims;
 using System.Text.Json;
 using Freelancing.Services;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Freelancing.Controllers
 {
@@ -24,7 +25,7 @@ namespace Freelancing.Controllers
             _notificationService = notificationService;
         }
 
-        public async Task<IActionResult> Index(Guid id)
+        public async Task<IActionResult> Index(Guid id, string? status = null)
         {
             // Get current user information
             var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -60,6 +61,46 @@ namespace Freelancing.Controllers
                 .Where(d => d.ContractId == id)
                 .OrderByDescending(d => d.SubmittedAt)
                 .ToListAsync();
+
+            var storedStatuses = new[] { "Submitted", "Approved", "For Revision" };
+            bool hasDeadline = contract.Project?.Deadline != null;
+
+            if (!string.IsNullOrWhiteSpace(status) && status != "All")
+            {
+                if (status == "Late")
+                {
+                    if (hasDeadline)
+                    {
+                        var deadline = contract.Project!.Deadline!.Value;
+                        deliverables = deliverables
+                            .Where(d => d.SubmittedAt > deadline)
+                            .ToList();
+                    }
+                    else
+                    {
+                        deliverables = new List<Deliverable>();
+                    }
+                }
+                else
+                {
+                    deliverables = deliverables
+                        .Where(d => d.Status == status)
+                        .ToList();
+                }
+            }
+
+            var statusOptions = new List<SelectListItem>
+            {
+                new SelectListItem { Value = "All", Text = "All" }
+            };
+            statusOptions.AddRange(storedStatuses.Select(s => new SelectListItem { Value = s, Text = s }));
+
+            // Only show Late option if deadline exists
+            if (hasDeadline)
+                statusOptions.Add(new SelectListItem { Value = "Late", Text = "Late" });
+
+            ViewBag.StatusOptions = statusOptions;
+            ViewBag.CurrentStatus = string.IsNullOrWhiteSpace(status) ? "All" : status;
 
             ViewBag.ContractId = id;
             ViewBag.Contract = contract;

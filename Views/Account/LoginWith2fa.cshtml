@@ -1,114 +1,110 @@
 @model Freelancing.Models.LoginWith2faViewModel
 @{
-	Layout = null;
+    Layout = null;
 }
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<title>@ViewData["Title"]Two-Factor Authentication</title>
-	<link rel="stylesheet" href="~/css/output.css" />
-	<link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
-	<style>
-		.page-background {
-			position: fixed;
-			top: 0;
-			left: 0;
-			width: 100%;
-			height: 100%;
-			background-repeat: no-repeat;
-			z-index: -1;
-			background-image: url('https://ik.imagekit.io/6txj3mofs/Desktop.png?updatedAt=1758112480559');
-			background-size: cover;
-			background-position: center right;
-		}
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]Two-Factor Authentication</title>
+    <link rel="stylesheet" href="~/css/output.css" />
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+    <style>
+        .page-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-repeat: no-repeat;
+            z-index: -1;
+            background-image: url('https://ik.imagekit.io/6txj3mofs/Desktop.png?updatedAt=1758112480559');
+            background-size: cover;
+            background-position: center right;
+        }
 
-		@@media (max-width: 1024px) {
-			.page-background {
-				background-image: url('https://ik.imagekit.io/6txj3mofs/Untitled%20design%20(5).png');
-				background-position: center;
-			}
-		}
+        @@media (max-width: 1024px) {
+            .page-background {
+                background-image: url('https://ik.imagekit.io/6txj3mofs/Untitled%20design%20(5).png');
+                background-position: center;
+            }
+        }
 
-		@@media (max-width: 640px) {
-			.page-background {
-				background-image: url('https://ik.imagekit.io/6txj3mofs/Untitled%20design%20(6).png');
-				background-size: cover;
-				background-position: center;
-			}
-		}
-	</style>
+        @@media (max-width: 640px) {
+            .page-background {
+                background-image: url('https://ik.imagekit.io/6txj3mofs/Untitled%20design%20(6).png');
+                background-size: cover;
+                background-position: center;
+            }
+        }
+    </style>
 </head>
-<body class="min-h-screen flex items-center justify-center">
-	<div class="page-background"></div>
-	<header id="site-header" class="slide-up-init fixed inset-x-0 top-0 z-50 px-4">
-		<nav class="flex items-center justify-between p-6 lg:px-8" aria-label="Global">
-			<div class="flex lg:flex-1">
-				<a class="-m-1.5 p-2" asp-area="" asp-controller="Home" asp-action="Index">
-					<span class="sr-only">Your Company</span>
-					<img class="h-20 w-auto" src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(2).png?updatedAt=1749718355580" alt="">
-				</a>
-			</div>
-		</nav>
-	</header>
+<body class="min-h-screen pt-0">
+    <div class="page-background"></div>
+    <header id="site-header" class="slide-up-init top-0 z-50 px-4">
+        <nav class="flex items-center justify-between h-24 lg:px-8" aria-label="Global">
+            <div class="flex lg:flex-1">
+                <a class="-m-1.5 p-2" asp-area="" asp-controller="Home" asp-action="Index">
+                    <span class="sr-only">Your Company</span>
+                    <img class="h-20 w-auto" src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(2).png?updatedAt=1749718355580" alt="">
+                </a>
+            </div>
+        </nav>
+    </header>
 
-	<div class="relative">
-		<div class="relative isolate px-6 pt-[10px] lg:px-8">
-			<div class="grid grid-cols-1 lg:grid-cols-2 items-center py-16 sm:py-24 lg:py-32 px-4">
-				<div class="flex items-center justify-center w-full">
-					<div class="w-1/2 flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow">
-						<div class="mb-5">
-							<h5 class="mb-2 text-2xl font-bold text-gray-900">Enter Code</h5>
-						</div>
-						<div class="w-full">
-							<form asp-action="LoginWith2fa" method="post">
-								@Html.AntiForgeryToken()
-								<div class="mb-3">
-									<label class="block text-sm font-medium">Authentication code</label>
-									<input asp-for="TwoFactorCode" class="mt-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" />
-									<span asp-validation-for="TwoFactorCode" class="text-sm text-red-600"></span>
-								</div>
+    <main class="relative px-9 mt-6">
+        <div class="grid grid-cols-1 gap-8 md:grid-cols-2 items-center">
+            <div class="flex justify-center">
+                <div class="w-full max-w-md p-6 bg-white border border-gray-200 rounded-lg shadow">
+                    <div class="mb-5">
+                        <h5 class="mb-2 text-2xl font-bold text-gray-900">Enter Code</h5>
+                    </div>
+                    <div class="w-full">
+                        <form asp-action="LoginWith2fa" method="post">
+                            @Html.AntiForgeryToken()
+                            <div class="mb-3">
+                                <label class="block text-sm font-medium">Authentication code</label>
+                                <input asp-for="TwoFactorCode" class="mt-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" />
+                                <span asp-validation-for="TwoFactorCode" class="text-sm text-red-600"></span>
+                            </div>
 
-								<input type="hidden" asp-for="RememberMe" />
+                            <input type="hidden" asp-for="RememberMe" />
 
-								<div class="mb-3 flex items-center">
-									<input asp-for="RememberDevice" type="checkbox" class="w-4 h-4 mr-2 bg-gray-50 text-blue-600 border-gray-300 rounded-sm focus:ring-blue-500 focus:ring-2" />
-									<label class="text-sm">Remember this device</label>
-								</div>
+                            <div class="mb-3 flex items-center">
+                                <input asp-for="RememberDevice" type="checkbox" class="w-4 h-4 mr-2 bg-gray-50 text-blue-600 border-gray-300 rounded-sm focus:ring-blue-500 focus:ring-2" />
+                                <label class="text-sm">Remember this device</label>
+                            </div>
 
-								<input type="hidden" asp-for="ReturnUrl" />
-								@if (ViewData.ModelState.ErrorCount > 0)
-								{
-									<div class="mt-2 flex items-center p-4 mb-4 text-sm text-red-800 border border-red-300 rounded-lg bg-red-50" role="alert">
-										<svg class="shrink-0 inline w-4 h-4 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-											<path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
-										</svg>
-										<span class="sr-only">Info</span>
-										<div asp-validation-summary="ModelOnly">
-										</div>
-									</div>
-								}
-								<button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm w-full py-2.5 me-2 mb-2 mt-3 focus:outline-none">Verify</button>
-							</form>
-						</div>
-					</div>
-				</div>
-
-
-				<div class="flex items-center justify-center w-full">
-					<img class="w-3/4 h-3/4" src="https://ik.imagekit.io/6txj3mofs/front.png?updatedAt=1750340542946" alt="">
-				</div>
-			</div>
-		</div>
-	</div>
-	@section Scripts {
-		@{
-			await Html.RenderPartialAsync("_ValidationScriptsPartial");
-		}
-	}
-	<script src="~/node_modules/flowbite/dist/flowbite.min.js"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js"></script>
+                            <input type="hidden" asp-for="ReturnUrl" />
+                            @if (ViewData.ModelState.ErrorCount > 0)
+                            {
+                                <div class="mt-2 flex items-center p-4 mb-4 text-sm text-red-800 border border-red-300 rounded-lg bg-red-50" role="alert">
+                                    <svg class="shrink-0 inline w-4 h-4 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
+                                    </svg>
+                                    <span class="sr-only">Info</span>
+                                    <div asp-validation-summary="ModelOnly">
+                                    </div>
+                                </div>
+                            }
+                            <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm w-full py-2.5 me-2 mb-2 mt-3 focus:outline-none">Verify</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center justify-center">
+                <img class="w-3/4 h-3/4 max-w-full object-contain" src="https://ik.imagekit.io/6txj3mofs/front.png?updatedAt=1750340542946" alt="">
+            </div>
+        </div>
+    </main>
+    @section Scripts {
+        @{
+            await Html.RenderPartialAsync("_ValidationScriptsPartial");
+        }
+    }
+    <script src="~/node_modules/flowbite/dist/flowbite.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js"></script>
 </body>
 </html>

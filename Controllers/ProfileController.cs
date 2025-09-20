@@ -23,12 +23,21 @@ namespace Freelancing.Controllers
             // Get freelancer profile with all related data
             var freelancer = await _context.UserAccounts
                 .Include(u => u.UserAccountSkills)
-                .ThenInclude(uas => uas.UserSkill)
+                    .ThenInclude(uas => uas.UserSkill)
                 .Include(u => u.Portfolios)
                 .FirstOrDefaultAsync(u => u.Id == id);
 
             if (freelancer == null)
                 return NotFound();
+
+            // Identity verification status
+            var identityVerification = await _context.IdentityVerifications
+                .AsNoTracking()
+                .FirstOrDefaultAsync(iv => iv.UserAccountId == id);
+            var isVerified = identityVerification?.IdDocumentVerified == true
+                             && identityVerification?.FaceVerified == true;
+            ViewBag.IsVerified = isVerified;
+            ViewBag.IdentityVerification = identityVerification;
 
             // Check mentorship completion status
             var completedAsMentor = await _context.MentorshipMatches
@@ -53,8 +62,8 @@ namespace Freelancing.Controllers
             var feedbacks = await _context.FreelancerFeedbacks
                 .Where(f => f.FreelancerId == id)
                 .Include(f => f.AcceptBidding)
-                .ThenInclude(ab => ab.Project)
-                .ThenInclude(p => p.User)
+                    .ThenInclude(ab => ab.Project)
+                        .ThenInclude(p => p.User)
                 .OrderByDescending(f => f.CreatedAt)
                 .ToListAsync();
 
@@ -62,7 +71,7 @@ namespace Freelancing.Controllers
                 .Where(f => f.MentorId == id)
                 .Include(f => f.MentorshipMatch)
                     .ThenInclude(mm => mm.Mentee)
-                .Include(f => f.Mentee)         
+                .Include(f => f.Mentee)
                 .OrderByDescending(f => f.CreatedAt)
                 .ToListAsync();
 
@@ -99,8 +108,9 @@ namespace Freelancing.Controllers
             var averageRating = feedbacks.Any() ? feedbacks.Average(f => f.Rating) : 0;
 
             // Calculate recommendation rate
-            var recommendationRate = feedbacks.Any() ?
-                (double)feedbacks.Count(f => f.WouldRecommend) / feedbacks.Count * 100 : 0;
+            var recommendationRate = feedbacks.Any()
+                ? (double)feedbacks.Count(f => f.WouldRecommend) / feedbacks.Count * 100
+                : 0;
 
             ViewBag.MentorshipData = (completedAsMentor, completedAsMentee);
             ViewBag.Projects = projects;
@@ -124,11 +134,20 @@ namespace Freelancing.Controllers
             // Get client profile with all related data
             var client = await _context.UserAccounts
                 .Include(u => u.Projects)
-                .ThenInclude(p => p.Biddings)
+                    .ThenInclude(p => p.Biddings)
                 .FirstOrDefaultAsync(u => u.Id == id);
 
             if (client == null)
                 return NotFound();
+
+            // Identity verification status
+            var identityVerification = await _context.IdentityVerifications
+                .AsNoTracking()
+                .FirstOrDefaultAsync(iv => iv.UserAccountId == id);
+            var isVerified = identityVerification?.IdDocumentVerified == true
+                             && identityVerification?.FaceVerified == true;
+            ViewBag.IsVerified = isVerified;
+            ViewBag.IdentityVerification = identityVerification;
 
             // Get client's projects
             var projects = await _context.Projects

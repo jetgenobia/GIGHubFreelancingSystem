@@ -26,11 +26,14 @@
             _ => "bg-yellow-100 text-yellow-800"
         };
     }
+
+    var statusOptions = ViewBag.StatusOptions as List<SelectListItem> ?? new();
+    var currentStatus = ViewBag.CurrentStatus as string ?? "All";
 }
 
 <div class="p-4 sm:ml-64">
-    <div class="p-4 mt-20">
-        <div class="mt-4">
+    <div class="pt-2 mt-20">
+        <div class="mt-1">
             <div class="block w-full p-6">
                 <!-- Header -->
                 <div class="flex items-center justify-between mb-6">
@@ -136,7 +139,32 @@
                 @if (ViewBag.IsFreelancer)
                 {
                     <!-- Existing Deliverables Freelancer -->
-                    <h2 class="text-xl font-semibold text-gray-900 mb-4 mt-6">Submitted Deliverables</h2>
+                    <div class="flex justify-between">
+                        <h2 class="text-xl font-semibold text-gray-900 mb-4 mt-6">Submitted Deliverables</h2>
+                        <div class="flex items-center gap-4 mt-2">
+                            <div class="relative">
+                                <select onchange="filterByStatus(this.value)"
+                                        class="appearance-none bg-white border border-gray-300 rounded-md pl-3 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    @foreach (var opt in statusOptions)
+                                    {
+                                        if (opt.Value == currentStatus)
+                                        {
+                                            <option value="@opt.Value" selected>@opt.Text</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@opt.Value">@opt.Text</option>
+                                        }
+                                    }
+                                </select>
+                                <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     @if (ViewBag.Deliverables != null && ((List<Freelancing.Models.Entities.Deliverable>)ViewBag.Deliverables).Count > 0)
                     {
                         <div class="space-y-4">
@@ -173,12 +201,12 @@
                                                     var files = System.Text.Json.JsonSerializer.Deserialize<List<string>>(deliverable.SubmittedFilesPaths);
                                                     foreach (var file in files)
                                                     {
-                                                        <a href="@file" target="_blank" class="text-blue-600 hover:text-blue-800 text-sm rounded bg-blue-50 shadow-sm p-2">
-                                                            <div class="inline-flex items-center justify-center">
-                                                                <svg class="w-[15px] h-[15px] text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                                                        <a href="@file" target="_blank" class="inline-flex items-center max-w-[14rem] sm:max-w-none min-w-0 overflow-hidden rounded bg-blue-50 shadow-sm p-2 text-blue-600 hover:text-blue-800 text-sm">
+                                                            <div class="flex items-center space-x-2 flex-1 min-w-0 overflow-hidden">
+                                                                <svg class="w-[15px] h-[15px] text-gray-800 flex-shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
                                                                     <path fill-rule="evenodd" d="M9 2.221V7H4.221a2 2 0 0 1 .365-.5L8.5 2.586A2 2 0 0 1 9 2.22ZM11 2v5a2 2 0 0 1-2 2H4v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-7Z" clip-rule="evenodd" />
                                                                 </svg>
-                                                                <span class="ms-1">@System.IO.Path.GetFileName(file)</span>
+                                                                <span class="truncate" title="@System.IO.Path.GetFileName(file)">@System.IO.Path.GetFileName(file)</span>
                                                             </div>
                                                         </a>
                                                     }
@@ -239,7 +267,32 @@
                 else if (ViewBag.IsClient)
                 {
                     <!-- Existing Deliverables Client -->
-                    <h2 class="text-xl font-semibold text-gray-900 mb-4 mt-6">Submitted Deliverables</h2>
+                    <div class="flex justify-between">
+                        <h2 class="text-xl font-semibold text-gray-900 mb-4 mt-6">Submitted Deliverables</h2>
+                        <div class="flex items-center gap-4 mt-2">
+                            <div class="relative">
+                                <select onchange="filterByStatus(this.value)"
+                                        class="appearance-none bg-white border border-gray-300 rounded-md pl-3 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    @foreach (var opt in statusOptions)
+                                    {
+                                        if (opt.Value == currentStatus)
+                                        {
+                                            <option value="@opt.Value" selected>@opt.Text</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@opt.Value">@opt.Text</option>
+                                        }
+                                    }
+                                </select>
+                                <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     @if (ViewBag.Deliverables != null && ((List<Freelancing.Models.Entities.Deliverable>)ViewBag.Deliverables).Count > 0)
                     {
                         <div class="space-y-4">
@@ -276,12 +329,12 @@
                                                     var files = System.Text.Json.JsonSerializer.Deserialize<List<string>>(deliverable.SubmittedFilesPaths);
                                                     foreach (var file in files)
                                                     {
-                                                        <a href="@file" target="_blank" class="text-blue-600 hover:text-blue-800 text-sm rounded bg-blue-50 shadow-sm p-2">
-                                                            <div class="inline-flex items-center justify-center">
-                                                                <svg class="w-[15px] h-[15px] text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                                                        <a href="@file" target="_blank" class="inline-flex items-center max-w-[14rem] sm:max-w-none min-w-0 overflow-hidden rounded bg-blue-50 shadow-sm p-2 text-blue-600 hover:text-blue-800 text-sm">
+                                                            <div class="flex items-center space-x-2 flex-1 min-w-0 overflow-hidden">
+                                                                <svg class="w-[15px] h-[15px] text-gray-800 flex-shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
                                                                     <path fill-rule="evenodd" d="M9 2.221V7H4.221a2 2 0 0 1 .365-.5L8.5 2.586A2 2 0 0 1 9 2.22ZM11 2v5a2 2 0 0 1-2 2H4v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-7Z" clip-rule="evenodd" />
                                                                 </svg>
-                                                                <span class="ms-1">@System.IO.Path.GetFileName(file)</span>
+                                                                <span class="truncate" title="@System.IO.Path.GetFileName(file)">@System.IO.Path.GetFileName(file)</span>
                                                             </div>
                                                         </a>
                                                     }
@@ -355,13 +408,13 @@
                         </div>
                     }
                 }
-                
+
             </div>
         </div>
     </div>
 </div>
 
- <div id="revisionModal" class="fixed inset-0 backdrop-blur-sm bg-black/20 overflow-y-auto h-full w-full hidden z-50">
+<div id="revisionModal" class="fixed inset-0 backdrop-blur-sm bg-black/20 overflow-y-auto h-full w-full hidden z-50">
     <div class="relative top-20 mx-auto p-5 w-96 shadow-lg rounded-md bg-white">
         <div class="mt-3">
             <div class="flex items-center justify-between mb-4">
@@ -376,7 +429,7 @@
             <div class="mb-4">
                 <p class="text-sm text-gray-600 mb-2">Deliverable: <span id="deliverableTitle" class="font-medium text-gray-900"></span></p>
                 <label for="revisionComments" class="block text-sm font-medium text-gray-700 mb-2">Revision Comments</label>
-                
+
                 <textarea id="revisionComments" rows="4" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500" placeholder="Please provide detailed feedback on what needs to be revised..."></textarea>
             </div>
 
@@ -390,288 +443,298 @@
             </div>
         </div>
     </div>
- </div>
- 
- <div id="acceptModal" tabindex="-1" class="hidden fixed inset-0 z-50 overflow-y-auto overflow-x-hidden">
-     <div class="modal-backdrop absolute inset-0 backdrop-blur-md bg-black/20"></div>
-     <div class="flex items-center justify-center min-h-screen p-4">
-         <div class="relative w-full max-w-md">
-         <div class="relative bg-white rounded-lg shadow">
-             <button type="button" class="absolute top-3 end-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center" onclick="closeAcceptModal()">
-                 <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
-                     <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
-                 </svg>
-                 <span class="sr-only">Close modal</span>
-             </button>
- 
-             <div class="p-6 text-center">
-                 <svg class="mx-auto mb-4 text-gray-500 w-12 h-12" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                     <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 11V6m0 8h.01M19 10a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                 </svg>
-                 <h3 class="mb-5 text-lg font-normal text-gray-800">Are you sure you want to approve the deliverable "<span id="acceptDeliverableTitle"></span>"?</h3>
- 
-                 <button type="button"
-                         onclick="submitAccept()"
-                         class="text-white bg-green-600 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center me-2">
-                     Yes, I'm sure
-                 </button>
-                 <button type="button"
-                         onclick="closeAcceptModal()"
-                         class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10">
-                     No, cancel
-                 </button>
-             </div>
-         </div>
-     </div>
- </div>
- 
- <input type="hidden" id="deliverableIdInput" />
- <input type="hidden" id="acceptDeliverableIdInput" />
+</div>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const fileInput = document.getElementById('submitted-files');
-        const placeholder = document.getElementById('files-placeholder');
-        const uploadedContainer = document.getElementById('uploaded-files-container');
-        const noFilesMessage = document.getElementById('no-files-message');
-        const filesList = document.getElementById('files-list');
-        const allSelectedFiles = new DataTransfer();
+<div id="acceptModal" tabindex="-1" class="hidden fixed inset-0 z-50 overflow-y-auto overflow-x-hidden">
+    <div class="modal-backdrop absolute inset-0 backdrop-blur-md bg-black/20"></div>
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="relative w-full max-w-md">
+            <div class="relative bg-white rounded-lg shadow">
+                <button type="button" class="absolute top-3 end-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center" onclick="closeAcceptModal()">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                </button>
 
-        // Repository links elements
-        const linkInput = document.getElementById('repository-link-input');
-        const addLinkBtn = document.getElementById('add-link-btn');
-        const linksContainer = document.getElementById('repository-links-container');
-        const linksHiddenInput = document.getElementById('repository-links-hidden');
-        const repositoryLinks = [];
+                <div class="p-6 text-center">
+                    <svg class="mx-auto mb-4 text-gray-500 w-12 h-12" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 11V6m0 8h.01M19 10a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    </svg>
+                    <h3 class="mb-5 text-lg font-normal text-gray-800">Are you sure you want to approve the deliverable "<span id="acceptDeliverableTitle"></span>"?</h3>
 
-        fileInput.addEventListener('change', function(e) {
-            const files = Array.from(e.target.files);
+                    <button type="button"
+                            onclick="submitAccept()"
+                            class="text-white bg-green-600 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center me-2">
+                        Yes, I'm sure
+                    </button>
+                    <button type="button"
+                            onclick="closeAcceptModal()"
+                            class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10">
+                        No, cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-            if (files.length > 0) {
-                files.forEach((file, index) => {
-                    handleFileSelect(file, index);
-                });
+    <input type="hidden" id="deliverableIdInput" />
+    <input type="hidden" id="acceptDeliverableIdInput" />
 
-                // Update the file input with all selected files
-                fileInput.files = allSelectedFiles.files;
-            }
-        });
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('submitted-files');
+            const placeholder = document.getElementById('files-placeholder');
+            const uploadedContainer = document.getElementById('uploaded-files-container');
+            const noFilesMessage = document.getElementById('no-files-message');
+            const filesList = document.getElementById('files-list');
+            const allSelectedFiles = new DataTransfer();
 
-        function addFileToList(file, fileName) {
-            noFilesMessage.style.display = 'none';
+            // Repository links elements
+            const linkInput = document.getElementById('repository-link-input');
+            const addLinkBtn = document.getElementById('add-link-btn');
+            const linksContainer = document.getElementById('repository-links-container');
+            const linksHiddenInput = document.getElementById('repository-links-hidden');
+            const repositoryLinks = [];
 
-            const fileItem = document.createElement('div');
-            fileItem.className = 'flex items-center justify-between p-2 bg-white rounded border border-gray-300';
+            fileInput.addEventListener('change', function(e) {
+                const files = Array.from(e.target.files);
 
-            const fileInfo = document.createElement('div');
-            fileInfo.className = 'flex items-center space-x-2';
-
-            const fileIcon = document.createElement('div');
-            fileIcon.className = 'w-8 h-8 bg-blue-100 rounded flex items-center justify-center';
-            fileIcon.innerHTML = '<svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>';
-
-            const fileNameSpan = document.createElement('span');
-            fileNameSpan.className = 'text-sm text-gray-700 truncate';
-            fileNameSpan.textContent = fileName;
-
-            fileInfo.appendChild(fileIcon);
-            fileInfo.appendChild(fileNameSpan);
-
-            const removeBtn = document.createElement('button');
-            removeBtn.type = 'button';
-            removeBtn.className = 'text-red-500 hover:text-red-700';
-            removeBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
-            removeBtn.onclick = function() {
-                // Remove file from DataTransfer object
-                const fileIndex = Array.from(allSelectedFiles.files).findIndex(f => f.name === fileName);
-                if (fileIndex > -1) {
-                    const newDataTransfer = new DataTransfer();
-                    Array.from(allSelectedFiles.files).forEach((f, index) => {
-                        if (index !== fileIndex) {
-                            newDataTransfer.items.add(f);
-                        }
+                if (files.length > 0) {
+                    files.forEach((file, index) => {
+                        handleFileSelect(file, index);
                     });
-                    allSelectedFiles.items.clear();
-                    Array.from(newDataTransfer.files).forEach(f => allSelectedFiles.items.add(f));
+
+                    // Update the file input with all selected files
                     fileInput.files = allSelectedFiles.files;
                 }
+            });
 
-                fileItem.remove();
-                if (filesList.children.length === 0) {
-                    noFilesMessage.style.display = 'flex';
+            function addFileToList(file, fileName) {
+                noFilesMessage.style.display = 'none';
+
+                const fileItem = document.createElement('div');
+                fileItem.className = 'flex items-center justify-between p-2 bg-white rounded border border-gray-300 overflow-hidden';
+
+                const fileInfo = document.createElement('div');
+                fileInfo.className = 'flex items-center space-x-2 min-w-0';
+
+                const fileIcon = document.createElement('div');
+                fileIcon.className = 'w-8 h-8 bg-blue-100 rounded flex items-center justify-center';
+                fileIcon.innerHTML = '<svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>';
+
+                const fileNameSpan = document.createElement('span');
+                fileNameSpan.className = 'text-sm text-gray-700 truncate';
+                fileNameSpan.textContent = fileName;
+
+                fileInfo.appendChild(fileIcon);
+                fileInfo.appendChild(fileNameSpan);
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'flex-shrink-0 ml-2 text-red-500 hover:text-red-700';
+                removeBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+                removeBtn.onclick = function() {
+                    // Remove file from DataTransfer object
+                    const fileIndex = Array.from(allSelectedFiles.files).findIndex(f => f.name === fileName);
+                    if (fileIndex > -1) {
+                        const newDataTransfer = new DataTransfer();
+                        Array.from(allSelectedFiles.files).forEach((f, index) => {
+                            if (index !== fileIndex) {
+                                newDataTransfer.items.add(f);
+                            }
+                        });
+                        allSelectedFiles.items.clear();
+                        Array.from(newDataTransfer.files).forEach(f => allSelectedFiles.items.add(f));
+                        fileInput.files = allSelectedFiles.files;
+                    }
+
+                    fileItem.remove();
+                    if (filesList.children.length === 0) {
+                        noFilesMessage.style.display = 'flex';
+                    }
+                };
+
+                fileItem.appendChild(fileInfo);
+                fileItem.appendChild(removeBtn);
+                filesList.appendChild(fileItem);
+            }
+
+            function handleFileSelect(file, index) {
+                // Validate file size (10MB limit)
+                if (file.size > 10 * 1024 * 1024) {
+                    alert(`File ${file.name} is too large. Maximum size is 10MB.`);
+                    return;
                 }
-            };
 
-            fileItem.appendChild(fileInfo);
-            fileItem.appendChild(removeBtn);
-            filesList.appendChild(fileItem);
-        }
+                // Validate file type
+                const allowedTypes = ['.jpg', '.jpeg', '.png', '.gif', '.svg', '.pdf', '.doc', '.docx', '.txt', '.zip', '.mp4', '.mov', '.avi'];
+                const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
 
-        function handleFileSelect(file, index) {
-            // Validate file size (10MB limit)
-            if (file.size > 10 * 1024 * 1024) {
-                alert(`File ${file.name} is too large. Maximum size is 10MB.`);
-                return;
-            }
-
-            // Validate file type
-            const allowedTypes = ['.jpg', '.jpeg', '.png', '.gif', '.svg', '.pdf', '.doc', '.docx', '.txt', '.zip', '.mp4', '.mov', '.avi'];
-            const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
-
-            if (!allowedTypes.includes(fileExtension)) {
-                alert(`File ${file.name} is not a supported file type.`);
-                return;
-            }
-
-            // Add file to DataTransfer object
-            allSelectedFiles.items.add(file);
-            addFileToList(file, file.name);
-        }
-
-        // Repository links functionality
-        addLinkBtn.addEventListener('click', function() {
-            const link = linkInput.value.trim();
-            if (link) {
-                if (isValidUrl(link)) {
-                    addLinkToList(link);
-                    linkInput.value = '';
-                } else {
-                    alert('Please enter a valid URL');
+                if (!allowedTypes.includes(fileExtension)) {
+                    alert(`File ${file.name} is not a supported file type.`);
+                    return;
                 }
-            }
-        });
 
-        linkInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                addLinkBtn.click();
-            }
-        });
-
-        function addLinkToList(link) {
-            if (repositoryLinks.includes(link)) {
-                alert('This link has already been added');
-                return;
+                // Add file to DataTransfer object
+                allSelectedFiles.items.add(file);
+                addFileToList(file, file.name);
             }
 
-            repositoryLinks.push(link);
-            updateHiddenInput();
-
-            const linkItem = document.createElement('div');
-            linkItem.className = 'flex items-center justify-between p-2 bg-blue-50 rounded border border-gray-300';
-
-            const linkInfo = document.createElement('div');
-            linkInfo.className = 'flex items-center space-x-2';
-
-            const linkIcon = document.createElement('div');
-            linkIcon.className = 'w-6 h-6 bg-blue-100 rounded flex items-center justify-center';
-            linkIcon.innerHTML = '<svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>';
-
-            const linkSpan = document.createElement('span');
-            linkSpan.className = 'text-sm text-blue-700 truncate';
-            linkSpan.textContent = link;
-
-            linkInfo.appendChild(linkIcon);
-            linkInfo.appendChild(linkSpan);
-
-            const removeBtn = document.createElement('button');
-            removeBtn.type = 'button';
-            removeBtn.className = 'text-red-500 hover:text-red-700 ml-2';
-            removeBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
-            removeBtn.onclick = function() {
-                const index = repositoryLinks.indexOf(link);
-                if (index > -1) {
-                    repositoryLinks.splice(index, 1);
-                    updateHiddenInput();
+            // Repository links functionality
+            addLinkBtn.addEventListener('click', function() {
+                const link = linkInput.value.trim();
+                if (link) {
+                    if (isValidUrl(link)) {
+                        addLinkToList(link);
+                        linkInput.value = '';
+                    } else {
+                        alert('Please enter a valid URL');
+                    }
                 }
-                linkItem.remove();
-            };
+            });
 
-            linkItem.appendChild(linkInfo);
-            linkItem.appendChild(removeBtn);
-            linksContainer.appendChild(linkItem);
-        }
+            linkInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addLinkBtn.click();
+                }
+            });
 
-        function updateHiddenInput() {
-            linksHiddenInput.value = JSON.stringify(repositoryLinks);
-        }
+            function addLinkToList(link) {
+                if (repositoryLinks.includes(link)) {
+                    alert('This link has already been added');
+                    return;
+                }
 
-                 function isValidUrl(string) {
-             try {
-                 new URL(string);
-                 return true;
-             } catch (_) {
-                 return false;
+                repositoryLinks.push(link);
+                updateHiddenInput();
+
+                const linkItem = document.createElement('div');
+                linkItem.className = 'flex items-center justify-between p-2 bg-blue-50 rounded border border-gray-300 overflow-hidden';
+
+                const linkInfo = document.createElement('div');
+                linkInfo.className = 'flex items-center space-x-2 min-w-0';
+
+                const linkIcon = document.createElement('div');
+                linkIcon.className = 'w-6 h-6 bg-blue-100 rounded flex items-center justify-center';
+                linkIcon.innerHTML = '<svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>';
+
+                const linkSpan = document.createElement('span');
+                linkSpan.className = 'text-sm text-blue-700 truncate';
+                linkSpan.textContent = link;
+
+                linkInfo.appendChild(linkIcon);
+                linkInfo.appendChild(linkSpan);
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'flex-shrink-0 ml-2 text-red-500 hover:text-red-700 ml-2';
+                removeBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+                removeBtn.onclick = function() {
+                    const index = repositoryLinks.indexOf(link);
+                    if (index > -1) {
+                        repositoryLinks.splice(index, 1);
+                        updateHiddenInput();
+                    }
+                    linkItem.remove();
+                };
+
+                linkItem.appendChild(linkInfo);
+                linkItem.appendChild(removeBtn);
+                linksContainer.appendChild(linkItem);
+            }
+
+            function updateHiddenInput() {
+                linksHiddenInput.value = JSON.stringify(repositoryLinks);
+            }
+
+                     function isValidUrl(string) {
+                 try {
+                     new URL(string);
+                     return true;
+                 } catch (_) {
+                     return false;
+                 }
              }
+         });
+
+         // Revision modal functionality - Global functions
+         function openRevisionModal(deliverableId, deliverableTitle) {
+             document.getElementById('revisionModal').style.display = 'block';
+             document.getElementById('deliverableIdInput').value = deliverableId;
+             document.getElementById('deliverableTitle').textContent = deliverableTitle;
          }
-     });
 
-     // Revision modal functionality - Global functions
-     function openRevisionModal(deliverableId, deliverableTitle) {
-         document.getElementById('revisionModal').style.display = 'block';
-         document.getElementById('deliverableIdInput').value = deliverableId;
-         document.getElementById('deliverableTitle').textContent = deliverableTitle;
-     }
+         function closeRevisionModal() {
+             document.getElementById('revisionModal').style.display = 'none';
+             document.getElementById('revisionComments').value = '';
+         }
 
-     function closeRevisionModal() {
-         document.getElementById('revisionModal').style.display = 'none';
-         document.getElementById('revisionComments').value = '';
-     }
+               function submitRevision() {
+              const deliverableId = document.getElementById('deliverableIdInput').value;
+              const reviewComments = document.getElementById('revisionComments').value.trim();
 
-           function submitRevision() {
-          const deliverableId = document.getElementById('deliverableIdInput').value;
-          const reviewComments = document.getElementById('revisionComments').value.trim();
-          
-          if (!reviewComments) {
-              alert('Please provide revision comments.');
-              return;
+              if (!reviewComments) {
+                  alert('Please provide revision comments.');
+                  return;
+              }
+
+              const form = document.createElement('form');
+              form.method = 'POST';
+              form.action = '/Deliverable/RequestRevision';
+
+              const deliverableIdInput = document.createElement('input');
+              deliverableIdInput.type = 'hidden';
+              deliverableIdInput.name = 'deliverableId';
+              deliverableIdInput.value = deliverableId;
+
+              const reviewCommentsInput = document.createElement('input');
+              reviewCommentsInput.type = 'hidden';
+              reviewCommentsInput.name = 'reviewComments';
+              reviewCommentsInput.value = reviewComments;
+
+              form.appendChild(deliverableIdInput);
+              form.appendChild(reviewCommentsInput);
+              document.body.appendChild(form);
+              form.submit();
           }
 
-          const form = document.createElement('form');
-          form.method = 'POST';
-          form.action = '/Deliverable/RequestRevision';
+          // Accept modal functionality - Global functions
+          function openAcceptModal(deliverableId, deliverableTitle) {
+              document.getElementById('acceptModal').style.display = 'block';
+              document.getElementById('acceptDeliverableIdInput').value = deliverableId;
+              document.getElementById('acceptDeliverableTitle').textContent = deliverableTitle;
+          }
 
-          const deliverableIdInput = document.createElement('input');
-          deliverableIdInput.type = 'hidden';
-          deliverableIdInput.name = 'deliverableId';
-          deliverableIdInput.value = deliverableId;
+          function closeAcceptModal() {
+              document.getElementById('acceptModal').style.display = 'none';
+          }
 
-          const reviewCommentsInput = document.createElement('input');
-          reviewCommentsInput.type = 'hidden';
-          reviewCommentsInput.name = 'reviewComments';
-          reviewCommentsInput.value = reviewComments;
+          function submitAccept() {
+              const deliverableId = document.getElementById('acceptDeliverableIdInput').value;
 
-          form.appendChild(deliverableIdInput);
-          form.appendChild(reviewCommentsInput);
-          document.body.appendChild(form);
-          form.submit();
-      }
+              const form = document.createElement('form');
+              form.method = 'POST';
+              form.action = '/Deliverable/Approve';
 
-      // Accept modal functionality - Global functions
-      function openAcceptModal(deliverableId, deliverableTitle) {
-          document.getElementById('acceptModal').style.display = 'block';
-          document.getElementById('acceptDeliverableIdInput').value = deliverableId;
-          document.getElementById('acceptDeliverableTitle').textContent = deliverableTitle;
-      }
+              const deliverableIdInput = document.createElement('input');
+              deliverableIdInput.type = 'hidden';
+              deliverableIdInput.name = 'deliverableId';
+              deliverableIdInput.value = deliverableId;
 
-      function closeAcceptModal() {
-          document.getElementById('acceptModal').style.display = 'none';
-      }
+              form.appendChild(deliverableIdInput);
+              document.body.appendChild(form);
+              form.submit();
+          }
 
-      function submitAccept() {
-          const deliverableId = document.getElementById('acceptDeliverableIdInput').value;
-
-          const form = document.createElement('form');
-          form.method = 'POST';
-          form.action = '/Deliverable/Approve';
-
-          const deliverableIdInput = document.createElement('input');
-          deliverableIdInput.type = 'hidden';
-          deliverableIdInput.name = 'deliverableId';
-          deliverableIdInput.value = deliverableId;
-
-          form.appendChild(deliverableIdInput);
-          document.body.appendChild(form);
-          form.submit();
-      }
- </script>
+                  function filterByStatus(status) {
+                const url = new URL(window.location.href);
+                if (status && status !== 'All') {
+                    url.searchParams.set('status', status);
+                } else {
+                    url.searchParams.delete('status');
+                }
+                window.location.href = url.toString();
+            }
+    </script>

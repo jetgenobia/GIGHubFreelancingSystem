@@ -1,6 +1,6 @@
 ﻿@{
-	Layout = null;
-	ViewData["Title"] = "Registration";
+    Layout = null;
+    ViewData["Title"] = "Registration";
 }
 
 @model Freelancing.Models.MentorshipRegistration
@@ -8,206 +8,202 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<title>@ViewData["Title"]</title>
-	<link rel="stylesheet" href="~/css/output.css" />
-	<link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="~/css/output.css" />
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+    <style>
+        .hide-mobile {
+            display: none;
+        }
+
+        @@media (min-width: 640px) {
+            .hide-mobile {
+                display: block;
+            }
+        }
+    </style>
 </head>
 <body>
-	<nav class="fixed top-0 z-50 w-full bg-white border-b border-gray-200">
-		<div class="px-3 py-3 lg:px-5 lg:pl-3">
-			<div class="flex items-center justify-between">
-				<div class="flex items-center justify-start rtl:justify-end">
-					<button data-drawer-target="logo-sidebar" data-drawer-toggle="logo-sidebar" aria-controls="logo-sidebar" type="button" class="inline-flex items-center p-2 text-sm text-gray-500 rounded-lg sm:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200">
-						<span class="sr-only">Open sidebar</span>
-						<svg class="w-6 h-6" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-							<path clip-rule="evenodd" fill-rule="evenodd" d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zm0 10.5a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75zM2 10a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 10z"></path>
-						</svg>
-					</button>
-					<a class="-m-1.5 p-1.5 ms-5" asp-area="" asp-controller="Home" asp-action="Index">
-						<span class="sr-only">Your Company</span>
-						<img class="h-16 w-auto" src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(2).png?updatedAt=1749718355580" alt="">
-					</a>
-				</div>
-				<div class="flex items-center justify-center flex-1 mx-4">
-					<form class="max-w-xl w-full mx-auto" data-search-form="true">
-						<label for="default-search" class="mb-2 text-sm font-medium text-gray-900 sr-only">Search</label>
-						<div class="relative">
-							<div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-								<svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-									<path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
-								</svg>
-							</div>
-							<input type="search" id="default-search" name="searchTerm" class="block w-full p-4 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-gray-300 focus:border-gray-300" placeholder="Search GIGHub" required />
-						</div>
-					</form>
-				</div>
-				<div class="flex items-center">
-					<button id="dropdownNotificationButton" data-dropdown-toggle="dropdownNotification" class="relative inline-flex items-center text-sm font-medium text-center text-gray-500 hover:text-gray-900 focus:outline-none mr-3 mt-1" type="button">
-						<svg viewBox="-1.5 0 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="currentColor" class="w-6 h-6">
-							<g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-							<g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
-							<g id="SVGRepo_iconCarrier">
-								<title>notification_bell [#1397]</title>
-								<desc>Created with Sketch.</desc>
-								<defs> </defs>
-								<g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-									<g id="Dribbble-Light-Preview" transform="translate(-181.000000, -720.000000)" fill="currentColor">
-										<g id="icons" transform="translate(56.000000, 160.000000)">
-											<path d="M137.75,574 L129.25,574 L129.25,568 C129.25,565.334 131.375,564 133.498937,564 L133.501063,564 C135.625,564 137.75,565.334 137.75,568 L137.75,574 Z M134.5625,577 C134.5625,577.552 134.0865,578 133.5,578 C132.9135,578 132.4375,577.552 132.4375,577 L132.4375,576 L134.5625,576 L134.5625,577 Z M140.9375,574 C140.351,574 139.875,573.552 139.875,573 L139.875,568 C139.875,564.447 137.359,562.475 134.5625,562.079 L134.5625,561 C134.5625,560.448 134.0865,560 133.5,560 C132.9135,560 132.4375,560.448 132.4375,561 L132.4375,562.079 C129.641,562.475 127.125,564.447 127.125,568 L127.125,573 C127.125,573.552 126.649,574 126.0625,574 C125.476,574 125,574.448 125,575 C125,575.552 125.476,576 126.0625,576 L130.3125,576 L130.3125,577 C130.3125,578.657 131.739438,580 133.5,580 C135.260563,580 136.6875,578.657 136.6875,577 L136.6875,576 L140.9375,576 C141.524,576 142,575.552 142,575 C142,574.448 141.524,574 140.9375,574 L140.9375,574 Z" id="notification_bell-[#1397]"> </path>
-										</g>
-									</g>
-								</g>
-							</g>
-						</svg>
+    <nav class="fixed top-0 z-50 w-full bg-white border-b border-gray-200">
+        <div class="px-3 py-3 lg:px-5 lg:pl-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center justify-start rtl:justify-end">
+                    <a class="-m-1.5 p-1.5 ms-5 hide-mobile" asp-area="" asp-controller="Home" asp-action="Index">
+                        <span class="sr-only">Your Company</span>
+                        <img class="h-16 w-auto" src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(2).png?updatedAt=1749718355580" alt="">
+                    </a>
+                </div>
+                <div class="flex items-center justify-center flex-1 mx-4">
+                    <form class="max-w-xl w-full mx-auto" data-search-form="true">
+                        <label for="default-search" class="mb-2 text-sm font-medium text-gray-900 sr-only">Search</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                                <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
+                                </svg>
+                            </div>
+                            <input type="search" id="default-search" name="searchTerm" class="block w-full p-4 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-gray-300 focus:border-gray-300" placeholder="Search GIGHub" required />
+                        </div>
+                    </form>
+                </div>
+                <div class="flex items-center">
+                    <button id="dropdownNotificationButton" data-dropdown-toggle="dropdownNotification" class="relative inline-flex items-center text-sm font-medium text-center text-gray-500 hover:text-gray-900 focus:outline-none mr-3 mt-1" type="button">
+                        <svg viewBox="-1.5 0 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="currentColor" class="w-6 h-6">
+                            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                            <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                            <g id="SVGRepo_iconCarrier">
+                                <title>notification_bell [#1397]</title>
+                                <desc>Created with Sketch.</desc>
+                                <defs> </defs>
+                                <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+                                    <g id="Dribbble-Light-Preview" transform="translate(-181.000000, -720.000000)" fill="currentColor">
+                                        <g id="icons" transform="translate(56.000000, 160.000000)">
+                                            <path d="M137.75,574 L129.25,574 L129.25,568 C129.25,565.334 131.375,564 133.498937,564 L133.501063,564 C135.625,564 137.75,565.334 137.75,568 L137.75,574 Z M134.5625,577 C134.5625,577.552 134.0865,578 133.5,578 C132.9135,578 132.4375,577.552 132.4375,577 L132.4375,576 L134.5625,576 L134.5625,577 Z M140.9375,574 C140.351,574 139.875,573.552 139.875,573 L139.875,568 C139.875,564.447 137.359,562.475 134.5625,562.079 L134.5625,561 C134.5625,560.448 134.0865,560 133.5,560 C132.9135,560 132.4375,560.448 132.4375,561 L132.4375,562.079 C129.641,562.475 127.125,564.447 127.125,568 L127.125,573 C127.125,573.552 126.649,574 126.0625,574 C125.476,574 125,574.448 125,575 C125,575.552 125.476,576 126.0625,576 L130.3125,576 L130.3125,577 C130.3125,578.657 131.739438,580 133.5,580 C135.260563,580 136.6875,578.657 136.6875,577 L136.6875,576 L140.9375,576 C141.524,576 142,575.552 142,575 C142,574.448 141.524,574 140.9375,574 L140.9375,574 Z" id="notification_bell-[#1397]"> </path>
+                                        </g>
+                                    </g>
+                                </g>
+                            </g>
+                        </svg>
 
-						<span class="sr-only">Notifications</span>
-						<div class="absolute inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 border-2 border-white rounded-full -top-1 -end-1" style="display: none;">0</div>
-					</button>
-					<a asp-action="Index" asp-controller="Chat" class="relative inline-flex items-center text-sm font-medium text-center text-gray-500 hover:text-gray-900 focus:outline-none mr-3 mt-1">
-						<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6">
-							<g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-							<g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
-							<g id="SVGRepo_iconCarrier">
-								<path fill-rule="evenodd" clip-rule="evenodd" d="M12 3C10.5937 3 9.2995 3.05598 8.14453 3.14113C6.41589 3.26859 5.80434 3.32966 5.0751 3.73C4.42984 4.08423 3.66741 4.90494 3.36159 5.5745C3.01922 6.32408 3.00002 7.07231 3.00002 9.13826V10.8156C3.00002 11.9615 3.00437 12.3963 3.06904 12.7399C3.37386 14.3594 4.64066 15.6262 6.26012 15.931C6.60374 15.9957 7.03847 16 8.18442 16C8.1948 16 8.20546 16 8.21637 16C8.33199 15.9998 8.47571 15.9996 8.61593 16.019C9.21331 16.1021 9.74133 16.4502 10.053 16.9666C10.1261 17.0878 10.1825 17.22 10.2279 17.3264C10.2322 17.3364 10.2364 17.3462 10.2404 17.3557L10.6994 18.4267C11.0609 19.2701 11.3055 19.8382 11.518 20.2317C11.6905 20.5511 11.7828 20.6364 11.794 20.6477C11.9249 20.7069 12.0751 20.7069 12.2061 20.6477C12.2172 20.6364 12.3095 20.5511 12.482 20.2317C12.6946 19.8382 12.9392 19.2701 13.3006 18.4267L13.7596 17.3557C13.7637 17.3462 13.7679 17.3364 13.7721 17.3264C13.8175 17.22 13.8739 17.0878 13.9471 16.9666C14.2587 16.4502 14.7867 16.1021 15.3841 16.019C15.5243 15.9996 15.668 15.9998 15.7837 16C15.7946 16 15.8052 16 15.8156 16C16.9616 16 17.3963 15.9957 17.7399 15.931C19.3594 15.6262 20.6262 14.3594 20.931 12.7399C20.9957 12.3963 21 11.9615 21 10.8156V9.13826C21 7.07231 20.9808 6.32408 20.6384 5.5745C20.3326 4.90494 19.5702 4.08423 18.9249 3.73C18.1957 3.32966 17.5841 3.26859 15.8555 3.14113C14.7005 3.05598 13.4064 3 12 3ZM7.99746 1.14655C9.19742 1.05807 10.5408 1 12 1C13.4593 1 14.8026 1.05807 16.0026 1.14655C16.0472 1.14984 16.0913 1.15308 16.1351 1.1563C17.6971 1.27104 18.7416 1.34777 19.8874 1.97681C20.9101 2.53823 21.973 3.68239 22.4577 4.74356C23.001 5.93322 23.0007 7.13737 23.0001 8.95396C23 9.0147 23 9.07613 23 9.13826V10.8156C23 10.8555 23 10.8949 23 10.9337C23.0002 11.921 23.0003 12.5583 22.8965 13.1098C22.4392 15.539 20.5391 17.4392 18.1099 17.8965C17.5583 18.0003 16.9211 18.0002 15.9337 18C15.8949 18 15.8555 18 15.8156 18C15.7355 18 15.6941 18.0001 15.6638 18.0009C15.6625 18.0009 15.6612 18.0009 15.66 18.001C15.6596 18.002 15.659 18.0032 15.6585 18.0044C15.6458 18.0319 15.6294 18.07 15.5979 18.1436L15.1192 19.2604C14.7825 20.0462 14.5027 20.6992 14.2417 21.1823C13.9898 21.6486 13.6509 22.1678 13.098 22.4381C12.4052 22.7768 11.5948 22.7768 10.902 22.4381C10.3491 22.1678 10.0103 21.6486 9.75836 21.1823C9.49738 20.6992 9.21753 20.0462 8.88079 19.2604L8.40215 18.1436C8.3706 18.07 8.35421 18.0319 8.34157 18.0044C8.34101 18.0032 8.34048 18.002 8.33998 18.001C8.33881 18.0009 8.33755 18.0009 8.33621 18.0009C8.30594 18.0001 8.26451 18 8.18442 18C8.14451 18 8.10515 18 8.06633 18C7.07897 18.0002 6.44169 18.0003 5.89017 17.8965C3.46098 17.4392 1.56079 15.539 1.10356 13.1098C0.999748 12.5583 0.999849 11.921 1.00001 10.9337C1.00001 10.8949 1.00002 10.8555 1.00002 10.8156V9.13826C1.00002 9.07613 0.999998 9.0147 0.999978 8.95396C0.999383 7.13737 0.998989 5.93322 1.54238 4.74356C2.02707 3.68239 3.08998 2.53823 4.11264 1.97681C5.25848 1.34777 6.30294 1.27104 7.86493 1.1563C7.9087 1.15308 7.95287 1.14984 7.99746 1.14655Z" fill="currentColor"></path>
-							</g>
-						</svg>
-						<span class="sr-only">Messages</span>
-						<div id="message-counter" class="absolute inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 border-2 border-white rounded-full -top-1 -end-1" style="display: none;">0</div>
-					</a>
+                        <span class="sr-only">Notifications</span>
+                        <div class="absolute inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 border-2 border-white rounded-full -top-1 -end-1" style="display: none;">0</div>
+                    </button>
+                    <a asp-action="Index" asp-controller="Chat" class="relative inline-flex items-center text-sm font-medium text-center text-gray-500 hover:text-gray-900 focus:outline-none mr-3 mt-1">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6">
+                            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                            <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                            <g id="SVGRepo_iconCarrier">
+                                <path fill-rule="evenodd" clip-rule="evenodd" d="M12 3C10.5937 3 9.2995 3.05598 8.14453 3.14113C6.41589 3.26859 5.80434 3.32966 5.0751 3.73C4.42984 4.08423 3.66741 4.90494 3.36159 5.5745C3.01922 6.32408 3.00002 7.07231 3.00002 9.13826V10.8156C3.00002 11.9615 3.00437 12.3963 3.06904 12.7399C3.37386 14.3594 4.64066 15.6262 6.26012 15.931C6.60374 15.9957 7.03847 16 8.18442 16C8.1948 16 8.20546 16 8.21637 16C8.33199 15.9998 8.47571 15.9996 8.61593 16.019C9.21331 16.1021 9.74133 16.4502 10.053 16.9666C10.1261 17.0878 10.1825 17.22 10.2279 17.3264C10.2322 17.3364 10.2364 17.3462 10.2404 17.3557L10.6994 18.4267C11.0609 19.2701 11.3055 19.8382 11.518 20.2317C11.6905 20.5511 11.7828 20.6364 11.794 20.6477C11.9249 20.7069 12.0751 20.7069 12.2061 20.6477C12.2172 20.6364 12.3095 20.5511 12.482 20.2317C12.6946 19.8382 12.9392 19.2701 13.3006 18.4267L13.7596 17.3557C13.7637 17.3462 13.7679 17.3364 13.7721 17.3264C13.8175 17.22 13.8739 17.0878 13.9471 16.9666C14.2587 16.4502 14.7867 16.1021 15.3841 16.019C15.5243 15.9996 15.668 15.9998 15.7837 16C15.7946 16 15.8052 16 15.8156 16C16.9616 16 17.3963 15.9957 17.7399 15.931C19.3594 15.6262 20.6262 14.3594 20.931 12.7399C20.9957 12.3963 21 11.9615 21 10.8156V9.13826C21 7.07231 20.9808 6.32408 20.6384 5.5745C20.3326 4.90494 19.5702 4.08423 18.9249 3.73C18.1957 3.32966 17.5841 3.26859 15.8555 3.14113C14.7005 3.05598 13.4064 3 12 3ZM7.99746 1.14655C9.19742 1.05807 10.5408 1 12 1C13.4593 1 14.8026 1.05807 16.0026 1.14655C16.0472 1.14984 16.0913 1.15308 16.1351 1.1563C17.6971 1.27104 18.7416 1.34777 19.8874 1.97681C20.9101 2.53823 21.973 3.68239 22.4577 4.74356C23.001 5.93322 23.0007 7.13737 23.0001 8.95396C23 9.0147 23 9.07613 23 9.13826V10.8156C23 10.8555 23 10.8949 23 10.9337C23.0002 11.921 23.0003 12.5583 22.8965 13.1098C22.4392 15.539 20.5391 17.4392 18.1099 17.8965C17.5583 18.0003 16.9211 18.0002 15.9337 18C15.8949 18 15.8555 18 15.8156 18C15.7355 18 15.6941 18.0001 15.6638 18.0009C15.6625 18.0009 15.6612 18.0009 15.66 18.001C15.6596 18.002 15.659 18.0032 15.6585 18.0044C15.6458 18.0319 15.6294 18.07 15.5979 18.1436L15.1192 19.2604C14.7825 20.0462 14.5027 20.6992 14.2417 21.1823C13.9898 21.6486 13.6509 22.1678 13.098 22.4381C12.4052 22.7768 11.5948 22.7768 10.902 22.4381C10.3491 22.1678 10.0103 21.6486 9.75836 21.1823C9.49738 20.6992 9.21753 20.0462 8.88079 19.2604L8.40215 18.1436C8.3706 18.07 8.35421 18.0319 8.34157 18.0044C8.34101 18.0032 8.34048 18.002 8.33998 18.001C8.33881 18.0009 8.33755 18.0009 8.33621 18.0009C8.30594 18.0001 8.26451 18 8.18442 18C8.14451 18 8.10515 18 8.06633 18C7.07897 18.0002 6.44169 18.0003 5.89017 17.8965C3.46098 17.4392 1.56079 15.539 1.10356 13.1098C0.999748 12.5583 0.999849 11.921 1.00001 10.9337C1.00001 10.8949 1.00002 10.8555 1.00002 10.8156V9.13826C1.00002 9.07613 0.999998 9.0147 0.999978 8.95396C0.999383 7.13737 0.998989 5.93322 1.54238 4.74356C2.02707 3.68239 3.08998 2.53823 4.11264 1.97681C5.25848 1.34777 6.30294 1.27104 7.86493 1.1563C7.9087 1.15308 7.95287 1.14984 7.99746 1.14655Z" fill="currentColor"></path>
+                            </g>
+                        </svg>
+                        <span class="sr-only">Messages</span>
+                        <div id="message-counter" class="absolute inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 border-2 border-white rounded-full -top-1 -end-1" style="display: none;">0</div>
+                    </a>
 
-					<!-- Dropdown menu -->
-					<div id="dropdownNotification" class="z-20 hidden w-full max-w-sm bg-white divide-y divide-gray-100 rounded-lg shadow-lg" aria-labelledby="dropdownNotificationButton">
-						<div class="block px-4 py-2 font-medium text-center text-gray-700 rounded-t-lg bg-gray-50">
-							Notifications
-						</div>
-						<div class="divide-y divide-gray-100 max-h-64 overflow-y-auto">
-							<!-- Notifications will be loaded dynamically here -->
-						</div>
-						<!-- View All button will be added dynamically by JavaScript -->
-					</div>
-					<div class="flex items-center me-5">
-						<div>
-							<button type="button" class="flex text-sm bg-gray-800 rounded-full focus:ring-4 focus:ring-gray-300" aria-expanded="false" data-dropdown-toggle="dropdown-user">
-								<span class="sr-only">Open user menu</span>
-								@if (!string.IsNullOrEmpty(@User.FindFirst("Photo")?.Value))
-								{
-									<img class="w-8 h-8 rounded-full" src="@User.FindFirst("Photo")?.Value" alt="user photo">
-								}
-								else
-								{
-									<img class="w-8 h-8 rounded-full" src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497" alt="user photo">
-								}
-							</button>
-						</div>
-						<div class="z-50 hidden my-4 text-base list-none bg-white divide-y divide-gray-100 rounded-sm shadow-sm" id="dropdown-user">
-							<div class="px-4 py-3" role="none">
-								<p class="text-sm text-gray-900" role="none">
-									@User.FindFirst("FullName")?.Value
-								</p>
-								<p class="text-sm font-medium text-gray-900 truncate" role="none">
-									@User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
-								</p>
-							</div>
-							<ul class="py-1" role="none">
-								<li>
-									<a asp-controller="Account" asp-action="LogOut" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Sign out</a>
-								</li>
-							</ul>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-	</nav>
-	<div class="p-4 grid grid-cols-1 lg:grid-cols-2 items-center bg-gray-50 min-h-screen">
-		<div class="p-4 mt-15">
-			<div class="mt-5" style="margin-left: 160px; margin-top: 70px">
-				<div class="w-3/4 flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow">
-					<div class="mb-5">
-						<h5 class="mb-2 text-2xl font-bold text-gray-900">Review Your Information</h5>
-					</div>
-					<div class="w-full">
-						<form asp-action="Registration">
-							<label asp-for="Role" id="role-address" class="control-label block mb-2 text-sm font-medium text-gray-900">Role</label>
-							<div class="relative">
-								<select asp-for="Role" id="role-address-icon" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5" required>
-									<option value="">Select a Role</option>
-									<option value="Mentor">Mentor</option>
-									<option value="Mentee">Mentee</option>
-								</select>
-							</div>
-							<label asp-for="UserId" id="userid-address" class="control-label block mt-4 mb-2 text-sm font-medium text-gray-900 hidden">User Id</label>
-							<div class="relative hidden">
-								<div class="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none">
-									<svg class="w-6 h-6 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
-										<path fill-rule="evenodd" d="M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm-2 9a4 4 0 0 0-4 4v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1a4 4 0 0 0-4-4h-4Z" clip-rule="evenodd" />
-									</svg>
-								</div>
-								<input asp-for="UserId" value="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value" id="firstname-address-icon" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5" placeholder="" required>
-							</div>
-							<label asp-for="FirstName" id="firstname-address" class="control-label block mt-4 mb-2 text-sm font-medium text-gray-900">First Name</label>
-							<div class="relative">
-								<div class="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none">
-									<svg class="w-6 h-6 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
-										<path fill-rule="evenodd" d="M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm-2 9a4 4 0 0 0-4 4v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1a4 4 0 0 0-4-4h-4Z" clip-rule="evenodd" />
-									</svg>
-								</div>
-								<input asp-for="FirstName" value="@User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value" id="firstname-address-icon" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5" placeholder="" required>
-							</div>
-							<label asp-for="LastName" id="lastname-address" class="control-label block mt-4 mb-2 text-sm font-medium text-gray-900">Last Name</label>
-							<div class="relative">
-								<div class="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none">
-									<svg class="w-6 h-6 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
-										<path fill-rule="evenodd" d="M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm-2 9a4 4 0 0 0-4 4v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1a4 4 0 0 0-4-4h-4Z" clip-rule="evenodd" />
-									</svg>
-								</div>
-								<input asp-for="LastName" value="@User.FindFirst(System.Security.Claims.ClaimTypes.Surname)?.Value" id="lastname-address-icon" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5" placeholder="" required>
-							</div>
-							<label asp-for="Email" id="email-address" class="control-label block mt-4 mb-2 text-sm font-medium text-gray-900">Email</label>
-							<div class="relative">
-								<div class="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none">
-									<svg class="w-6 h-6 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
-										<path fill-rule="evenodd" d="M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm-2 9a4 4 0 0 0-4 4v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1a4 4 0 0 0-4-4h-4Z" clip-rule="evenodd" />
-									</svg>
-								</div>
-								<input asp-for="Email" value="@User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value" id="email-address-icon" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5" placeholder="" required>
-							</div>
-							<button type="submit" class="mt-4 ml-auto px-6 py-2 text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm transition-all duration-200 transform hover:scale-105">
-								Register
-							</button>
-						</form>
-					</div>
-				</div>
-			</div>
-		</div>
-		<div class="p-4">
-			<div class="flex items-center justify-center w-full mt-5" style="margin-top: 75px">
-				<img class="w-3/4 h-3/4" src="https://ik.imagekit.io/6txj3mofs/PEERMENTOR.png?updatedAt=1754184399237" alt="">
-			</div>
-		</div>
-	</div>
+                    <!-- Dropdown menu -->
+                    <div id="dropdownNotification" class="z-20 hidden w-full max-w-sm bg-white divide-y divide-gray-100 rounded-lg shadow-lg" aria-labelledby="dropdownNotificationButton">
+                        <div class="block px-4 py-2 font-medium text-center text-gray-700 rounded-t-lg bg-gray-50">
+                            Notifications
+                        </div>
+                        <div class="divide-y divide-gray-100 max-h-64 overflow-y-auto">
+                            <!-- Notifications will be loaded dynamically here -->
+                        </div>
+                        <!-- View All button will be added dynamically by JavaScript -->
+                    </div>
+                    <div class="flex items-center me-5">
+                        <div>
+                            <button type="button" class="flex text-sm bg-gray-800 rounded-full focus:ring-4 focus:ring-gray-300" aria-expanded="false" data-dropdown-toggle="dropdown-user">
+                                <span class="sr-only">Open user menu</span>
+                                @if (!string.IsNullOrEmpty(@User.FindFirst("Photo")?.Value))
+                                {
+                                    <img class="w-8 h-8 rounded-full" src="@User.FindFirst("Photo")?.Value" alt="user photo">
+                                }
+                                else
+                                {
+                                    <img class="w-8 h-8 rounded-full" src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497" alt="user photo">
+                                }
+                            </button>
+                        </div>
+                        <div class="z-50 hidden my-4 text-base list-none bg-white divide-y divide-gray-100 rounded-sm shadow-sm" id="dropdown-user">
+                            <div class="px-4 py-3" role="none">
+                                <p class="text-sm text-gray-900" role="none">
+                                    @User.FindFirst("FullName")?.Value
+                                </p>
+                                <p class="text-sm font-medium text-gray-900 truncate" role="none">
+                                    @User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
+                                </p>
+                            </div>
+                            <ul class="py-1" role="none">
+                                <li>
+                                    <a asp-controller="Account" asp-action="LogOut" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Sign out</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
 
-	@section Scripts {
-		@{
-			await Html.RenderPartialAsync("_ValidationScriptsPartial");
-		}
-	}
-	<script src="~/js/site.js" asp-append-version="true"></script>
-	<script src="~/js/notification.js" asp-append-version="true"></script>
-	<script src="~/js/global-video-call.js" asp-append-version="true"></script>
-	<script src="~/js/search.js" asp-append-version="true"></script>
-	<script src="~/js/message-counter.js" asp-append-version="true"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js"></script>
+    <div class="pt-24 p-4 grid grid-cols-1 lg:grid-cols-2 items-center bg-gray-50 min-h-screen gap-8">
+        <div class="p-4 mt-6 lg:mt-0 md:pl-12 lg:pl-44 lg:pr-36">
+            <div class="flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow">
+                <div class="mb-5">
+                    <h5 class="mb-2 text-2xl font-bold text-gray-900">Review Your Information</h5>
+                </div>
+                <div class="w-full">
+                    <form asp-action="Registration">
+                        <label asp-for="Role" id="role-address" class="control-label block mb-2 text-sm font-medium text-gray-900">Role</label>
+                        <div class="relative">
+                            <select asp-for="Role" id="role-address-icon" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5" required>
+                                <option value="">Select a Role</option>
+                                <option value="Mentor">Mentor</option>
+                                <option value="Mentee">Mentee</option>
+                            </select>
+                        </div>
+                        <label asp-for="UserId" id="userid-address" class="control-label block mt-4 mb-2 text-sm font-medium text-gray-900 hidden">User Id</label>
+                        <div class="relative hidden">
+                            <div class="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none">
+                                <svg class="w-6 h-6 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                                    <path fill-rule="evenodd" d="M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm-2 9a4 4 0 0 0-4 4v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1a4 4 0 0 0-4-4h-4Z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <input asp-for="UserId" value="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value" id="firstname-address-icon" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5" placeholder="" required>
+                        </div>
+                        <label asp-for="FirstName" id="firstname-address" class="control-label block mt-4 mb-2 text-sm font-medium text-gray-900">First Name</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none">
+                                <svg class="w-6 h-6 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                                    <path fill-rule="evenodd" d="M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm-2 9a4 4 0 0 0-4 4v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1a4 4 0 0 0-4-4h-4Z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <input asp-for="FirstName" value="@User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value" id="firstname-address-icon" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5" placeholder="" required>
+                        </div>
+                        <label asp-for="LastName" id="lastname-address" class="control-label block mt-4 mb-2 text-sm font-medium text-gray-900">Last Name</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none">
+                                <svg class="w-6 h-6 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                                    <path fill-rule="evenodd" d="M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm-2 9a4 4 0 0 0-4 4v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1a4 4 0 0 0-4-4h-4Z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <input asp-for="LastName" value="@User.FindFirst(System.Security.Claims.ClaimTypes.Surname)?.Value" id="lastname-address-icon" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5" placeholder="" required>
+                        </div>
+                        <label asp-for="Email" id="email-address" class="control-label block mt-4 mb-2 text-sm font-medium text-gray-900">Email</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none">
+                                <svg class="w-6 h-6 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                                    <path fill-rule="evenodd" d="M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm-2 9a4 4 0 0 0-4 4v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1a4 4 0 0 0-4-4h-4Z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <input asp-for="Email" value="@User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value" id="email-address-icon" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5" placeholder="" required>
+                        </div>
+                        <button type="submit" class="mt-4 ml-auto px-6 py-2 text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm transition-all duration-200 transform hover:scale-105">
+                            Register
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4 flex justify-center items-center">
+            <div class="w-full max-w-lg flex justify-center items-center mt-6 lg:mt-0">
+                <img class="w-full max-w-md lg:max-w-lg object-contain" src="https://ik.imagekit.io/6txj3mofs/PEERMENTOR.png?updatedAt=1754184399237" alt="">
+            </div>
+        </div>
+    </div>
+
+    @section Scripts {
+        @{
+            await Html.RenderPartialAsync("_ValidationScriptsPartial");
+        }
+    }
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/notification.js" asp-append-version="true"></script>
+    <script src="~/js/global-video-call.js" asp-append-version="true"></script>
+    <script src="~/js/search.js" asp-append-version="true"></script>
+    <script src="~/js/message-counter.js" asp-append-version="true"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js"></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-

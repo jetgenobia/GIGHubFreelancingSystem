@@ -6,7 +6,7 @@
 @model Freelancing.Models.CreateMatchRequest
 
 <div class="p-4 sm:ml-64">
-    <div class="p-4 mt-20">
+    <div class="pt-2 mt-20">
         <div class="text-center block w-full p-6">
             <h2 class="mb-4 text-3xl font-bold text-gray-900">
                 @if (ViewBag.RequestSent == true)
@@ -81,14 +81,14 @@
                                 }
                                 <div class="flex gap-4 mt-6">
                                     <a href="@Url.Action("MenteeDashboard", "MentorshipMatching")" type="submit"
-                                       class="flex-1 text-white inline-flex items-center justify-center bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-base px-6 py-3 text-center transition-colors">
+                                       class="flex-1 text-white inline-flex items-center justify-center bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm sm:text-base px-6 py-3 text-center transition-colors">
                                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                                         </svg>
                                         Go Back
                                     </a>
                                     <a href="@Url.Action("MenteeDashboard", "MentorshipMatching")"
-                                       class="flex-1 text-gray-700 inline-flex items-center justify-center bg-gray-200 hover:bg-gray-300 focus:ring-4 focus:outline-none focus:ring-gray-300 font-medium rounded-lg text-base px-6 py-3 text-center transition-colors">
+                                       class="flex-1 text-gray-700 inline-flex items-center justify-center bg-gray-200 hover:bg-gray-300 focus:ring-4 focus:outline-none focus:ring-gray-300 font-medium rounded-lg text-sm sm:text-base px-6 py-3 text-center transition-colors">
                                         Go to Dashboard
                                     </a>
                                 </div>
@@ -166,7 +166,7 @@
                                 <!-- Action Buttons -->
                                 <div class="flex gap-4 mt-6">
                                     <a href="@Url.Action("MenteeDashboard", "MentorshipMatching")"
-                                       class="flex-1 text-white inline-flex items-center justify-center bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-base px-6 py-3 text-center transition-colors">
+                                       class="flex-1 text-white inline-flex items-center justify-center bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm sm:text-base px-6 py-3 text-center transition-colors">
                                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                                         </svg>
@@ -174,15 +174,11 @@
                                     </a>
                                     @if (ViewBag.RequestStatus == "Active")
                                     {
-                                        <a href="@Url.Action("ViewMentorship", "MentorshipMatching", new { id = ViewBag.PartnerId })"
-                                           class="flex-1 text-gray-700 inline-flex items-center justify-center bg-gray-200 hover:bg-gray-300 focus:ring-4 focus:outline-none focus:ring-gray-300 font-medium rounded-lg text-base px-6 py-3 text-center transition-colors">
-                                            View Mentorship
-                                        </a>
                                     }
                                     else
                                     {
                                         <a href="@Url.Action("AvailableMentors", "MentorshipMatching")"
-                                           class="flex-1 text-gray-700 inline-flex items-center justify-center bg-gray-200 hover:bg-gray-300 focus:ring-4 focus:outline-none focus:ring-gray-300 font-medium rounded-lg text-base px-6 py-3 text-center transition-colors">
+                                           class="flex-1 text-gray-700 inline-flex items-center justify-center bg-gray-200 hover:bg-gray-300 focus:ring-4 focus:outline-none focus:ring-gray-300 font-medium rounded-lg text-sm sm:text-base px-6 py-3 text-center transition-colors">
                                             Find Other Mentors
                                         </a>
                                     }
@@ -224,7 +220,7 @@
                                     </label>
                                     <textarea asp-for="Notes"
                                               rows="8"
-                                              class="block p-4 w-full text-base text-gray-900 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 resize-y min-h-[200px]"
+                                              class="block p-4 w-full text-base text-gray-900 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
                                               placeholder="Tell your potential mentor about your goals, what you hope to learn, and why you'd like their guidance. Be specific about your experience level and what kind of support you're looking for..."
                                               maxlength="500"></textarea>
                                     <span asp-validation-for="Notes" class="text-red-600 text-sm"></span>
@@ -238,7 +234,7 @@
                                     <button type="button"
                                             data-modal-target="submitRequestModal"
                                             data-modal-toggle="submitRequestModal"
-                                            class="flex-1 text-white inline-flex items-center justify-center bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-base px-6 py-3 text-center transition-colors">
+                                            class="flex-1 text-white inline-flex items-center justify-center bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm sm:text-base px-6 py-3 text-center transition-colors">
                                         @if (ViewBag.CanReRequest == true)
                                         {
                                             @:Send New Request
@@ -249,7 +245,7 @@
                                         }
                                     </button>
                                     <a href="@Url.Action("AvailableMentors", "MentorshipMatching")"
-                                       class="flex-1 text-gray-700 inline-flex items-center justify-center bg-gray-200 hover:bg-gray-300 focus:ring-4 focus:outline-none focus:ring-gray-300 font-medium rounded-lg text-base px-6 py-3 text-center transition-colors">
+                                       class="flex-1 text-gray-700 inline-flex items-center justify-center bg-gray-200 hover:bg-gray-300 focus:ring-4 focus:outline-none focus:ring-gray-300 font-medium rounded-lg text-sm sm:text-base px-6 py-3 text-center transition-colors">
                                         Cancel
                                     </a>
                                 </div>

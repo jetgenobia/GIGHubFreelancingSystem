@@ -39,12 +39,12 @@
         <div class="w-full p-4 mb-4 text-left bg-white border border-gray-200 rounded-lg shadow-sm sm:p-8">
             <div class="flex items-center justify-between mb-4">
                 <h5 class="mb-2 text-3xl font-bold text-gray-900">Your Rating</h5>
-                <a asp-controller="MentorshipManage" asp-action="MyReviews" class="text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-3 transition-colors duration-200 flex items-center">
+                <a asp-controller="MentorshipManage" asp-action="MyReviews" class="text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-xs md:text-sm px-4 py-3 transition-colors duration-200 flex items-center justify-center text-center">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
-                    View All Reviews
+                    View Reviews
                 </a>
             </div>
             <div class="flex items-center justify-between">
@@ -56,7 +56,7 @@
                 </div>
             </div>
         </div>        
-        <div class="grid grid-cols-2 gap-4 mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div class="w-full max-w p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
                 <div class="flex items-center justify-between mb-4">
                     <h5 class="text-xl font-bold leading-none text-gray-900">My Mentees</h5>
@@ -347,7 +347,7 @@
                                                 <div class="text-sm font-medium text-gray-900">@(!string.IsNullOrWhiteSpace(s.Title) ? s.Title : "Proposed Session")</div>
                                                 <div class="text-sm text-gray-600">From @s.PartnerName • @s.StartUtc.ToString("MMM dd, yyyy h:mm tt")</div>
                                             </div>
-                                            <div class="flex gap-2">
+                                            <div class="flex flex-col md:flex-row items-center md:items-end ml-auto space-y-2 md:space-y-0 md:space-x-2">
                                                 <form asp-controller="MentorshipManage" asp-action="AcceptSession" method="post">
                                                     @Html.AntiForgeryToken()
                                                     <input type="hidden" name="sessionId" value="@s.SessionId" />

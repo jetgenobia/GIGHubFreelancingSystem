@@ -4,9 +4,9 @@
     ViewData["Title"] = "My Goals";
 }
 
-<div class="p-9 sm:ml-64">
-    <div class="p-9 mt-10">
-        <div class="mt-4">
+<div class="p-4 sm:ml-64">
+    <div class="pt-2 mt-20">
+        <div class="mt-1">
             <div class="block w-full p-6">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-3xl font-bold text-gray-900">Learning Goals</h2>
@@ -56,27 +56,19 @@
 
                 @foreach (var goal in Model.Goals)
                 {
-                    <div class="ms-10 mr-10 mb-5">
-                        <div class="w-full p-4 text-center bg-white border border-gray-200 rounded-lg shadow-sm sm:p-8 @(goal.IsFullyCompleted ? "border-green-300 bg-green-50" : "")">
-                            <div class="flex items-center">
-                                <div>
-                                    @if (goal.IsFullyCompleted)
-                                    {
-                                        <!-- Completed Goal Icon -->
-                                        <div class="w-[85px] h-[85px] text-gray-600">
-                                            @Html.Raw(goal.IconSvg)
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <!-- Default goal icon -->
-                                        <div class="w-[85px] h-[85px] text-gray-600">
-                                            @Html.Raw(goal.IconSvg)
-                                        </div>
-                                    }
+                    <div class="px-4 md:px-10 mb-5">
+                        <div class="w-full p-4 bg-white border border-gray-200 rounded-lg shadow-sm sm:p-6 @(goal.IsFullyCompleted ? "border-green-300 bg-green-50" : "")">
+                            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                                <!-- Icon -->
+                                <div class="flex-shrink-0 mx-auto md:mx-0">
+                                    <div class="w-[85px] h-[85px] text-gray-600">
+                                        @Html.Raw(goal.IconSvg)
+                                    </div>
                                 </div>
-                                <div class="flex-1 min-w-0">
-                                    <div class="text-start ms-5">
+
+                                <!-- Content -->
+                                <div class="flex-1 min-w-0 text-center md:text-left">
+                                    <div class="md:ml-5">
                                         <div class="mb-1">
                                             <h2 class="text-gray-900 text-lg font-bold">
                                                 @goal.GoalName
@@ -87,6 +79,7 @@
                                                 @goal.GoalDescription
                                             </p>
                                         </div>
+
                                         @if (!string.IsNullOrEmpty(goal.CompletedBy))
                                         {
                                             <div class="mt-2">
@@ -113,21 +106,23 @@
                                         }
                                     </div>
                                 </div>
-                                <div>
+
+                                <!-- Action -->
+                                <div class="w-full md:w-auto">
                                     @if (goal.ShowMarkAsDoneButton)
                                     {
-                                        <form asp-action="MarkGoalAsDone" method="post" class="inline">
+                                        <form asp-action="MarkGoalAsDone" method="post" class="w-full md:w-auto">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="matchId" value="@Model.MatchId" />
                                             <input type="hidden" name="goalId" value="@goal.GoalId" />
-                                            <button type="submit" class="focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-4 py-2.5 me-2 mt-3">
+                                            <button type="submit" class="w-full md:w-auto focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-4 py-2.5">
                                                 Mark as Done
                                             </button>
                                         </form>
                                     }
                                     else if (!goal.IsFullyCompleted)
                                     {
-                                        <div class="text-sm text-gray-500 mt-3">
+                                        <div class="text-sm text-gray-500 mt-3 text-center md:text-right">
                                             @if (goal.Order > 1)
                                             {
                                                 <span>Complete previous goal first</span>

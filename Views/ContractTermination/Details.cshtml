@@ -22,7 +22,7 @@
                     </div>
                 </div>
             }
-            
+
             @if (TempData["SuccessMessage"] != null)
             {
                 <div class="mt-2 flex items-center p-4 mb-4 text-sm text-green-800 border border-green-300 rounded-lg bg-green-50" role="alert">
@@ -35,7 +35,7 @@
                     </div>
                 </div>
             }
-            
+
             <!-- Header -->
             <div class="flex items-center justify-between mb-6">
                 <div class="flex items-center space-x-4">
@@ -79,7 +79,7 @@
                         }
                     </div>
                 </div>
-                
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Project</label>
@@ -223,14 +223,12 @@
                                     </button>
                                 </form>
                             }
-                            @if (Model.CanUserCancel && Model.Status == "Pending")
+                            @if (Model.CanUserCancel && Model.Status == "Pending" || Model.Status == "AwaitingFreelancer" || Model.Status == "AwaitingClient")
                             {
-                                <form asp-action="Cancel" method="post" style="display: inline;">
-                                    <input type="hidden" name="id" value="@Model.Id" />
-                                    <button type="submit" class="focus:outline-none text-white bg-gray-700 hover:bg-gray-800 focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-800">
-                                        Cancel Request
-                                    </button>
-                                </form>
+                                <!-- Trigger button opens confirmation modal instead of submitting immediately -->
+                                <button type="button" data-modal-show="cancelRequestModal" class="focus:outline-none text-white bg-gray-700 hover:bg-gray-800 focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-800">
+                                    Cancel Request
+                                </button>
                             }
                         </div>
                     </div>
@@ -240,29 +238,103 @@
     </div>
 </div>
 
+<!-- Cancel Confirmation Modal -->
+<div id="cancelRequestModal" tabindex="-1" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 flex justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full backdrop-blur-sm bg-opacity-50">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow-lg">
+            <button type="button" class="absolute top-3 end-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center" data-modal-hide="cancelRequestModal" aria-label="Close modal">
+                <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"></path>
+                </svg>
+                <span class="sr-only">Close modal</span>
+            </button>
+
+            <div class="p-6 text-center">
+                <svg class="mx-auto mb-4 text-red-500 w-12 h-12" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 11V6m0 8h.01M19 10a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path>
+                </svg>
+                <h3 class="mb-3 text-lg font-semibold text-gray-900">Cancel Termination Request</h3>
+                <p class="mb-4 text-sm text-gray-500">Are you sure you want to cancel this termination request? This action will stop the termination process and cannot be undone.</p>
+
+                <form asp-action="Cancel" method="post" class="inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <button type="submit"
+                            class="text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center me-2">
+                        Yes, Cancel Request
+                    </button>
+                </form>
+                <button type="button" data-modal-hide="cancelRequestModal"
+                        class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10">
+                    Keep Request
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-function downloadPdf(url) {
-    const button = document.getElementById('downloadPdfBtn');
-    const icon = document.getElementById('downloadIcon');
-    const text = document.getElementById('downloadText');
-    
-    // Disable button and show loading state
-    button.disabled = true;
-    button.classList.add('opacity-50', 'cursor-not-allowed');
-    text.textContent = 'Generating PDF...';
-    
-    // Create a hidden iframe to trigger the download
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.src = url;
-    document.body.appendChild(iframe);
-    
-    // Reset button after a delay
-    setTimeout(() => {
-        button.disabled = false;
-        button.classList.remove('opacity-50', 'cursor-not-allowed');
-        text.textContent = 'Download PDF';
-        document.body.removeChild(iframe);
-    }, 3000);
-}
+    function downloadPdf(url) {
+        const button = document.getElementById('downloadPdfBtn');
+        const icon = document.getElementById('downloadIcon');
+        const text = document.getElementById('downloadText');
+
+        // Disable button and show loading state
+        button.disabled = true;
+        button.classList.add('opacity-50', 'cursor-not-allowed');
+        text.textContent = 'Generating PDF...';
+
+        // Create a hidden iframe to trigger the download
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = url;
+        document.body.appendChild(iframe);
+
+        // Reset button after a delay
+        setTimeout(() => {
+            button.disabled = false;
+            button.classList.remove('opacity-50', 'cursor-not-allowed');
+            text.textContent = 'Download PDF';
+            document.body.removeChild(iframe);
+        }, 3000);
+    }
+
+    // Simple modal show/hide handler using data attributes
+    (function () {
+        function showModal(modal) {
+            modal.classList.remove('hidden');
+            // prevent body scroll when modal open
+            document.documentElement.style.overflow = 'hidden';
+        }
+        function hideModal(modal) {
+            modal.classList.add('hidden');
+            document.documentElement.style.overflow = '';
+        }
+
+        document.addEventListener('click', function (e) {
+            const showAttr = e.target.closest('[data-modal-show]');
+            if (showAttr) {
+                const id = showAttr.getAttribute('data-modal-show');
+                const modal = document.getElementById(id);
+                if (modal) showModal(modal);
+            }
+
+            const hideAttr = e.target.closest('[data-modal-hide]');
+            if (hideAttr) {
+                const id = hideAttr.getAttribute('data-modal-hide');
+                const modal = document.getElementById(id);
+                if (modal) hideModal(modal);
+            }
+        });
+
+        // Close modal when clicking backdrop area
+        document.querySelectorAll('[id$="Modal"]').forEach(modal => {
+            modal.addEventListener('click', function (ev) {
+                if (ev.target === modal) {
+                    hideModal(modal);
+                }
+            });
+        });
+
+    })();
 </script>

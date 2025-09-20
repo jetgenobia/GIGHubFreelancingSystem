@@ -59,7 +59,7 @@
                 <!-- Termination Details -->
                 <div class="bg-white rounded-lg shadow p-6">
                     <h2 class="text-xl font-semibold text-gray-900 mb-4">Termination Details</h2>
-                    
+
                     <div class="space-y-4">
                         <div>
                             <label asp-for="TerminationReason" class="block text-sm font-medium text-gray-700 mb-2">Reason for Termination *</label>
@@ -90,7 +90,7 @@
                 <!-- Agreement Section -->
                 <div class="bg-white rounded-lg shadow p-6">
                     <h2 class="text-xl font-semibold text-gray-900 mb-4">Agreement</h2>
-                    
+
                     <div class="space-y-4">
                         <div class="flex items-start">
                             <input asp-for="UnderstandImplications" type="checkbox" class="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
@@ -113,8 +113,8 @@
                 <!-- Warning Section -->
                 <div class="bg-red-50 border border-red-200 rounded-lg p-4">
                     <div class="flex">
-                        <svg class="w-5 h-5 text-red-400 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                        <svg class="shrink-0 inline w-5 h-5 text-red-400 mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
                         </svg>
                         <div>
                             <h3 class="text-sm font-medium text-red-800">Important Notice</h3>
@@ -131,18 +131,24 @@
                 </div>
 
                 <!-- Actions -->
-                <div class="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
-                    <div class="text-sm text-gray-600">
-                        <p>Review all termination details carefully before submitting.</p>
-                        <p>The other party will be notified to review and sign the termination agreement.</p>
-                    </div>
-                    <div class="flex space-x-3">
-                        <a href="@Url.Action("Details", "Contract", new { id = Model.ContractId })" class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2">
-                            Cancel
-                        </a>
-                        <button type="submit" class="focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2">
-                            Submit Termination Request
-                        </button>
+                <div class="flex items-center justify-center bg-gray-50 p-4 rounded-lg">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div class="col-span-2">
+                            <div class="text-sm text-gray-600">
+                                <p>Review all termination details carefully before submitting.</p>
+                                <p>The other party will be notified to review and sign the termination agreement.</p>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex space-x-3">
+                                <a href="@Url.Action("Details", "Contract", new { id = Model.ContractId })" class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2">
+                                    Cancel
+                                </a>
+                                <button type="submit" class="focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2">
+                                    Create
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </form>
@@ -154,24 +160,24 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
-    
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.querySelector('form');
             const understandCheckbox = document.getElementById('UnderstandImplications');
             const agreeCheckbox = document.getElementById('AgreeToTerms');
-            
+
             // Debug: Log form submission
             form.addEventListener('submit', function(e) {
                 console.log('Form submitted');
                 console.log('UnderstandImplications:', understandCheckbox.checked);
                 console.log('AgreeToTerms:', agreeCheckbox.checked);
-                
+
                 // Check if both checkboxes are checked
                 if (!understandCheckbox.checked || !agreeCheckbox.checked) {
                     e.preventDefault(); // Prevent form submission
                     console.log('Form submission prevented - checkboxes not checked');
-                    
+
                     // Highlight unchecked checkboxes with visual feedback
                     if (!understandCheckbox.checked) {
                         understandCheckbox.parentElement.style.backgroundColor = '#fef2f2';
@@ -179,31 +185,31 @@
                         understandCheckbox.parentElement.style.borderRadius = '0.375rem';
                         understandCheckbox.parentElement.style.padding = '0.5rem';
                     }
-                    
+
                     if (!agreeCheckbox.checked) {
                         agreeCheckbox.parentElement.style.backgroundColor = '#fef2f2';
                         agreeCheckbox.parentElement.style.border = '1px solid #fecaca';
                         agreeCheckbox.parentElement.style.borderRadius = '0.375rem';
                         agreeCheckbox.parentElement.style.padding = '0.5rem';
                     }
-                    
+
                     return false;
                 }
-                
+
                 console.log('Form submission allowed - all checkboxes checked');
-                
+
                 // If both checkboxes are checked, remove any highlighting
                 understandCheckbox.parentElement.style.backgroundColor = '';
                 understandCheckbox.parentElement.style.border = '';
                 understandCheckbox.parentElement.style.borderRadius = '';
                 understandCheckbox.parentElement.style.padding = '';
-                
+
                 agreeCheckbox.parentElement.style.backgroundColor = '';
                 agreeCheckbox.parentElement.style.border = '';
                 agreeCheckbox.parentElement.style.borderRadius = '';
                 agreeCheckbox.parentElement.style.padding = '';
             });
-            
+
             // Remove highlighting when checkboxes are checked
             understandCheckbox.addEventListener('change', function() {
                 if (this.checked) {
@@ -213,7 +219,7 @@
                     this.parentElement.style.padding = '';
                 }
             });
-            
+
             agreeCheckbox.addEventListener('change', function() {
                 if (this.checked) {
                     this.parentElement.style.backgroundColor = '';

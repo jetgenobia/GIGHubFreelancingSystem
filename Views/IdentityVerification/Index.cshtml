@@ -4,63 +4,25 @@
 }
 
 <div class="p-4 sm:ml-64">
-    <div class="p-4 mt-20">
-        <div class="mt-4">
+    <div class="pt-2 mt-20">
+        <div class="mt-1">
             <div class="block w-full p-6">
-                <div class="container-fluid">
-                    <div class="row">
-                        <div class="col-12">
-                            <div class="card">
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="card">
-                                                <div class="card-body text-center">
-                                                    <!-- Progress Bar -->
-                                                    <div class="w-full max-w-md mx-auto mb-7">
-                                                        <div class="w-full bg-[#6ce5e8] rounded-full h-7">
-                                                            <div class="bg-[#41b8d5] h-7 rounded-full transition-all duration-500 ease-in-out" style="width: 33%"></div>
-                                                        </div>
-                                                    </div>
-                                                    <h2 class="text-3xl font-bold text-gray-900">Identity Verification</h2>
-                                                    <div class="flex items-center justify-center mt-8">
-                                                        <img class="w-60 h-60" src="https://ik.imagekit.io/6txj3mofs/document.png" />
-                                                    </div>
-                                                    <div class="mt-5 w-96 h-auto flex items-center justify-center mx-auto">
-                                                        <p class="font-light text-center">Don't miss out on opportunities! Complete identity verification now to unlock all GIGHub features.</p>
-                                                    </div>
-
-                                                    <a href="@Url.Action("Document", "IdentityVerification")" class="mt-2 inline-flex items-center px-6 py-3 text-white bg-gradient-to-br from-[#62cff4] to-[#2c67f2] hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:[#62cff4] font-medium rounded-lg text-sm transition-all duration-200 transform hover:scale-105 shadow-lg">
-                                                        Verify Now!
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    @* <div class="row mt-4">
-                                        <div class="col-12">
-                                            <div class="card">
-                                                <div class="card-header">
-                                                    <h5>Verification Status</h5>
-                                                </div>
-                                                <div class="card-body">
-                                                    <div id="verificationStatus">
-                                                        <div class="text-center">
-                                                            <div class="spinner-border text-primary" role="status">
-                                                                <span class="visually-hidden">Loading...</span>
-                                                            </div>
-                                                            <p class="mt-2">Checking verification status...</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div> *@
-                                </div>
-                            </div>
+                <div class="card-body text-center">
+                    <!-- Progress Bar -->
+                    <div class="w-full max-w-md mx-auto mb-7">
+                        <div class="w-full bg-[#6ce5e8] rounded-full h-7">
+                            <div class="bg-[#41b8d5] h-7 rounded-full transition-all duration-500 ease-in-out" style="width: 33%"></div>
                         </div>
                     </div>
+                    <h2 class="text-3xl font-bold text-gray-900">Identity Verification</h2>
+                    <div class="flex items-center justify-center mt-8">
+                        <img class="w-60 h-60" src="https://ik.imagekit.io/6txj3mofs/document.png" />
+                    </div>
+                        <p class="font-light italic text-center mt-5">Don't miss out on opportunities! Complete identity verification now to unlock all GIGHub features.</p>
+
+                    <a href="@Url.Action("Document", "IdentityVerification")" class="mt-2 inline-flex items-center px-6 py-3 text-white bg-gradient-to-br from-[#62cff4] to-[#2c67f2] hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:[#62cff4] font-medium rounded-lg text-sm transition-all duration-200 transform hover:scale-105 shadow-lg">
+                        Verify Now!
+                    </a>
                 </div>
             </div>
         </div>

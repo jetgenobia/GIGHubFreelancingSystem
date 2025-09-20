@@ -1,6 +1,6 @@
 ﻿@{
-	Layout = null;
-	ViewData["Title"] = "Peer Mentorship";
+    Layout = null;
+    ViewData["Title"] = "Peer Mentorship";
 }
 
 @model Freelancing.Models.MentorshipRegistration
@@ -8,28 +8,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<title>@ViewData["Title"]</title>
-	<link rel="stylesheet" href="~/css/output.css" />
-	<link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="~/css/output.css" />
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+    <style>
+        .hide-mobile {
+            display: none;
+        }
+
+        @@media (min-width: 640px) {
+            .hide-mobile {
+                display: block;
+            }
+        }
+    </style>
 </head>
 <body>
-	<nav class="fixed top-0 z-50 w-full bg-white border-b border-gray-200">
-		<div class="px-3 py-3 lg:px-5 lg:pl-3">
-			<div class="flex items-center justify-between">
-				<div class="flex items-center justify-start rtl:justify-end">
-					<button data-drawer-target="logo-sidebar" data-drawer-toggle="logo-sidebar" aria-controls="logo-sidebar" type="button" class="inline-flex items-center p-2 text-sm text-gray-500 rounded-lg sm:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200">
-						<span class="sr-only">Open sidebar</span>
-						<svg class="w-6 h-6" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-							<path clip-rule="evenodd" fill-rule="evenodd" d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zm0 10.5a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75zM2 10a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 10z"></path>
-						</svg>
-					</button>
-					<a class="-m-1.5 p-1.5 ms-5" asp-area="" asp-controller="Home" asp-action="Index">
-						<span class="sr-only">Your Company</span>
-						<img class="h-16 w-auto" src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(2).png?updatedAt=1749718355580" alt="">
-					</a>
-				</div>
+    <nav class="fixed top-0 z-50 w-full bg-white border-b border-gray-200">
+        <div class="px-3 py-3 lg:px-5 lg:pl-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center justify-start rtl:justify-end">
+                    <a class="-m-1.5 p-1.5 ms-5 hide-mobile" asp-area="" asp-controller="Home" asp-action="Index">
+                        <span class="sr-only">Your Company</span>
+                        <img class="h-16 w-auto" src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(2).png?updatedAt=1749718355580" alt="">
+                    </a>
+                </div>
                 <div class="flex items-center justify-center flex-1 mx-4">
                     <form class="max-w-xl w-full mx-auto" data-search-form="true">
                         <label for="default-search" class="mb-2 text-sm font-medium text-gray-900 sr-only">Search</label>
@@ -118,20 +123,21 @@
                         </div>
                     </div>
                 </div>
-			</div>
-		</div>
-	</nav>
-    <div class="p-4 grid grid-cols-1 lg:grid-cols-2 items-center bg-gray-50 min-h-screen">
-		<div class="p-4 mt-15">
-			<div class="mt-4">
-				<div class="text-start block w-full" style="margin-left: 100px">
-					<h6 class="mb-4 text-5xl font-bold text-gray-900">GIGBuddies</h6>
-				</div>
-				<div class="text-start block w-full" style="margin-left: 100px; margin-top: 20px">
-					<h5 class="text-xl font-light text-gray-900 tracking-tight text-balance sm:text-lg">an integrated mentorship platform that connects aspiring freelancers with experienced mentors. Whether you're just starting out or looking to level up your career, our community-driven system offers personalized guidance, skills development, and real-world opportunities—all in one place. Join us and thrive in the gig economy through peer support and professional growth.</h5>
-					<h5 class="text-xl font-light text-gray-500 tracking-tight text-balance sm:text-lg mt-5">Get started now by choosing a role.</h5>
-				</div>
-				<div class="flex items-center justify-start w-full" style="margin-left: 100px; margin-top: 20px;">
+            </div>
+        </div>
+    </nav>
+    <div class="pt-24 p-4 grid grid-cols-1 lg:grid-cols-2 items-center bg-gray-50 min-h-screen gap-8">
+        <div class="p-4 mt-6 lg:mt-0 lg:pl-24 md:pl-12 pl-6">
+            <div>
+                <div class="block w-full text-center lg:text-start">
+                    <h6 class="mb-4 text-4xl sm:text-5xl font-bold text-gray-900">GIGBuddies</h6>
+                </div>
+                <div class="block w-full mt-3 text-center lg:text-start">
+                    <h5 class="text-base sm:text-lg md:text-xl font-light text-gray-900 tracking-tight text-balance">an integrated mentorship platform that connects aspiring freelancers with experienced mentors. Whether you're just starting out or looking to level up your career, our community-driven system offers personalized guidance, skills development, and real-world opportunities—all in one place. Join us and thrive in the gig economy through peer support and professional growth.</h5>
+                    <h5 class="text-sm sm:text-lg font-light text-gray-500 tracking-tight text-balance mt-4">Get started now by choosing a role.</h5>
+                </div>
+
+                <div class="flex flex-col sm:flex-row sm:items-center items-center justify-start sm:justify-start w-full mt-6 gap-3">
                     @{
                         var hasSkills = ViewBag.HasSkills as bool? ?? false;
                         var isVerified = ViewBag.IsVerified as bool? ?? false;
@@ -142,11 +148,13 @@
                         @if (hasSkills && isVerified)
                         {
                             <!-- User has both skills and verified identity - show normal mentor/mentee buttons -->
-                            <div class="me-2">
-                                <a asp-controller="PeerMentorship" asp-action="Registration" asp-route-role="Mentor" type="button" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none">Mentor</a>
-                            </div>
-                            <div>
-                                <a asp-controller="PeerMentorship" asp-action="Registration" asp-route-role="Mentee" type="button" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none">Mentee</a>
+                            <div class="flex items-center justify-center gap-5">
+                                <div>
+                                    <a asp-controller="PeerMentorship" asp-action="Registration" asp-route-role="Mentor" type="button" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none">Mentor</a>
+                                </div>
+                                <div>
+                                    <a asp-controller="PeerMentorship" asp-action="Registration" asp-route-role="Mentee" type="button" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none">Mentee</a>
+                                </div>
                             </div>
                         }
                         else
@@ -179,7 +187,7 @@
                                                     <div class="flex items-center space-x-2">
                                                         <span class="text-sm text-gray-600">Add skills to your profile</span>
                                                         <a asp-controller="@(User.IsInRole("Freelancer") ? "Freelancer" : "Client")" asp-action="EditAccount"
-                                                           class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded hover:bg-blue-200 transition-colors">
+                                                           class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded hover:bg-blue-200 transition-colors text-center">
                                                             Add Skills →
                                                         </a>
                                                     </div>
@@ -209,7 +217,7 @@
                                                     <div class="flex items-center space-x-2">
                                                         <span class="text-sm text-gray-600">Verify your identity</span>
                                                         <a asp-controller="IdentityVerification" asp-action="Index"
-                                                           class="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded hover:bg-orange-200 transition-colors">
+                                                           class="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded hover:bg-orange-200 transition-colors text-center">
                                                             Verify Identity →
                                                         </a>
                                                     </div>
@@ -247,35 +255,27 @@
                             </div>
                         </div>
                     }
-				</div>
-			</div>
-		</div>
-		<div class="p-4">
-			<div class="flex items-center justify-center w-full mt-5" style="margin-top: 75px">
-				<img class="w-3/4 h-3/4" src="https://ik.imagekit.io/6txj3mofs/PEERMENTOR.png?updatedAt=1754184399237" alt="">
-			</div>
-		</div>
-	</div>
+                </div>
+            </div>
+        </div>
 
-	@section Scripts {
-		@{
-			await Html.RenderPartialAsync("_ValidationScriptsPartial");
-		}
-	}
-	<script src="~/js/site.js" asp-append-version="true"></script>
-	<script src="~/js/notification.js" asp-append-version="true"></script>
+        <div class="p-4 flex justify-center items-center">
+            <div class="w-full max-w-lg flex justify-center items-center mt-6 lg:mt-0">
+                <img class="w-full max-w-md lg:max-w-lg object-contain" src="https://ik.imagekit.io/6txj3mofs/PEERMENTOR.png?updatedAt=1754184399237" alt="">
+            </div>
+        </div>
+    </div>
+
+    @section Scripts {
+        @{
+            await Html.RenderPartialAsync("_ValidationScriptsPartial");
+        }
+    }
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/notification.js" asp-append-version="true"></script>
     <script src="~/js/global-video-call.js" asp-append-version="true"></script>
     <script src="~/js/search.js" asp-append-version="true"></script>
     <script src="~/js/message-counter.js" asp-append-version="true"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js"></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-

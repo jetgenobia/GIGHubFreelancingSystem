@@ -34,7 +34,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">@(Model.IsClient ? "Freelancer" : "Client")</label>
-                        <p class="text-gray-900">@(Model.IsClient ? Model.FreelancerName : Model.ClientName)</p>
+                        <p class="text-gray-900">@(Model.IsClient? Model.FreelancerName: Model.ClientName)</p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Final Payment</label>
@@ -52,7 +52,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                         <p class="text-green-800">
-                            <strong>@(Model.IsClient ? Model.FreelancerName : Model.ClientName)</strong> has already signed this termination on @Model.OtherPartySignedAt.
+                            <strong>@(Model.IsClient? Model.FreelancerName: Model.ClientName)</strong> has already signed this termination on @Model.OtherPartySignedAt.
                         </p>
                     </div>
                 </div>
@@ -98,7 +98,7 @@
                 <input type="hidden" asp-for="TerminationId" />
                 <input type="hidden" asp-for="SignatureData" id="signatureDataField" />
                 <input type="hidden" asp-for="SignatureType" id="signatureTypeField" />
-                
+
                 <!-- Hidden fields to preserve display data -->
                 <input type="hidden" asp-for="TerminationTitle" />
                 <input type="hidden" asp-for="ProjectName" />
@@ -185,22 +185,28 @@
                 <div asp-validation-summary="ModelOnly" class="mt-4 text-red-600 text-sm"></div>
 
                 <!-- Actions -->
-                <div class="flex items-center justify-between mt-8 p-4 bg-gray-50 rounded-lg">
-                    <div class="text-sm text-gray-600">
-                        <p class="font-medium">By signing this termination:</p>
-                        <ul class="mt-1 list-disc list-inside space-y-1">
-                            <li>You agree to terminate the contract</li>
-                            <li>The contract will be officially terminated once both parties sign</li>
-                            <li>@(Model.OtherPartyHasSigned ? "The contract will be terminated immediately" : "The other party will be notified to sign")</li>
-                        </ul>
-                    </div>
-                    <div class="flex space-x-3">
-                        <a href="@Url.Action("Details", new { id = Model.TerminationId })" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
-                            Cancel
-                        </a>
-                        <button type="submit" id="signButton" class="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:ring-4 focus:ring-red-300 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                            Sign Termination
-                        </button>
+                <div class="flex items-center justify-center mt-8 p-4 bg-gray-50 rounded-lg">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div class="col-span-2">
+                            <div class="text-sm text-gray-600">
+                                <p class="font-medium">By signing this termination:</p>
+                                <ul class="mt-1 list-disc list-inside space-y-1">
+                                    <li>You agree to terminate the contract</li>
+                                    <li>The contract will be officially terminated once both parties sign</li>
+                                    <li>@(Model.OtherPartyHasSigned ? "The contract will be terminated immediately" : "The other party will be notified to sign")</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-center">
+                            <div class="flex space-x-3">
+                                <a href="@Url.Action("Details", new { id = Model.TerminationId })" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                                    Cancel
+                                </a>
+                                <button type="submit" id="signButton" class="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:ring-4 focus:ring-red-300 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                                    Sign
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </form>
@@ -210,168 +216,170 @@
 
 <script src="~/js/signature-capture.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize signature capture
-    const signatureCapture = new SignatureCapture('signatureCanvas', {
-        penColor: '#dc2626',
-        penWidth: 2,
-        backgroundColor: '#ffffff',
-        smoothing: true
-    });
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize signature capture
+        const signatureCapture = new SignatureCapture('signatureCanvas', {
+            penColor: '#dc2626',
+            penWidth: 2,
+            backgroundColor: '#ffffff',
+            smoothing: true
+        });
 
-    // Form elements
-    const form = document.getElementById('terminationSigningForm');
-    const signButton = document.getElementById('signButton');
-    const signatureDataField = document.getElementById('signatureDataField');
-    const signatureTypeField = document.getElementById('signatureTypeField');
-    const agreeToTerms = document.querySelector('input[name="AgreeToTerms"]');
-    const understandLegal = document.querySelector('input[name="UnderstandLegalImplications"]');
-    
-    // Signature type tabs
-    const signatureTabs = document.querySelectorAll('.signature-tab');
-    const signatureTabContents = document.querySelectorAll('.signature-tab-content');
-    
-    // Canvas elements
-    const clearButton = document.getElementById('clearCanvas');
-    const canvasStatus = document.getElementById('canvasStatus');
-    const signaturePlaceholder = document.getElementById('signaturePlaceholder');
-    
-    // Typed signature elements
-    const typedInput = document.getElementById('typedSignatureInput');
-    const typedPreview = document.getElementById('typedSignaturePreview');
-    const typedStatus = document.getElementById('typedStatus');
-    
-    let currentSignatureType = 'canvas';
-    let hasValidSignature = false;
+        // Form elements
+        const form = document.getElementById('terminationSigningForm');
+        const signButton = document.getElementById('signButton');
+        const signatureDataField = document.getElementById('signatureDataField');
+        const signatureTypeField = document.getElementById('signatureTypeField');
+        const agreeToTerms = document.querySelector('input[name="AgreeToTerms"]');
+        const understandLegal = document.querySelector('input[name="UnderstandLegalImplications"]');
 
-    // Tab switching
-    signatureTabs.forEach(tab => {
-        tab.addEventListener('click', function() {
-            const tabType = this.dataset.tab;
-            
-            // Update tab appearance
-            signatureTabs.forEach(t => t.classList.remove('active'));
-            this.classList.add('active');
-            
-            // Update tab content
-            signatureTabContents.forEach(content => content.classList.remove('active'));
-            document.getElementById(tabType + '-tab').classList.add('active');
-            
-            currentSignatureType = tabType;
+        // Signature type tabs
+        const signatureTabs = document.querySelectorAll('.signature-tab');
+        const signatureTabContents = document.querySelectorAll('.signature-tab-content');
+
+        // Canvas elements
+        const clearButton = document.getElementById('clearCanvas');
+        const canvasStatus = document.getElementById('canvasStatus');
+        const signaturePlaceholder = document.getElementById('signaturePlaceholder');
+
+        // Typed signature elements
+        const typedInput = document.getElementById('typedSignatureInput');
+        const typedPreview = document.getElementById('typedSignaturePreview');
+        const typedStatus = document.getElementById('typedStatus');
+
+        let currentSignatureType = 'canvas';
+        let hasValidSignature = false;
+
+        // Tab switching
+        signatureTabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabType = this.dataset.tab;
+
+                // Update tab appearance
+                signatureTabs.forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+
+                // Update tab content
+                signatureTabContents.forEach(content => content.classList.remove('active'));
+                document.getElementById(tabType + '-tab').classList.add('active');
+
+                currentSignatureType = tabType;
+                updateSignButton();
+            });
+        });
+
+        // Canvas signature events
+        signatureCapture.canvas.addEventListener('signatureStart', function() {
+            signaturePlaceholder.classList.add('hidden');
+        });
+
+        signatureCapture.canvas.addEventListener('signatureEnd', function(e) {
+            updateCanvasStatus(e.detail.hasSignature);
             updateSignButton();
         });
-    });
 
-    // Canvas signature events
-    signatureCapture.canvas.addEventListener('signatureStart', function() {
-        signaturePlaceholder.classList.add('hidden');
-    });
+        clearButton.addEventListener('click', function() {
+            signatureCapture.clearCanvas();
+            signaturePlaceholder.classList.remove('hidden');
+            updateCanvasStatus(false);
+            updateSignButton();
+        });
 
-    signatureCapture.canvas.addEventListener('signatureEnd', function(e) {
-        updateCanvasStatus(e.detail.hasSignature);
-        updateSignButton();
-    });
+        // Typed signature events
+        typedInput.addEventListener('input', function() {
+            const value = this.value.trim();
+            if (value) {
+                typedPreview.textContent = value;
+                typedStatus.textContent = 'Signature ready';
+                typedStatus.className = 'signature-status valid';
+            } else {
+                typedPreview.textContent = 'Your typed signature will appear here';
+                typedStatus.textContent = 'Please type your full name above';
+                typedStatus.className = 'signature-status empty';
+            }
+            updateSignButton();
+        });
 
-    clearButton.addEventListener('click', function() {
-        signatureCapture.clearCanvas();
-        signaturePlaceholder.classList.remove('hidden');
-        updateCanvasStatus(false);
-        updateSignButton();
-    });
+        // Agreement checkboxes
+        [agreeToTerms, understandLegal].forEach(checkbox => {
+            checkbox.addEventListener('change', updateSignButton);
+        });
 
-    // Typed signature events
-    typedInput.addEventListener('input', function() {
-        const value = this.value.trim();
-        if (value) {
-            typedPreview.textContent = value;
-            typedStatus.textContent = 'Signature ready';
-            typedStatus.className = 'signature-status valid';
-        } else {
-            typedPreview.textContent = 'Your typed signature will appear here';
-            typedStatus.textContent = 'Please type your full name above';
-            typedStatus.className = 'signature-status empty';
-        }
-        updateSignButton();
-    });
-
-    // Agreement checkboxes
-    [agreeToTerms, understandLegal].forEach(checkbox => {
-        checkbox.addEventListener('change', updateSignButton);
-    });
-
-    function updateCanvasStatus(hasSignature) {
-        if (hasSignature) {
-            canvasStatus.textContent = 'Signature captured successfully';
-            canvasStatus.className = 'signature-status valid';
-            signatureCapture.canvas.classList.add('has-signature');
-        } else {
-            canvasStatus.textContent = 'Please draw your signature above';
-            canvasStatus.className = 'signature-status empty';
-            signatureCapture.canvas.classList.remove('has-signature');
-        }
-    }
-
-    function updateSignButton() {
-        let signatureValid = false;
-        
-        if (currentSignatureType === 'canvas') {
-            signatureValid = !signatureCapture.isEmpty();
-        } else if (currentSignatureType === 'type') {
-            signatureValid = typedInput.value.trim().length >= 2;
-        }
-        
-        const agreementsValid = agreeToTerms.checked && understandLegal.checked;
-        
-        hasValidSignature = signatureValid;
-        signButton.disabled = !(signatureValid && agreementsValid);
-    }
-
-    // Form submission
-    form.addEventListener('submit', function(e) {
-        if (!hasValidSignature) {
-            e.preventDefault();
-            alert('Please provide a valid signature before submitting.');
-            return;
+        function updateCanvasStatus(hasSignature) {
+            if (hasSignature) {
+                canvasStatus.textContent = 'Signature captured successfully';
+                canvasStatus.className = 'signature-status valid';
+                signatureCapture.canvas.classList.add('has-signature');
+            } else {
+                canvasStatus.textContent = 'Please draw your signature above';
+                canvasStatus.className = 'signature-status empty';
+                signatureCapture.canvas.classList.remove('has-signature');
+            }
         }
 
-        if (!agreeToTerms.checked || !understandLegal.checked) {
-            e.preventDefault();
-            alert('Please check all agreement boxes before submitting.');
-            return;
+        function updateSignButton() {
+            let signatureValid = false;
+
+            if (currentSignatureType === 'canvas') {
+                signatureValid = !signatureCapture.isEmpty();
+            } else if (currentSignatureType === 'type') {
+                signatureValid = typedInput.value.trim().length >= 2;
+            }
+
+            const agreementsValid = agreeToTerms.checked && understandLegal.checked;
+
+            hasValidSignature = signatureValid;
+            signButton.disabled = !(signatureValid && agreementsValid);
         }
 
-        // Set signature data
-        if (currentSignatureType === 'canvas') {
-            const validation = signatureCapture.validate();
-            
-            if (!validation.isValid) {
+        // Form submission
+        form.addEventListener('submit', function(e) {
+            if (!hasValidSignature) {
                 e.preventDefault();
-                alert('Signature validation failed: ' + validation.errors.join(', '));
+                alert('Please provide a valid signature before submitting.');
                 return;
             }
-            
-            signatureDataField.value = signatureCapture.getSignatureBase64();
-            signatureTypeField.value = 'Canvas';
-        } else if (currentSignatureType === 'type') {
-            const typedValue = typedInput.value.trim();
-            
-            if (typedValue.length < 2) {
+
+            if (!agreeToTerms.checked || !understandLegal.checked) {
                 e.preventDefault();
-                alert('Please enter your full name for the typed signature.');
+                alert('Please check all agreement boxes before submitting.');
                 return;
             }
-            
-            signatureDataField.value = typedValue;
-            signatureTypeField.value = 'Text';
-        }
 
-        // Show loading state
-        signButton.disabled = true;
-        signButton.textContent = 'Signing...';
+            // Set signature data
+            if (currentSignatureType === 'canvas') {
+                const validation = signatureCapture.validate();
+
+                if (!validation.isValid) {
+                    e.preventDefault();
+                    alert('Signature validation failed: ' + validation.errors.join(', '));
+                    return;
+                }
+
+                signatureDataField.value = signatureCapture.getSignatureBase64();
+                signatureTypeField.value = 'Canvas';
+            } else if (currentSignatureType === 'type') {
+                const typedValue = typedInput.value.trim();
+
+                if (typedValue.length < 2) {
+                    e.preventDefault();
+                    alert('Please enter your full name for the typed signature.');
+                    return;
+                }
+
+                signatureDataField.value = typedValue;
+                signatureTypeField.value = 'Text';
+            }
+
+            // Show loading state
+            signButton.disabled = true;
+            signButton.textContent = 'Signing...';
+        });
     });
-});
 </script>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }

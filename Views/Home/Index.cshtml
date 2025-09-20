@@ -146,9 +146,10 @@
         }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center">
+
+<body class="min-h-screen">
     <div class="page-background"></div>
-    <header id="site-header" class="slide-up-init fixed inset-x-0 top-0 z-50 px-4">
+    <header id="site-header" class="slide-up-init relative z-50 w-full px-4">
         <nav class="relative flex items-center justify-between p-6 lg:px-8" aria-label="Global">
             <div class="flex lg:flex-1">
                 <a class="-m-1.5 p-2" asp-area="" asp-controller="Home" asp-action="Index">
@@ -180,33 +181,41 @@
                 }
             </div>
 
-            <!-- Mobile menu -->
-            <div class="hidden" id="mobileMenu">
-                <div class="px-4 py-4 space-y-3 bg-white border border-gray-200 rounded-lg shadow-lg">
+            <div id="mobileMenu" class="hidden fixed inset-0 z-[60] md:hidden">
+                <div id="menuBackdrop" class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+
+                <div class="relative mx-4 mt-24 rounded-lg border border-gray-200 bg-white shadow-lg p-4 space-y-3">
                     <div class="flex justify-end">
-                        <button id="closeMenuBtn" type="button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100">
+                        <button id="closeMenuBtn" type="button"
+                                class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100">
                             <span class="sr-only">Close menu</span>
-                            <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                 viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
                     </div>
                     @if (Context.User.Identity.Name != null)
                     {
-                        <a asp-controller="Client" asp-action="Dashboard" class="text-gray-900 bg-gray-100 hover:bg-gray-200 block px-4 py-3 rounded-md text-base font-medium text-center">Dashboard</a>
-                        <a asp-controller="Account" asp-action="LogOut" class="text-gray-900 bg-gray-100 hover:bg-gray-200 block px-4 py-3 rounded-md text-base font-medium text-center">Sign Out</a>
+                        <a asp-controller="Client" asp-action="Dashboard"
+                           class="block px-4 py-3 rounded-md text-base font-medium text-gray-900 bg-gray-100 hover:bg-gray-200 text-center">Dashboard</a>
+                        <a asp-controller="Account" asp-action="LogOut"
+                           class="block px-4 py-3 rounded-md text-base font-medium text-gray-900 bg-gray-100 hover:bg-gray-200 text-center">Sign Out</a>
                     }
                     else
                     {
-                        <a asp-controller="Account" asp-action="Login" class="text-gray-900 bg-gray-100 hover:bg-gray-200 block px-4 py-3 rounded-md text-base font-medium text-center">Login</a>
-                        <a asp-controller="Account" asp-action="Registration" class="text-white bg-blue-700 hover:bg-blue-800 block px-4 py-3 rounded-md text-base font-medium text-center">Sign Up</a>
+                        <a asp-controller="Account" asp-action="Login"
+                           class="block px-4 py-3 rounded-md text-base font-medium text-gray-900 bg-gray-100 hover:bg-gray-200 text-center">Login</a>
+                        <a asp-controller="Account" asp-action="Registration"
+                           class="block px-4 py-3 rounded-md text-base font-medium text-center text-white bg-blue-700 hover:bg-blue-800">Sign Up</a>
                     }
                 </div>
             </div>
         </nav>
     </header>
 
-    <section class="pt-24 md:pt-28 lg:pt-32">
+    <main class="lg:pt-5">
         <div class="py-8 px-4 mx-auto max-w-screen-xl lg:py-16 lg:px-12">
             <div class="grid gap-8 mb-4 grid-cols-2">
                 <div class="col-span-2 sm:col-span-1">
@@ -227,7 +236,7 @@
                             <span class="inline-block">Project</span>
                         </span>
                     </h1>
-                    <p class="mb-8 text-lg font-medium lg:text-xl slide-up-init">Start your freelancing career with us. Get started now by choosing a role.</p>
+                    <p class="mb-8 text-md font-medium lg:text-xl slide-up-init">Start your freelancing career with us. Get started now by choosing a role.</p>
                     <div class="flex flex-col space-y-4 sm:flex-row sm:justify-start sm:space-y-0 sm:space-x-4">
                         <a asp-controller="Account" asp-action="Registration" asp-route-role="Client" class="border border-gray-300 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-base px-7 py-2 me-2 mb-2 slide-up-init">Client</a>
                         <a asp-controller="Account" asp-action="Registration" asp-route-role="Freelancer" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-base px-8 py-2 me-2 mb-2 slide-up-init">Freelancer</a>
@@ -241,7 +250,7 @@
                 </div>
             </div>
         </div>
-    </section>
+    </main>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -258,6 +267,36 @@
                 el.style.animationDelay = (base + i * stagger) + 's';
                 el.classList.add('animate');
             });
+        });
+
+        const openBtn = document.getElementById('openMenuBtn');
+        const closeBtn = document.getElementById('closeMenuBtn');
+        const mobileMenu = document.getElementById('mobileMenu');
+        const backdrop = document.getElementById('menuBackdrop');
+
+        function openMenu() {
+          mobileMenu.classList.remove('hidden');
+          document.documentElement.classList.add('overflow-hidden');
+        }
+
+        function closeMenu() {
+          mobileMenu.classList.add('hidden');
+          document.documentElement.classList.remove('overflow-hidden');
+        }
+
+        openBtn.addEventListener('click', openMenu);
+        closeBtn.addEventListener('click', closeMenu);
+        backdrop.addEventListener('click', closeMenu);
+
+        mobileMenu.addEventListener('click', (e) => {
+          const panel = mobileMenu.querySelector('.relative.mx-4');
+          if (!panel.contains(e.target) && !e.target.closest('#openMenuBtn')) {
+            closeMenu();
+          }
+        });
+
+        document.addEventListener('keydown', e => {
+          if (e.key === 'Escape' && !mobileMenu.classList.contains('hidden')) closeMenu();
         });
     </script>
     <script src="~/js/site.js" asp-append-version="true"></script>

@@ -65,30 +65,31 @@ namespace Freelancing
         private static string GetStandardTemplate()
         {
             return @"
-                <div class='contract-header mb-6'>
-                    <h1 class=""text-center font-bold mb-2"">FREELANCE SERVICE AGREEMENT</h1>
-                    <p>This Freelance Service Agreement (""Agreement"") is entered into on <strong>{{CONTRACT_DATE}}</strong> by and between:</p>
+               <div class='contract-header mb-6'>
+            <h1 class=""text-center font-bold mb-2"">FREELANCE SERVICE AGREEMENT</h1>
+            <p>This Freelance Service Agreement (""Agreement"") is entered into on <strong>{{CONTRACT_DATE}}</strong> by and between:</p>
+        </div>
+
+        <div class='parties-section mb-6'>
+            <div class =""rounded-lg bg-blue-700 p-2 mb-2"">
+                <h2 class=""text-center text-white font-bold"">PARTIES</h2>
+            </div>
+
+            <!-- mobile-first: stacked on small screens, side-by-side on md+ -->
+            <div class='parties-container flex flex-col gap-5 md:flex-row md:gap-8'>
+                <div class='party-info w-full md:w-1/2'>
+                    <h3 class = ""italic"">Client:</h3>
+                    <p><strong>Name:</strong> {{CLIENT_NAME}}</p>
+                    <p><strong>Email:</strong> {{CLIENT_EMAIL}}</p>
                 </div>
 
-                <div class='parties-section mb-6'>
-                    <div class =""rounded-lg bg-blue-700 p-2 mb-2"">
-                        <h2 class=""text-center text-white font-bold"">PARTIES</h2>
-                    </div>
-    
-                    <div class='parties-container' style=""display: flex; justify-content: space-between; gap: 20px;"">
-                        <div class='party-info' style=""flex: 1;"">
-                            <h3 class = ""italic"">Client:</h3>
-                            <p><strong>Name:</strong> {{CLIENT_NAME}}</p>
-                            <p><strong>Email:</strong> {{CLIENT_EMAIL}}</p>
-                        </div>
-    
-                        <div class='party-info' style=""flex: 1;"">
-                            <h3 class = ""italic"">Freelancer:</h3>
-                            <p><strong>Name:</strong> {{FREELANCER_NAME}}</p>
-                            <p><strong>Email:</strong> {{FREELANCER_EMAIL}}</p>
-                        </div>
-                    </div>
+                <div class='party-info w-full md:w-1/2'>
+                    <h3 class = ""italic"">Freelancer:</h3>
+                    <p><strong>Name:</strong> {{FREELANCER_NAME}}</p>
+                    <p><strong>Email:</strong> {{FREELANCER_EMAIL}}</p>
                 </div>
+            </div>
+        </div>
 
                 <div class='project-section mb-6'>
                     <div class =""rounded-lg bg-blue-700 p-2 mb-2"">
@@ -148,29 +149,29 @@ namespace Freelancing
         {
             return @"
                 <div class='contract-header mb-6'>
-                    <h1 class=""text-center font-bold mb-2"">WEBSITES, IT & SOFTWARE DEVELOPMENT SERVICE AGREEMENT</h1>
-                    <p>This Websites, IT & Software Service Agreement (""Agreement"") is entered into on <strong>{{CONTRACT_DATE}}</strong> by and between:</p>
+            <h1 class=""text-center font-bold mb-2"">WEBSITES, IT & SOFTWARE DEVELOPMENT SERVICE AGREEMENT</h1>
+            <p>This Websites, IT & Software Service Agreement (""Agreement"") is entered into on <strong>{{CONTRACT_DATE}}</strong> by and between:</p>
+        </div>
+
+        <div class='parties-section mb-6'>
+            <div class =""rounded-lg bg-blue-700 p-2 mb-2"">
+                <h2 class=""text-center text-white font-bold"">PARTIES</h2>
+            </div>
+
+            <div class='parties-container flex flex-col gap-5 md:flex-row md:gap-8'>
+                <div class='party-info w-full md:w-1/2'>
+                    <h3 class = ""italic"">Client:</h3>
+                    <p><strong>Name:</strong> {{CLIENT_NAME}}</p>
+                    <p><strong>Email:</strong> {{CLIENT_EMAIL}}</p>
                 </div>
 
-                <div class='parties-section mb-6'>
-                    <div class =""rounded-lg bg-blue-700 p-2 mb-2"">
-                        <h2 class=""text-center text-white font-bold"">PARTIES</h2>
-                    </div>
-                    
-                    <div class='parties-container' style=""display: flex; justify-content: space-between; gap: 20px;"">
-                            <div class='party-info' style=""flex: 1;"">
-                                <h3 class = ""italic"">Client:</h3>
-                                <p><strong>Name:</strong> {{CLIENT_NAME}}</p>
-                                <p><strong>Email:</strong> {{CLIENT_EMAIL}}</p>
-                            </div>
-                    
-                            <div class='party-info' style=""flex: 1;"">
-                                <h3 class = ""italic"">Freelancer:</h3>
-                                <p><strong>Name:</strong> {{FREELANCER_NAME}}</p>
-                                <p><strong>Email:</strong> {{FREELANCER_EMAIL}}</p>
-                            </div>
-                    </div>
+                <div class='party-info w-full md:w-1/2'>
+                    <h3 class = ""italic"">Freelancer:</h3>
+                    <p><strong>Name:</strong> {{FREELANCER_NAME}}</p>
+                    <p><strong>Email:</strong> {{FREELANCER_EMAIL}}</p>
                 </div>
+            </div>
+        </div>
 
                 <div class='project-section mb-6'>
                     <div class =""rounded-lg bg-blue-700 p-2 mb-2"">
@@ -238,29 +239,29 @@ namespace Freelancing
         {
             return @"
                 <div class='contract-header mb-6'>
-                    <h1 class=""text-center font-bold mb-2"">DESIGN & MEDIA SERVICE AGREEMENT</h1>
-                    <p>This Design & Media Service Agreement (""Agreement"") is entered into on <strong>{{CONTRACT_DATE}}</strong> by and between:</p>
+            <h1 class=""text-center font-bold mb-2"">DESIGN & MEDIA SERVICE AGREEMENT</h1>
+            <p>This Design & Media Service Agreement (""Agreement"") is entered into on <strong>{{CONTRACT_DATE}}</strong> by and between:</p>
+        </div>
+
+        <div class='parties-section mb-6'>
+            <div class =""rounded-lg bg-blue-700 p-2 mb-2"">
+                <h2 class=""text-center text-white font-bold"">PARTIES</h2>
+            </div>
+
+            <div class='parties-container flex flex-col gap-5 md:flex-row md:gap-8'>
+                <div class='party-info w-full md:w-1/2'>
+                    <h3 class = ""italic"">Client:</h3>
+                    <p><strong>Name:</strong> {{CLIENT_NAME}}</p>
+                    <p><strong>Email:</strong> {{CLIENT_EMAIL}}</p>
                 </div>
 
-                <div class='parties-section mb-6'>
-                    <div class =""rounded-lg bg-blue-700 p-2 mb-2"">
-                        <h2 class=""text-center text-white font-bold"">PARTIES</h2>
-                    </div>
-                    
-                    <div class='parties-container' style=""display: flex; justify-content: space-between; gap: 20px;"">
-                            <div class='party-info' style=""flex: 1;"">
-                                <h3 class = ""italic"">Client:</h3>
-                                <p><strong>Name:</strong> {{CLIENT_NAME}}</p>
-                                <p><strong>Email:</strong> {{CLIENT_EMAIL}}</p>
-                            </div>
-                    
-                            <div class='party-info' style=""flex: 1;"">
-                                <h3 class = ""italic"">Freelancer:</h3>
-                                <p><strong>Name:</strong> {{FREELANCER_NAME}}</p>
-                                <p><strong>Email:</strong> {{FREELANCER_EMAIL}}</p>
-                            </div>
-                    </div>
+                <div class='party-info w-full md:w-1/2'>
+                    <h3 class = ""italic"">Freelancer:</h3>
+                    <p><strong>Name:</strong> {{FREELANCER_NAME}}</p>
+                    <p><strong>Email:</strong> {{FREELANCER_EMAIL}}</p>
                 </div>
+            </div>
+        </div>
 
                 <div class='project-section mb-6'>
                     <div class =""rounded-lg bg-blue-700 p-2 mb-2"">
@@ -315,30 +316,30 @@ namespace Freelancing
         private static string GetWritingTemplate()
         {
             return @"
-                <div class='contract-header mb-6'>
-                    <h1 class=""text-center font-bold mb-2"">WRITING & CONTENT CREATION AGREEMENT</h1>
-                    <p>This Writing & Content Creation Agreement (""Agreement"") is entered into on <strong>{{CONTRACT_DATE}}</strong> by and between:</p>
+               <div class='contract-header mb-6'>
+            <h1 class=""text-center font-bold mb-2"">WRITING & CONTENT CREATION AGREEMENT</h1>
+            <p>This Writing & Content Creation Agreement (""Agreement"") is entered into on <strong>{{CONTRACT_DATE}}</strong> by and between:</p>
+        </div>
+
+        <div class='parties-section mb-6'>
+            <div class =""rounded-lg bg-blue-700 p-2 mb-2"">
+                <h2 class=""text-center text-white font-bold"">PARTIES</h2>
+            </div>
+
+            <div class='parties-container flex flex-col gap-5 md:flex-row md:gap-8'>
+                <div class='party-info w-full md:w-1/2'>
+                    <h3 class = ""italic"">Client:</h3>
+                    <p><strong>Name:</strong> {{CLIENT_NAME}}</p>
+                    <p><strong>Email:</strong> {{CLIENT_EMAIL}}</p>
                 </div>
 
-                <div class='parties-section mb-6'>
-                    <div class =""rounded-lg bg-blue-700 p-2 mb-2"">
-                        <h2 class=""text-center text-white font-bold"">PARTIES</h2>
-                    </div>
-
-                    <div class='parties-container' style=""display: flex; justify-content: space-between; gap: 20px;"">
-                            <div class='party-info' style=""flex: 1;"">
-                                <h3 class = ""italic"">Client:</h3>
-                                <p><strong>Name:</strong> {{CLIENT_NAME}}</p>
-                                <p><strong>Email:</strong> {{CLIENT_EMAIL}}</p>
-                            </div>
-                    
-                            <div class='party-info' style=""flex: 1;"">
-                                <h3 class = ""italic"">Freelancer:</h3>
-                                <p><strong>Name:</strong> {{FREELANCER_NAME}}</p>
-                                <p><strong>Email:</strong> {{FREELANCER_EMAIL}}</p>
-                            </div>
-                    </div>
+                <div class='party-info w-full md:w-1/2'>
+                    <h3 class = ""italic"">Freelancer:</h3>
+                    <p><strong>Name:</strong> {{FREELANCER_NAME}}</p>
+                    <p><strong>Email:</strong> {{FREELANCER_EMAIL}}</p>
                 </div>
+            </div>
+        </div>
 
                 <div class='project-section mb-6'>
                     <div class =""rounded-lg bg-blue-700 p-2 mb-2"">

@@ -193,18 +193,24 @@
                 </div>
 
                 <!-- Actions -->
-                <div class="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
-                    <div class="text-sm text-gray-600">
-                        <p>Review all terms carefully before creating the contract.</p>
-                        <p>The freelancer will be notified to review and sign once created.</p>
-                    </div>
-                    <div class="flex space-x-3">
-                        <a href="@Url.Action("Details", "ManageProjectClient", new { id = Model.ProjectId })" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
-                            Cancel
-                        </a>
-                        <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-4 focus:ring-blue-300">
-                            Create Contract
-                        </button>
+                <div class="flex items-center justify-center bg-gray-50 p-4 rounded-lg">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div class="col-span-2">
+                            <div class="text-sm text-gray-600">
+                                <p>Review all terms carefully before creating the contract.</p>
+                                <p>The freelancer will be notified to review and sign once created.</p>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex space-x-3">
+                                <a href="@Url.Action("Details", "ManageProjectClient", new { id = Model.ProjectId })" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                                    Cancel
+                                </a>
+                                <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-4 focus:ring-blue-300">
+                                    Create
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </form>
