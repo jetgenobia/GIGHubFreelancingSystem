@@ -21,11 +21,18 @@ namespace Freelancing.Models
         public int Order { get; set; }
         public bool IsCompletedByMentor { get; set; }
         public bool IsCompletedByMentee { get; set; }
-        public bool IsFullyCompleted => IsCompletedByMentor && IsCompletedByMentee;
+        public bool IsFullyCompleted { get; set; }
         public bool CanMarkAsDone { get; set; } // Whether the current user can mark this goal as done
         public bool ShowMarkAsDoneButton { get; set; } // Whether to show the mark as done button
-        public DateTime? CompletedAt { get; set; }
         public string CompletedBy { get; set; } // "Mentor", "Mentee", or "Both"
+        public DateTime? CompletedAt { get; set; }
         public string? IconSvg { get; set; } // Custom SVG icon for the goal
+        public bool IsCustomGoal { get; set; }
+        public string? Priority { get; set; }
+        public DateTime? TargetDate { get; set; }
+        public bool IsOverdue { get; set; }
+        public string? Category { get; set; }
+        public List<string> SuccessCriteria { get; set; } = new List<string>();
+        public bool CanDelete { get; set; }
     }
 }

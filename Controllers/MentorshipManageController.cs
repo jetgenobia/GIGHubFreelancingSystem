@@ -127,7 +127,17 @@ namespace Freelancing.Controllers
                     ShowMarkAsDoneButton = showMarkAsDoneButton,
                     CompletedBy = completedBy,
                     CompletedAt = completions.Any() ? completions.Max(c => c.CompletedAt) : null,
-                    IconSvg = goal.IconSvg
+                    IconSvg = goal.IconSvg,
+
+                    IsCustomGoal = goal.IsCustom,
+                    Priority = goal.Priority,
+                    TargetDate = goal.TargetDate,
+                    IsOverdue = goal.TargetDate.HasValue && goal.TargetDate.Value < DateTime.Now && !isFullyCompleted,
+                    Category = goal.Category,
+                    SuccessCriteria = !string.IsNullOrEmpty(goal.SuccessCriteria) ?
+                     goal.SuccessCriteria.Split('|', StringSplitOptions.RemoveEmptyEntries).ToList() :
+                     new List<string>(),
+                    CanDelete = goal.IsCustom && goal.CreatedBy == userId && isCurrentUserMentor
                 };
 
                 goalViewModels.Add(goalViewModel);
@@ -144,6 +154,180 @@ namespace Freelancing.Controllers
             };
 
             return View(viewModel);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CreateGoal(Guid matchId)
+        {
+            var userId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            var match = await _context.MentorshipMatches
+                .FirstOrDefaultAsync(m => m.Id == matchId &&
+                    (m.MentorId == userId || m.MenteeId == userId));
+
+            if (match == null) return NotFound();
+
+            // Check if current user is a mentor
+            var isCurrentUserMentor = match.MentorId == userId;
+            if (!isCurrentUserMentor)
+            {
+                TempData["Error"] = "Only mentors can create custom goals.";
+                return RedirectToAction("Goals", new { matchId });
+            }
+
+            var model = new CreateGoalViewModel
+            {
+                MatchId = matchId
+            };
+
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateGoal(CreateGoalViewModel model)
+        {
+            var userId = GetCurrentUserId();
+
+            // Validate that user has permission to create goals for this match
+            var match = await _context.MentorshipMatches
+                .FirstOrDefaultAsync(m => m.Id == model.MatchId &&
+                    (m.MentorId == userId || m.MenteeId == userId));
+
+            if (match == null)
+            {
+                TempData["Error"] = "Access denied or mentorship not found.";
+                return RedirectToAction("Goals", new { matchId = model.MatchId });
+            }
+
+            // Check if current user is a mentor
+            var isCurrentUserMentor = match.MentorId == userId;
+            if (!isCurrentUserMentor)
+            {
+                TempData["Error"] = "Only mentors can create custom goals.";
+                return RedirectToAction("Goals", new { matchId = model.MatchId });
+            }
+
+            if (!ModelState.IsValid)
+                return View(model);
+
+            try
+            {
+                // Create custom goal
+                var customGoal = new Goal
+                {
+                    Id = Guid.NewGuid(),
+                    GoalName = model.GoalName,
+                    GoalDescription = model.GoalDescription,
+                    IsActive = true,
+                    IconSvg = "<svg class= \"\"w-[85px] h-[85px]\" version=\"1.0\" id=\"Layer_1\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 64 64\" enable-background=\"new 0 0 64 64\" xml:space=\"preserve\" fill=\"#000000\"><g id=\"SVGRepo_bgCarrier\" stroke-width=\"0\"></g><g id=\"SVGRepo_tracerCarrier\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></g><g id=\"SVGRepo_iconCarrier\"> <g> <path fill=\"#394240\" d=\"M63.414,23.414c0.781-0.781,0.781-2.047,0-2.828l-20-20C43.023,0.195,42.512,0,42,0 s-1.023,0.195-1.414,0.586l-12,12c-1.381,1.381-3.547,2.081-6.438,2.081c-5.429,0-11.304-2.48-11.362-2.506 C10.534,12.054,10.267,12,10,12c-0.332,0-0.662,0.082-0.96,0.246c-0.538,0.295-0.912,0.82-1.013,1.425l-8,48 c-0.106,0.638,0.102,1.286,0.559,1.743C0.964,63.792,1.474,64,2,64c0.109,0,0.219-0.009,0.329-0.027l48-8 c0.605-0.101,1.131-0.475,1.426-1.013c0.295-0.539,0.325-1.184,0.083-1.748c-1.521-3.548-4.561-13.661-0.424-17.798L63.414,23.414z M50.707,33.293l-20-20l0,0l1.586-1.586l0,0l20,20L50.707,33.293z M41.998,2C41.999,2,41.999,2,41.998,2L62,22l-8.293,8.293l-20-20 l0,0L41.998,2z M47.52,44.78c0.442,3.563,1.571,7.099,2.48,9.22L3.698,61.717l20.549-20.55C25.038,41.691,25.982,42,27,42 c2.757,0,5-2.243,5-5s-2.243-5-5-5s-5,2.243-5,5c0,1.018,0.309,1.963,0.833,2.753L2.282,60.305l7.709-46.309 c0.062,0.027,6.233,2.671,12.157,2.671c2.988,0,5.372-0.679,7.107-2.017c0.015,0.018,0.021,0.04,0.037,0.057l20,20 c0.02,0.02,0.045,0.025,0.064,0.043C47.599,37.024,46.975,40.386,47.52,44.78z M24,37c0-1.654,1.346-3,3-3s3,1.346,3,3 s-1.346,3-3,3S24,38.654,24,37z\"></path> <polygon fill=\"#506C7F\" points=\"50.707,33.293 30.707,13.293 30.707,13.293 32.293,11.707 32.293,11.707 52.293,31.707 \"></polygon> <polygon fill=\"#F76D57\" points=\"41.998,2 41.999,2 62,22 53.707,30.293 33.707,10.293 33.707,10.293 \"></polygon> <path fill=\"#F9EBB2\" d=\"M47.52,44.78c0.442,3.563,1.571,7.099,2.48,9.22L3.698,61.717l20.549-20.55C25.038,41.691,25.982,42,27,42 c2.757,0,5-2.243,5-5s-2.243-5-5-5s-5,2.243-5,5c0,1.018,0.309,1.963,0.833,2.753L2.282,60.305l7.709-46.309 c0.062,0.027,6.233,2.671,12.157,2.671c2.988,0,5.372-0.679,7.107-2.017c0.015,0.018,0.021,0.04,0.037,0.057l20,20 c0.02,0.02,0.045,0.025,0.064,0.043C47.599,37.024,46.975,40.386,47.52,44.78z\"></path> <circle fill=\"#B4CCB9\" cx=\"27\" cy=\"37\" r=\"3\"></circle> </g> </g></svg>",
+                    Order = await GetNextGoalOrderAsync(),
+
+                    // Custom goal properties
+                    IsCustom = true,
+                    Priority = model.Priority ?? "Medium",
+                    TargetDate = model.TargetDate,
+                    CreatedBy = userId,
+                    CreatedAt = DateTime.UtcNow,
+                    Category = model.Category,
+                    SuccessCriteria = model.SuccessCriteria?.Any() == true ?
+                                     string.Join("|", model.SuccessCriteria.Where(s => !string.IsNullOrWhiteSpace(s))) : null
+                };
+
+                _context.Goals.Add(customGoal);
+                await _context.SaveChangesAsync();
+
+                // Notify mentee about new custom goal
+                var menteeId = match.MenteeId;
+                var mentorName = User.FindFirst("FullName")?.Value ?? "Your mentor";
+
+                TempData["Success"] = "Custom goal created successfully!";
+                return RedirectToAction("Goals", new { matchId = model.MatchId });
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = "An error occurred while creating the goal. Please try again.";
+                // Log the exception here if you have logging configured
+                return View(model);
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteGoal(Guid goalId, Guid matchId)
+        {
+            var userId = GetCurrentUserId();
+
+            // First check if the user is a mentor in this match
+            var match = await _context.MentorshipMatches
+                .FirstOrDefaultAsync(m => m.Id == matchId &&
+                    (m.MentorId == userId || m.MenteeId == userId));
+
+            if (match == null)
+            {
+                TempData["Error"] = "Access denied or mentorship not found.";
+                return RedirectToAction("Goals", new { matchId });
+            }
+
+            var isCurrentUserMentor = match.MentorId == userId;
+            if (!isCurrentUserMentor)
+            {
+                TempData["Error"] = "Only mentors can delete custom goals.";
+                return RedirectToAction("Goals", new { matchId });
+            }
+
+            var goal = await _context.Goals
+                .FirstOrDefaultAsync(g => g.Id == goalId && g.CreatedBy == userId);
+
+            if (goal == null)
+            {
+                TempData["Error"] = "Goal not found or you don't have permission to delete it.";
+                return RedirectToAction("Goals", new { matchId });
+            }
+
+            // Check if goal has any completions
+            var hasCompletions = await _context.MentorshipGoalCompletions
+                .AnyAsync(mgc => mgc.GoalId == goalId);
+
+            if (hasCompletions)
+            {
+                // Soft delete to preserve completion history
+                goal.IsActive = false;
+                goal.DeletedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                // Hard delete if no completions exist
+                _context.Goals.Remove(goal);
+            }
+
+            try
+            {
+                await _context.SaveChangesAsync();
+
+                // Notify mentee about deleted goal
+                var menteeId = match.MenteeId;
+                var mentorName = User.FindFirst("FullName")?.Value ?? "Your mentor";
+
+                TempData["Success"] = "Goal deleted successfully!";
+            }
+            catch (Exception)
+            {
+                TempData["Error"] = "An error occurred while deleting the goal. Please try again.";
+            }
+
+            return RedirectToAction("Goals", new { matchId });
+        }
+
+        private async Task<int> GetNextGoalOrderAsync()
+        {
+            var maxOrder = await _context.Goals
+                .Where(g => g.IsActive)
+                .Select(g => (int?)g.Order)
+                .MaxAsync();
+
+            return (maxOrder ?? 0) - 1;
         }
 
         [HttpGet]

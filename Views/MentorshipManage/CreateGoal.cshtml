@@ -1,0 +1,136 @@
+﻿@model CreateGoalViewModel
+@{
+    Layout = "_LayoutFreelancer";
+    ViewData["Title"] = "Create Custom Goal";
+}
+
+<div class="p-4 sm:ml-64">
+    <div class="pt-2 mt-20">
+        <div class="mt-1">
+            <div class="block w-full p-6">
+                <div class="flex items-center space-x-4 mb-4">
+                    <a href="@Url.Action("Goals", new { matchId = Model.MatchId })" class="text-blue-600 hover:text-blue-800">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                    </a>
+                    <h2 class="text-2xl font-bold text-gray-900">Create Custom Goal</h2>
+                </div>
+
+                <form asp-action="CreateGoal" method="post" class="space-y-6">
+                    <input type="hidden" asp-for="MatchId" />
+
+                    <div>
+                        <label asp-for="GoalName" class="block text-sm font-medium text-gray-700">Goal Name *</label>
+                        <input asp-for="GoalName"
+                               class="mt-1 block border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
+                               placeholder="e.g., Master React Hooks" />
+                        <span asp-validation-for="GoalName" class="text-red-500 text-sm"></span>
+                    </div>
+
+                    <div>
+                        <label asp-for="GoalDescription" class="block text-sm font-medium text-gray-700">Description *</label>
+                        <textarea asp-for="GoalDescription" rows="4"
+                                  class="mt-1 block border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
+                                  placeholder="Describe what needs to be accomplished..."></textarea>
+                        <span asp-validation-for="GoalDescription" class="text-red-500 text-sm"></span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label asp-for="Category" class="block text-sm font-medium text-gray-700">Category</label>
+                            <select asp-for="Category"
+                                    class="mt-1 block border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5">
+                                <option value="">Select a category</option>
+                                <option value="Technical Skills">Technical Skills</option>
+                                <option value="Communication">Communication</option>
+                                <option value="Project Management">Project Management</option>
+                                <option value="Business Skills">Business Skills</option>
+                                <option value="Personal Development">Personal Development</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label asp-for="Priority" class="block text-sm font-medium text-gray-700">Priority</label>
+                            <select asp-for="Priority"
+                                    class="mt-1 block border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5">
+                                <option value="Low">Low</option>
+                                <option value="Medium" selected>Medium</option>
+                                <option value="High">High</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label asp-for="TargetDate" class="block text-sm font-medium text-gray-700">Target Date (Optional)</label>
+                        <input asp-for="TargetDate" type="date"
+                               class="mt-1 block border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Success Criteria (Optional)</label>
+                        <div id="success-criteria-container" class="mt-2 space-y-2">
+                            <div class="flex items-center space-x-2">
+                                <input type="text" name="SuccessCriteria"
+                                       class="flex-1 mt-1 block border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
+                                       placeholder="e.g., Complete 3 React projects" />
+                                <button type="button" onclick="removeCriteria(this)"
+                                        class="px-3 py-2 text-red-600 hover:text-red-800">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="button" onclick="addCriteria()"
+                                class="mt-2 text-blue-600 hover:text-blue-800 text-sm">
+                            + Add Success Criteria
+                        </button>
+                    </div>
+
+                    <div class="flex justify-end space-x-3">
+                        <a href="@Url.Action("Goals", new { matchId = Model.MatchId })"
+                           class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                            Cancel
+                        </a>
+                        <button type="submit"
+                                class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                            Create Goal
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
+
+<script>
+    function addCriteria() {
+        const container = document.getElementById('success-criteria-container');
+        const div = document.createElement('div');
+        div.className = 'flex items-center space-x-2';
+        div.innerHTML = `
+            <input type="text" name="SuccessCriteria"
+                   class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                   placeholder="e.g., Complete 3 React projects" />
+            <button type="button" onclick="removeCriteria(this)"
+                    class="px-3 py-2 text-red-600 hover:text-red-800">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        `;
+        container.appendChild(div);
+    }
+
+    function removeCriteria(button) {
+        button.parentElement.remove();
+    }
+</script>

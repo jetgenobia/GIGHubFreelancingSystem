@@ -1,12 +1,30 @@
-﻿namespace Freelancing.Models.Entities
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Freelancing.Models.Entities
 {
     public class Goal
     {
         public Guid Id { get; set; }
-        public string GoalName { get; set; }
-        public string GoalDescription { get; set; }
-        public int Order { get; set; } // Order/sequence of the goal
-        public bool IsActive { get; set; } = true; // Whether this goal is active in the system
-        public string? IconSvg { get; set; } // Custom SVG icon for the goal
+
+        [Required]
+        [StringLength(200)]
+        public string GoalName { get; set; } = string.Empty;
+
+        [StringLength(1000)]
+        public string GoalDescription { get; set; } = string.Empty;
+
+        public int Order { get; set; }
+        public bool IsActive { get; set; } = true;
+        public string? IconSvg { get; set; }
+
+        // Enhanced properties for custom goals
+        public bool IsCustom { get; set; } = false;
+        public string? Priority { get; set; } // "Low", "Medium", "High"
+        public DateTime? TargetDate { get; set; }
+        public string? CreatedBy { get; set; } // UserId who created this custom goal
+        public DateTime CreatedAt { get; set; }
+        public DateTime? DeletedAt { get; set; }
+        public string? Category { get; set; }
+        public string? SuccessCriteria { get; set; } // Pipe-separated criteria
     }
 }
