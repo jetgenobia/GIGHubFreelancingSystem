@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="DotNetEnv" Version="3.0.0" />
     <PackageReference Include="Google.Cloud.Vision.V1" Version="3.7.0" />
     <PackageReference Include="Microsoft.ML" Version="4.0.2" />
     <PackageReference Include="PuppeteerSharp" Version="13.0.2" />
@@ -31,6 +32,13 @@
     <PackageReference Include="pythonnet" Version="3.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.6" />
     <PackageReference Include="QRCoder" Version="1.6.0" />
+	<PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="8.0.0" />
+	<PackageReference Include="Serilog.Extensions.Hosting" Version="8.0.0" />
+	<PackageReference Include="Serilog.Settings.Configuration" Version="8.0.0" />
+	<PackageReference Include="Serilog.Sinks.Console" Version="5.0.1" />
+	<PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
+	<PackageReference Include="System.Threading.RateLimiting" Version="9.0.9" />
+
   </ItemGroup>
 
   <ItemGroup>

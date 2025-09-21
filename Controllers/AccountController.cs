@@ -1,10 +1,12 @@
 ﻿using Freelancing.Data;
+using Freelancing.Filters;
 using Freelancing.Models;
 using Freelancing.Models.Entities;
 using Freelancing.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.WebUtilities;
 using QRCoder;
 using System.Text;
@@ -12,6 +14,7 @@ using System.Text.Encodings.Web;
 
 namespace Freelancing.Controllers
 {
+    [RateLimitMessageFilter]
     public class AccountController : Controller
     {
         private readonly UserManager<UserAccount> _userManager;
@@ -53,6 +56,7 @@ namespace Freelancing.Controllers
         }
 
         [HttpPost]
+        [EnableRateLimiting("AuthPolicy")]
         public async Task<IActionResult> Registration(RegistrationViewModel model)
         {
             if (ModelState.IsValid)
@@ -133,6 +137,7 @@ namespace Freelancing.Controllers
         }
 
         [HttpPost]
+        [EnableRateLimiting("AuthPolicy")]
         public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
         {
             ViewData["ReturnUrl"] = returnUrl;
@@ -252,6 +257,7 @@ namespace Freelancing.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [EnableRateLimiting("AuthPolicy")]
         public async Task<IActionResult> RecoverAccount(RecoverAccountViewModel model)
         {
             if (!ModelState.IsValid)
@@ -334,6 +340,7 @@ namespace Freelancing.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [EnableRateLimiting("AuthPolicy")]
         public async Task<IActionResult> LoginWith2fa(LoginWith2faViewModel model)
         {
             if (!ModelState.IsValid) return View(model);
@@ -377,6 +384,7 @@ namespace Freelancing.Controllers
         }
 
         [HttpPost]
+        [EnableRateLimiting("AuthPolicy")]
         public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
         {
             if (ModelState.IsValid)
@@ -419,6 +427,7 @@ namespace Freelancing.Controllers
         }
 
         [HttpPost]
+        [EnableRateLimiting("AuthPolicy")]
         public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
         {
             if (ModelState.IsValid)

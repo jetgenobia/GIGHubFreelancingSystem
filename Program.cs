@@ -2,213 +2,540 @@ using Freelancing.Data;
 using Freelancing.Hubs;
 using Freelancing.Models.Entities;
 using Freelancing.Services;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Serilog;
+using System.Security.Cryptography.X509Certificates;
+using System.Threading.RateLimiting;
 
-var builder = WebApplication.CreateBuilder(args);
+// Configure Serilog early
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .WriteTo.File("Logs/startup-.txt", rollingInterval: RollingInterval.Day)
+    .CreateBootstrapLogger();
 
-// Add services to the container.
-builder.Services.AddControllersWithViews();
-
-// Add Session support
-builder.Services.AddDistributedMemoryCache();
-builder.Services.AddSession(options =>
+try
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(30);
-    options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
-});
+    Log.Information("Starting web application");
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("Freelancing"),
-        sqlOptions => sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
+    var builder = WebApplication.CreateBuilder(args);
 
-// Configure Authentication
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultScheme = IdentityConstants.ApplicationScheme;
-    options.DefaultSignInScheme = IdentityConstants.ApplicationScheme;
-    options.DefaultChallengeScheme = IdentityConstants.ApplicationScheme;
-});
+    // Add Serilog
+    builder.Host.UseSerilog((context, configuration) =>
+        configuration
+            .ReadFrom.Configuration(context.Configuration)
+            .WriteTo.Console()
+            .WriteTo.File("Logs/app-.txt",
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: 7,
+                fileSizeLimitBytes: 10 * 1024 * 1024,
+                rollOnFileSizeLimit: true));
 
-// Configure Identity
-builder.Services.AddIdentity<UserAccount, IdentityRole>(options =>
-{
-    // Password settings
-    options.Password.RequireDigit = true;
-    options.Password.RequireLowercase = true;
-    options.Password.RequireUppercase = true;
-    options.Password.RequireNonAlphanumeric = true;
-    options.Password.RequiredLength = 8;
-    
-    // Lockout settings
-    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
-    options.Lockout.MaxFailedAccessAttempts = 5;
-    options.Lockout.AllowedForNewUsers = true;
-    
-    // User settings
-    options.User.RequireUniqueEmail = true;
-    options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
-    
-    // Sign in settings
-    options.SignIn.RequireConfirmedEmail = true;
-    options.SignIn.RequireConfirmedPhoneNumber = false;
-})
-.AddEntityFrameworkStores<ApplicationDbContext>()
-.AddDefaultTokenProviders();
+    // Load environment variables
+    if (File.Exists(".env") && builder.Environment.IsDevelopment())
+    {
+        DotNetEnv.Env.Load();
+    }
 
-// Configure custom claims factory
-builder.Services.AddScoped<IUserClaimsPrincipalFactory<UserAccount>, CustomClaimsFactory>();
+    // Configure services
+    ConfigureServices(builder);
 
-// Configure cookie settings
-builder.Services.ConfigureApplicationCookie(options =>
-{
-    options.LoginPath = "/Account/Login";
-    options.LogoutPath = "/Account/LogOut";
-    options.AccessDeniedPath = "/Account/AccessDenied";
-    options.SlidingExpiration = true;
-    options.ExpireTimeSpan = TimeSpan.FromHours(2);
-});
+    var app = builder.Build();
 
-builder.Services.AddScoped<IUserClaimsPrincipalFactory<UserAccount>, CustomUserClaimsPrincipalFactory>();
+    // Configure pipeline
+    await ConfigurePipelineAsync(app);
 
-// Add email service
-builder.Services.AddScoped<IEmailService, EmailService>();
-
-// Add role seeder service
-builder.Services.AddScoped<IRoleSeederService, RoleSeederService>();
-
-// Register Admin seeder
-builder.Services.AddScoped<AdminSeederService>();
-
-builder.Services.AddScoped<IMentorshipMatchingService, MentorshipMatchingService>();
-
-builder.Services.AddScoped<IMessageEncryptionService, MessageEncryptionService>();
-builder.Services.AddScoped<IMentorshipSchedulingService, MentorshipSchedulingService>();
-
-builder.Services.AddScoped<INotificationService, NotificationService>();
-builder.Services.AddScoped<IContractService, ContractService>();
-builder.Services.AddScoped<IContractTerminationService, ContractTerminationService>();
-builder.Services.AddScoped<IPdfGenerationService, PdfGenerationService>();
-
-// Smart Hiring Services
-builder.Services.AddScoped<ISmartHiringFeatureService, SmartHiringFeatureService>();
-builder.Services.AddScoped<ISmartHiringService, SmartHiringService>(); // Back to Scoped due to DbContext dependency
-builder.Services.AddSingleton<ILocalRandomForestService, LocalRandomForestService>(); // Local Random Forest
-builder.Services.AddHttpClient<LocalRandomForestService>(); // For Flask API calls
-
-// Identity Verification Services
-builder.Services.AddScoped<IIdentityVerificationService, IdentityVerificationService>();
-builder.Services.AddScoped<IIdentityEncryptionService, IdentityEncryptionService>();
-
-// Add SignalR
-builder.Services.AddSignalR(options =>
-{
-    options.EnableDetailedErrors = true; // Enable for development
-    options.MaximumReceiveMessageSize = 10 * 1024 * 1024; // 10MB for file uploads
-    options.ClientTimeoutInterval = TimeSpan.FromSeconds(60);
-    options.HandshakeTimeout = TimeSpan.FromSeconds(15);
-});
-
-builder.Services.AddHostedService<UserCleanupHostedService>();
-
-builder.Services.AddScoped<IPdfService, PdfService>();
-builder.Services.AddScoped<IReportService, ReportService>();
-
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
+    app.Run();
 }
-else
+catch (Exception ex)
 {
-    // Only enable detailed errors in development
-    app.UseDeveloperExceptionPage();
+    Log.Fatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
 }
 
-var masterKey = builder.Configuration["ENCRYPTION_MASTER_KEY"] ??
-                builder.Configuration["Encryption:MasterKey"];
-
-if (string.IsNullOrEmpty(masterKey))
+static void ConfigureServices(WebApplicationBuilder builder)
 {
-    throw new InvalidOperationException("Encryption master key not configured");
+    var services = builder.Services;
+    var configuration = builder.Configuration;
+    var environment = builder.Environment;
+
+    // Add controllers and views
+    services.AddControllersWithViews(options =>
+    {
+        if (!environment.IsDevelopment())
+        {
+            options.Filters.Add(new Microsoft.AspNetCore.Mvc.RequireHttpsAttribute());
+        }
+    });
+
+    services.AddRazorPages();
+
+    services.AddRateLimiter(options =>
+    {
+        // Global rate limiter (general protection)
+        options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(
+            context =>
+            {
+                // Use IP address for partitioning
+                var clientIp = context.Request.Headers["X-Forwarded-For"].FirstOrDefault()
+                              ?? context.Connection.RemoteIpAddress?.ToString()
+                              ?? "unknown";
+
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: clientIp,
+                    factory: partition => new FixedWindowRateLimiterOptions
+                    {
+                        AutoReplenishment = true,
+                        PermitLimit = 200, // 200 requests per minute per IP
+                        Window = TimeSpan.FromMinutes(1)
+                    });
+            });
+
+        // Authentication endpoints (stricter limits)
+        options.AddPolicy("AuthPolicy", context =>
+        {
+            var clientIp = context.Request.Headers["X-Forwarded-For"].FirstOrDefault()
+                          ?? context.Connection.RemoteIpAddress?.ToString()
+                          ?? "unknown";
+
+            return RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: clientIp,
+                factory: partition => new FixedWindowRateLimiterOptions
+                {
+                    AutoReplenishment = true,
+                    PermitLimit = 10, // Only 10 login attempts per minute
+                    Window = TimeSpan.FromMinutes(1)
+                });
+        });
+
+        // API endpoints (moderate limits)
+        options.AddPolicy("ApiPolicy", context =>
+        {
+            var clientIp = context.Request.Headers["X-Forwarded-For"].FirstOrDefault()
+                          ?? context.Connection.RemoteIpAddress?.ToString()
+                          ?? "unknown";
+
+            return RateLimitPartition.GetSlidingWindowLimiter(
+                partitionKey: clientIp,
+                factory: partition => new SlidingWindowRateLimiterOptions
+                {
+                    AutoReplenishment = true,
+                    PermitLimit = 100,
+                    Window = TimeSpan.FromMinutes(1),
+                    SegmentsPerWindow = 6 // 6 segments of 10 seconds each
+                });
+        });
+
+        // File upload endpoints (very strict)
+        options.AddPolicy("UploadPolicy", context =>
+        {
+            var clientIp = context.Request.Headers["X-Forwarded-For"].FirstOrDefault()
+                          ?? context.Connection.RemoteIpAddress?.ToString()
+                          ?? "unknown";
+
+            return RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: clientIp,
+                factory: partition => new FixedWindowRateLimiterOptions
+                {
+                    AutoReplenishment = true,
+                    PermitLimit = 5, // Only 5 uploads per minute
+                    Window = TimeSpan.FromMinutes(1)
+                });
+        });
+
+        // Custom rejection response
+        options.OnRejected = async (context, token) =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            var clientIp = context.HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault()
+                           ?? context.HttpContext.Connection.RemoteIpAddress?.ToString();
+
+            logger.LogWarning("Rate limit exceeded for IP: {ClientIp}, Path: {Path}",
+                clientIp, context.HttpContext.Request.Path);
+
+            // For HTML requests, set session data and redirect back
+            if (context.HttpContext.Request.Headers.Accept.ToString().Contains("text/html"))
+            {
+                context.HttpContext.Session.SetString("RateLimitExceeded", "true");
+                context.HttpContext.Session.SetString("RateLimitMessage", "Too many requests. Please wait before trying again.");
+                context.HttpContext.Session.SetInt32("RateLimitRetryAfter", 60);
+
+                // Redirect back to the same URL
+                var referer = context.HttpContext.Request.Headers.Referer.FirstOrDefault();
+                if (!string.IsNullOrEmpty(referer) && Uri.TryCreate(referer, UriKind.Absolute, out var refererUri))
+                {
+                    context.HttpContext.Response.Redirect(refererUri.PathAndQuery);
+                }
+                else
+                {
+                    context.HttpContext.Response.Redirect("/Account/Login");
+                }
+                return;
+            }
+
+            // For API calls, return JSON
+            context.HttpContext.Response.StatusCode = 429;
+            context.HttpContext.Response.ContentType = "application/json";
+            var response = new
+            {
+                error = "Rate limit exceeded",
+                message = "Too many requests. Please try again later.",
+                retryAfter = 60
+            };
+
+            await context.HttpContext.Response.WriteAsync(
+                System.Text.Json.JsonSerializer.Serialize(response), token);
+        };
+    });
+
+    // Configure forwarded headers for reverse proxy
+    services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        options.KnownNetworks.Clear();
+        options.KnownProxies.Clear();
+    });
+
+    // Add health checks
+    services.AddHealthChecks()
+        .AddDbContextCheck<ApplicationDbContext>()
+        .AddCheck("self", () => Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy());
+
+    // Session configuration
+    services.AddDistributedMemoryCache();
+    services.AddSession(options =>
+    {
+        options.IdleTimeout = TimeSpan.FromMinutes(30);
+        options.Cookie.HttpOnly = true;
+        options.Cookie.IsEssential = true;
+        options.Cookie.SameSite = SameSiteMode.Strict;
+        if (!environment.IsDevelopment())
+        {
+            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        }
+    });
+
+    // Database configuration
+    var connectionString = Environment.GetEnvironmentVariable("CONNECTION_STRING")
+                          ?? configuration.GetConnectionString("Freelancing");
+
+    if (string.IsNullOrEmpty(connectionString))
+    {
+        throw new InvalidOperationException("Database connection string not configured");
+    }
+
+    services.AddDbContext<ApplicationDbContext>(options =>
+    {
+        options.UseSqlServer(connectionString, sqlOptions =>
+        {
+            sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+            sqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 3,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null);
+        });
+
+        if (environment.IsDevelopment())
+        {
+            options.EnableSensitiveDataLogging();
+            options.EnableDetailedErrors();
+        }
+    });
+
+    // Identity configuration
+    ConfigureIdentity(services, environment);
+
+    // Register application services
+    RegisterApplicationServices(services);
+
+    // SignalR configuration
+    ConfigureSignalR(services, configuration, environment);
+
+    // Security headers
+    if (!environment.IsDevelopment())
+    {
+        services.AddHsts(options =>
+        {
+            options.Preload = true;
+            options.IncludeSubDomains = true;
+            options.MaxAge = TimeSpan.FromDays(365);
+        });
+    }
+
+    // Add antiforgery
+    services.AddAntiforgery(options =>
+    {
+        options.HeaderName = "X-CSRF-TOKEN";
+        options.SuppressXFrameOptionsHeader = false;
+    });
 }
 
-app.UseHttpsRedirection();
-app.UseStaticFiles();
-
-app.UseRouting();
-
-// Use Session middleware
-app.UseSession();
-
-app.UseAuthentication();
-
-app.UseAuthorization();
-
-// Map SignalR Hubs
-app.MapHub<MentorshipChatHub>("/mentorshipChatHub");
-app.MapHub<ChatHub>("/chatHub");
-
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
-// Seed data
-using (var scope = app.Services.CreateScope())
+static void ConfigureIdentity(IServiceCollection services, IWebHostEnvironment environment)
 {
-    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    
-    // Seed roles
-    var roleSeeder = scope.ServiceProvider.GetRequiredService<IRoleSeederService>();
-    await roleSeeder.SeedRolesAsync();
+    services.AddAuthentication(options =>
+    {
+        options.DefaultScheme = IdentityConstants.ApplicationScheme;
+        options.DefaultSignInScheme = IdentityConstants.ApplicationScheme;
+        options.DefaultChallengeScheme = IdentityConstants.ApplicationScheme;
+    });
 
-    // Seed admin user (reads Admin:Email and Admin:Password from configuration)
-    var adminSeeder = scope.ServiceProvider.GetRequiredService<AdminSeederService>();
-    await adminSeeder.SeedAsync();
-    
-    await Freelancing.SeedGoals.SeedGoalsData(context);
-    await Freelancing.SeedUserSkills.SeedUserSkillsData(context);
-    await Freelancing.SeedContractTemplates.SeedAsync(context);
+    services.AddIdentity<UserAccount, IdentityRole>(options =>
+    {
+        // Password settings
+        options.Password.RequireDigit = true;
+        options.Password.RequireLowercase = true;
+        options.Password.RequireUppercase = true;
+        options.Password.RequireNonAlphanumeric = true;
+        options.Password.RequiredLength = 8;
+
+        // Lockout settings
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+        options.Lockout.MaxFailedAccessAttempts = 5;
+        options.Lockout.AllowedForNewUsers = true;
+
+        // User settings
+        options.User.RequireUniqueEmail = true;
+        options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
+
+        // Sign in settings
+        options.SignIn.RequireConfirmedEmail = !environment.IsDevelopment();
+        options.SignIn.RequireConfirmedPhoneNumber = false;
+    })
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddDefaultTokenProviders();
+
+    services.ConfigureApplicationCookie(options =>
+    {
+        options.LoginPath = "/Account/Login";
+        options.LogoutPath = "/Account/LogOut";
+        options.AccessDeniedPath = "/Account/AccessDenied";
+        options.SlidingExpiration = true;
+        options.ExpireTimeSpan = TimeSpan.FromHours(2);
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Strict;
+
+        if (!environment.IsDevelopment())
+        {
+            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        }
+    });
+
+    services.AddScoped<IUserClaimsPrincipalFactory<UserAccount>, CustomClaimsFactory>();
+    services.AddScoped<IUserClaimsPrincipalFactory<UserAccount>, CustomUserClaimsPrincipalFactory>();
 }
 
-// Initialize Random Forest service at startup for faster first use
-using (var scope = app.Services.CreateScope())
+static void RegisterApplicationServices(IServiceCollection services)
 {
+    // Email service
+    services.AddScoped<IEmailService, EmailService>();
+
+    // Role seeder service
+    services.AddScoped<IRoleSeederService, RoleSeederService>();
+    services.AddScoped<AdminSeederService>();
+
+    // Mentorship services
+    services.AddScoped<IMentorshipMatchingService, MentorshipMatchingService>();
+    services.AddScoped<IMentorshipSchedulingService, MentorshipSchedulingService>();
+
+    // Security services
+    services.AddScoped<IMessageEncryptionService, MessageEncryptionService>();
+    services.AddScoped<IIdentityVerificationService, IdentityVerificationService>();
+    services.AddScoped<IIdentityEncryptionService, IdentityEncryptionService>();
+
+    // Business services
+    services.AddScoped<INotificationService, NotificationService>();
+    services.AddScoped<IContractService, ContractService>();
+    services.AddScoped<IContractTerminationService, ContractTerminationService>();
+    services.AddScoped<IPdfGenerationService, PdfGenerationService>();
+    services.AddScoped<IPdfService, PdfService>();
+    services.AddScoped<IReportService, ReportService>();
+
+    // Smart Hiring Services
+    services.AddScoped<ISmartHiringFeatureService, SmartHiringFeatureService>();
+    services.AddScoped<ISmartHiringService, SmartHiringService>();
+    services.AddSingleton<ILocalRandomForestService, LocalRandomForestService>();
+    services.AddHttpClient<LocalRandomForestService>();
+
+    // Background services
+    services.AddHostedService<UserCleanupHostedService>();
+}
+
+static void ConfigureSignalR(IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
+{
+    var signalRBuilder = services.AddSignalR(options =>
+    {
+        options.EnableDetailedErrors = environment.IsDevelopment();
+
+        var maxMessageSize = configuration.GetValue<int?>("SignalR:MaximumReceiveMessageSize") ?? 10 * 1024 * 1024;
+        options.MaximumReceiveMessageSize = maxMessageSize;
+
+        var clientTimeout = configuration.GetValue<TimeSpan?>("SignalR:ClientTimeoutInterval") ?? TimeSpan.FromSeconds(60);
+        options.ClientTimeoutInterval = clientTimeout;
+
+        var handshakeTimeout = configuration.GetValue<TimeSpan?>("SignalR:HandshakeTimeout") ?? TimeSpan.FromSeconds(15);
+        options.HandshakeTimeout = handshakeTimeout;
+    });
+}
+
+static async Task ConfigurePipelineAsync(WebApplication app)
+{
+    var environment = app.Environment;
+
+    // Configure forwarded headers first
+    app.UseForwardedHeaders();
+
+    // Configure error handling
+    if (!environment.IsDevelopment())
+    {
+        app.UseExceptionHandler("/Home/Error");
+        app.UseHsts();
+    }
+    else
+    {
+        app.UseDeveloperExceptionPage();
+    }
+
+    // Validate encryption key
+    var masterKey = Environment.GetEnvironmentVariable("ENCRYPTION_MASTER_KEY") ??
+                   app.Configuration["Encryption:MasterKey"];
+
+    if (string.IsNullOrEmpty(masterKey))
+    {
+        throw new InvalidOperationException("Encryption master key not configured");
+    }
+
+    // Security middleware
+    app.UseHttpsRedirection();
+
+    // Security headers middleware
+    app.Use(async (context, next) =>
+    {
+        if (!environment.IsDevelopment())
+        {
+            context.Response.Headers.Add("X-Frame-Options", "DENY");
+            context.Response.Headers.Add("X-Content-Type-Options", "nosniff");
+            context.Response.Headers.Add("Referrer-Policy", "strict-origin-when-cross-origin");
+            context.Response.Headers.Add("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+
+            var csp = app.Configuration["Security:ContentSecurityPolicy"];
+            if (!string.IsNullOrEmpty(csp))
+            {
+                context.Response.Headers.Add("Content-Security-Policy", csp);
+            }
+        }
+
+        await next();
+    });
+
+    app.UseStaticFiles();
+    app.UseRouting();
+
+    app.UseSession();
+    app.UseRateLimiter();
+
+    app.UseAuthentication();
+    app.UseAuthorization();
+
+    // Health checks
+    app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+    {
+        ResponseWriter = async (context, report) =>
+        {
+            context.Response.ContentType = "application/json";
+            var response = new
+            {
+                status = report.Status.ToString(),
+                checks = report.Entries.Select(x => new
+                {
+                    name = x.Key,
+                    status = x.Value.Status.ToString(),
+                    exception = x.Value.Exception?.Message,
+                    duration = x.Value.Duration.ToString()
+                })
+            };
+            await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(response));
+        }
+    });
+
+    // SignalR Hubs
+    app.MapHub<MentorshipChatHub>("/mentorshipChatHub");
+    app.MapHub<ChatHub>("/chatHub");
+
+    // Controller routes
+    app.MapControllerRoute(
+        name: "default",
+        pattern: "{controller=Home}/{action=Index}/{id?}");
+
+    // Seed data
+    using (var scope = app.Services.CreateScope())
+    {
+        try
+        {
+            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            // Ensure database is created and migrated
+            await context.Database.MigrateAsync();
+
+            // Seed roles
+            var roleSeeder = scope.ServiceProvider.GetRequiredService<IRoleSeederService>();
+            await roleSeeder.SeedRolesAsync();
+
+            // Seed admin user
+            var adminSeeder = scope.ServiceProvider.GetRequiredService<AdminSeederService>();
+            await adminSeeder.SeedAsync();
+
+            await Freelancing.SeedGoals.SeedGoalsData(context);
+            await Freelancing.SeedUserSkills.SeedUserSkillsData(context);
+            await Freelancing.SeedContractTemplates.SeedAsync(context);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "An error occurred while seeding the database");
+            throw;
+        }
+    }
+
+    // Initialize Random Forest service
+    await InitializeRandomForestServiceAsync(app.Services);
+
+    // Register cleanup for PDF generation service
+    app.Lifetime.ApplicationStopping.Register(() =>
+    {
+        var pdfService = app.Services.GetService<IPdfGenerationService>();
+        pdfService?.Dispose();
+    });
+}
+
+static async Task InitializeRandomForestServiceAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
     try
     {
         var randomForestService = scope.ServiceProvider.GetRequiredService<ILocalRandomForestService>();
-        
-        // Add timeout to prevent app from hanging at startup
+
         var initTask = randomForestService.EnsureInitializedAsync();
-        var timeoutTask = Task.Delay(TimeSpan.FromSeconds(20)); // 20 second timeout
-        
+        var timeoutTask = Task.Delay(TimeSpan.FromSeconds(30));
+
         var completedTask = await Task.WhenAny(initTask, timeoutTask);
-        
+
         if (completedTask == initTask)
         {
-            await initTask; // Get any exceptions
-            Console.WriteLine("Random Forest service initialized at startup");
+            await initTask;
+            Log.Information("Random Forest service initialized successfully");
         }
         else
         {
-            Console.WriteLine("Random Forest initialization timed out - will initialize on first use");
+            Log.Warning("Random Forest initialization timed out - will initialize on first use");
         }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Random Forest initialization failed: {ex.Message}");
-        // Don't fail the app startup - the service will initialize on first use
+        Log.Error(ex, "Random Forest initialization failed - will initialize on first use");
     }
 }
-
-// Register cleanup for PDF generation service
-app.Lifetime.ApplicationStopping.Register(() =>
-{
-    var pdfService = app.Services.GetService<IPdfGenerationService>();
-    pdfService?.Dispose();
-});
-
-app.Run();

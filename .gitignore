@@ -365,3 +365,18 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+.env
+.env.local
+.env.production
+.env.staging
+appsettings.Production.json
+appsettings.Staging.json
+*.secrets.json
+
+wwwroot/uploads/
+Logs/
+secrets/
+
+.azure/
+.gcp/
