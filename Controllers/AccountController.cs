@@ -61,6 +61,22 @@ namespace Freelancing.Controllers
         {
             if (ModelState.IsValid)
             {
+                if (string.IsNullOrWhiteSpace(model.Email))
+                {
+                    ModelState.AddModelError("Email", "Email address is required.");
+                    return View(model);
+                }
+
+                try
+                {
+                    var testAddress = new System.Net.Mail.MailAddress(model.Email);
+                }
+                catch (FormatException)
+                {
+                    ModelState.AddModelError("Email", "Please enter a valid email address.");
+                    return View(model);
+                }
+
                 var user = new UserAccount
                 {
                     UserName = model.UserName,
@@ -84,11 +100,18 @@ namespace Freelancing.Controllers
                         new { userId = user.Id, token = encodedToken }, 
                         Request.Scheme);
 
-                    // Send confirmation email
-                    await _emailService.SendEmailConfirmationAsync(user.Email!, callbackUrl!);
-
-                    ViewBag.Message = "Registration successful! Please check your email to confirm your account.";
-                    return View(new RegistrationViewModel());
+                    try
+                    {
+                        // Send confirmation email
+                        await _emailService.SendEmailConfirmationAsync(user.Email!, callbackUrl!);
+                        ViewBag.Message = "Registration successful! Please check your email to confirm your account.";
+                        return View(new RegistrationViewModel());
+                    }
+                    catch (Exception ex)
+                    {
+                        ModelState.AddModelError("", "Registration was successful, but we couldn't send the confirmation email. Please contact support.");
+                        return View(model);
+                    }
                 }
 
                 foreach (var error in result.Errors)
@@ -409,6 +432,11 @@ namespace Freelancing.Controllers
             return View(model);
         }
 
+        public IActionResult ChangePassword()
+        {
+            return View();
+        }
+
         [HttpGet]
         public IActionResult ResetPassword(string email, string token)
         {
@@ -430,25 +458,63 @@ namespace Freelancing.Controllers
         [EnableRateLimiting("AuthPolicy")]
         public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
+                return View(model);
+
+            if (string.IsNullOrWhiteSpace(model.Token) || string.IsNullOrWhiteSpace(model.Email))
             {
-                var user = await _userManager.FindByEmailAsync(model.Email);
-                if (user != null)
-                {
-                    var decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(model.Token));
-                    var result = await _userManager.ResetPasswordAsync(user, decodedToken, model.Password);
+                ModelState.AddModelError("", "The password reset link is invalid. Please request a new reset link.");
+                return View(model);
+            }
 
-                    if (result.Succeeded)
-                    {
-                        ViewBag.Message = "Your password has been reset successfully. You can now log in with your new password.";
-                        return View("Login");
-                    }
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user == null)
+            {
+                // Don't reveal existence — keep same UX as ForgotPassword
+                ViewBag.Message = "If your email is registered, you will receive a password reset confirmation.";
+                return View("Login");
+            }
 
-                    foreach (var error in result.Errors)
-                    {
-                        ModelState.AddModelError("", error.Description);
-                    }
-                }
+            // Prevent using the current password
+            var isSameAsCurrent = await _userManager.CheckPasswordAsync(user, model.Password);
+            if (isSameAsCurrent)
+            {
+                ModelState.AddModelError("Password", "New password cannot be the same as your previous password.");
+                return View(model);
+            }
+
+            string decodedToken;
+            try
+            {
+                var tokenBytes = WebEncoders.Base64UrlDecode(model.Token);
+                decodedToken = Encoding.UTF8.GetString(tokenBytes);
+            }
+            catch (Exception)
+            {
+                ModelState.AddModelError("", "The password reset link is invalid or malformed. Please request a new reset link.");
+                return View(model);
+            }
+
+            var result = await _userManager.ResetPasswordAsync(user, decodedToken, model.Password);
+            if (result.Succeeded)
+            {
+                ViewBag.Message = "Your password has been reset successfully. You can now log in with your new password.";
+                return View("Login");
+            }
+
+            // Detect invalid/expired token and show a friendly message
+            if (result.Errors.Any(e =>
+                    string.Equals(e.Code, "InvalidToken", StringComparison.OrdinalIgnoreCase)
+                    || (e.Description?.Contains("expired", StringComparison.OrdinalIgnoreCase) ?? false)
+                    || (e.Description?.Contains("Invalid token", StringComparison.OrdinalIgnoreCase) ?? false)))
+            {
+                ModelState.AddModelError("", "The password reset link is invalid or has expired. Please request a new reset link.");
+                return View(model);
+            }
+
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError("", error.Description);
             }
 
             return View(model);

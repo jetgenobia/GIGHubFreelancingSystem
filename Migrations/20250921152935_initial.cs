@@ -34,8 +34,12 @@ namespace Freelancing.Migrations
                     LastName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Photo = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Role = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FRole = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Bio = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ExperienceLevel = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    DeletionReason = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     MentorshipId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     UserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
@@ -83,11 +87,19 @@ namespace Freelancing.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    GoalName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    GoalDescription = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    GoalName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    GoalDescription = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
                     Order = table.Column<int>(type: "int", nullable: false),
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    IconSvg = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    IconSvg = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    IsCustom = table.Column<bool>(type: "bit", nullable: false),
+                    Priority = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    TargetDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Category = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    SuccessCriteria = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -291,8 +303,7 @@ namespace Freelancing.Migrations
                         name: "FK_Notifications_AspNetUsers_UserId",
                         column: x => x.UserId,
                         principalTable: "AspNetUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -313,8 +324,7 @@ namespace Freelancing.Migrations
                         name: "FK_PeerMentorships_AspNetUsers_UserId",
                         column: x => x.UserId,
                         principalTable: "AspNetUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -336,8 +346,7 @@ namespace Freelancing.Migrations
                         name: "FK_Portfolios_AspNetUsers_UserId",
                         column: x => x.UserId,
                         principalTable: "AspNetUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -354,8 +363,7 @@ namespace Freelancing.Migrations
                         name: "FK_UserAccountSkills_AspNetUsers_UserAccountId",
                         column: x => x.UserAccountId,
                         principalTable: "AspNetUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_UserAccountSkills_UserSkills_UserSkillId",
                         column: x => x.UserSkillId,
@@ -625,7 +633,8 @@ namespace Freelancing.Migrations
                     ImagePaths = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    AcceptedBidId = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
+                    AcceptedBidId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    Deadline = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -634,8 +643,7 @@ namespace Freelancing.Migrations
                         name: "FK_Projects_AspNetUsers_UserId",
                         column: x => x.UserId,
                         principalTable: "AspNetUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Projects_Biddings_AcceptedBidId",
                         column: x => x.AcceptedBidId,
@@ -695,7 +703,7 @@ namespace Freelancing.Migrations
                     ContractContent = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ContractTemplateUsed = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Status = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     LastModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     TerminatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ClientSignedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -802,7 +810,7 @@ namespace Freelancing.Migrations
                     UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Action = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Details = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Timestamp = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    Timestamp = table.Column<DateTime>(type: "datetime2", nullable: false),
                     IPAddress = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     UserAgent = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     PreviousStatus = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -834,7 +842,7 @@ namespace Freelancing.Migrations
                     RevisionContent = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     RevisionNotes = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     CreatedByUserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     PreviousHash = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     CurrentHash = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
@@ -973,7 +981,7 @@ namespace Freelancing.Migrations
                     UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Action = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Details = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Timestamp = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    Timestamp = table.Column<DateTime>(type: "datetime2", nullable: false),
                     IPAddress = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     UserAgent = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },

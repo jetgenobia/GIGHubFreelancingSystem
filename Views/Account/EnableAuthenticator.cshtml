@@ -7,19 +7,29 @@
 }
 
 <div class="p-4 sm:ml-64">
-    <div class="p-4 mt-20">
-        <div class="mt-15">
-            <div class="max-w-4xl mx-auto">
+    <div class="pt-2 mt-20">
+        <div class="mt-1">
+            <div class="block w-full p-6">
+                <div class="flex items-center space-x-4">
+                    <a href="javascript:history.back()" class="text-blue-600 hover:text-blue-800">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                    </a>
+                    <h2 class="text-2xl font-bold text-gray-900">Enable Authenticator</h2>
+                </div>
 
-                <div class="flex flex-col items-center gap-4 mb-5">
+                <div class="flex flex-col items-center gap-4 mb-5 mt-4">
                     <div>
                         <img src="@Model.QrCodeImageUrl" alt="QR code" loading="lazy" class="w-56 h-56 border border-gray-300 p-2 bg-white rounded" />
                     </div>
 
                     <div class="w-full text-center md:text-left max-w-lg">
                         <p class="text-sm mb-2">If you cannot scan the QR code, enter this key into your authenticator app:</p>
-                        <div class="p-2 bg-gray-100 rounded font-mono break-all inline-block">@Model.SharedKey</div>
-                        <p class="text-xs mt-3 text-gray-600">Then enter a verification code from your authenticator app below.</p>
+                        <div class="flex items-center justify-center">
+                            <div class="p-2 bg-gray-100 rounded font-mono break-all inline-block">@Model.SharedKey</div>
+                        </div>
+                        <p class="text-xs mt-3 text-gray-600 text-center">Then enter a verification code from your authenticator app below.</p>
                     </div>
                 </div>
 
@@ -29,7 +39,9 @@
                         <label class="block text-sm font-medium">Verification code</label>
                         <input name="VerificationCode" class="mt-1 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" />
                     </div>
-                    <button type="submit" class="focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2">Verify and enable</button>
+                    <div class="flex items-end justify-end">
+                        <button type="submit" class="focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2">Verify and enable</button>
+                    </div>
                 </form>
             </div>
         </div>

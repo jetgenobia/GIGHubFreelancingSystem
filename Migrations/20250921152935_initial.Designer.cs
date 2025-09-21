@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Freelancing.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250915144222_SmartHiring")]
-    partial class SmartHiring
+    [Migration("20250921152935_initial")]
+    partial class initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -263,9 +263,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("DeliverableRequirements")
                         .HasColumnType("nvarchar(max)");
@@ -359,9 +357,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("Timestamp")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("UserAgent")
                         .HasColumnType("nvarchar(max)");
@@ -391,9 +387,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("CreatedByUserId")
                         .IsRequired()
@@ -599,9 +593,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("Timestamp")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("UserAgent")
                         .HasColumnType("nvarchar(max)");
@@ -731,13 +723,27 @@ namespace Freelancing.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("Category")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("GoalDescription")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("GoalName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("IconSvg")
                         .HasColumnType("nvarchar(max)");
@@ -745,8 +751,20 @@ namespace Freelancing.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsCustom")
+                        .HasColumnType("bit");
+
                     b.Property<int>("Order")
                         .HasColumnType("int");
+
+                    b.Property<string>("Priority")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SuccessCriteria")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("TargetDate")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
@@ -1298,6 +1316,9 @@ namespace Freelancing.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("Deadline")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("ImagePaths")
                         .HasColumnType("nvarchar(max)");
 
@@ -1363,6 +1384,12 @@ namespace Freelancing.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletionReason")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Email")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
@@ -1380,6 +1407,9 @@ namespace Freelancing.Migrations
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<string>("LastName")
                         .IsRequired()
@@ -2015,7 +2045,7 @@ namespace Freelancing.Migrations
                     b.HasOne("Freelancing.Models.Entities.UserAccount", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("User");
@@ -2026,7 +2056,7 @@ namespace Freelancing.Migrations
                     b.HasOne("Freelancing.Models.Entities.UserAccount", "User")
                         .WithOne("Mentorship")
                         .HasForeignKey("Freelancing.Models.Entities.PeerMentorship", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("User");
@@ -2037,7 +2067,7 @@ namespace Freelancing.Migrations
                     b.HasOne("Freelancing.Models.Entities.UserAccount", "User")
                         .WithMany("Portfolios")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("User");
@@ -2053,7 +2083,7 @@ namespace Freelancing.Migrations
                     b.HasOne("Freelancing.Models.Entities.UserAccount", "User")
                         .WithMany("Projects")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("AcceptedBid");
@@ -2085,7 +2115,7 @@ namespace Freelancing.Migrations
                     b.HasOne("Freelancing.Models.Entities.UserAccount", "UserAccount")
                         .WithMany("UserAccountSkills")
                         .HasForeignKey("UserAccountId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("Freelancing.Models.Entities.UserSkill", "UserSkill")

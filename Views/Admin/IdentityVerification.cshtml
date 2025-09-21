@@ -338,87 +338,105 @@
             return input ? input.value : '';
         }
 
-        async function postJson(url, data) {
-            const token = getAntiForgeryToken();
+                async function postJson(url, data) {
+            const tokenInput = document.querySelector('#antiforgery-form input[name="__RequestVerificationToken"]');
+            const token = tokenInput ? tokenInput.value : '';
+
             const resp = await fetch(url, {
                 method: 'POST',
+                credentials: 'same-origin', // ensure antiforgery cookie is sent
                 headers: {
                     'Content-Type': 'application/json',
-                    'RequestVerificationToken': token
+                    // send token under common header names to match server config
+                    'RequestVerificationToken': token,
+                    '__RequestVerificationToken': token,
+                    'X-CSRF-TOKEN': token
                 },
                 body: JSON.stringify(data)
             });
-            return resp.json();
+
+            // Read text first so non-JSON responses are discoverable
+            const text = await resp.text();
+            let parsed = null;
+            try { parsed = text ? JSON.parse(text) : null; } catch { parsed = null; }
+
+            if (!resp.ok) {
+                console.error('POST failed', { url, status: resp.status, responseText: text, parsed });
+                return {
+                    success: false,
+                    status: resp.status,
+                    message: (parsed && parsed.message) || text || `HTTP ${resp.status}`
+                };
+            }
+
+            return parsed ?? {};
         }
 
-        function submitApproval(itemId) {
-            // Get the approve button and show loading state
+                function submitApproval(itemId) {
             const approveButton = document.querySelector(`button[onclick="submitApproval('${itemId}')"]`);
             const cancelButton = document.querySelector(`[data-modal-hide="approveModal_${itemId}"]`);
+            if (!approveButton) return;
+
             const originalButtonText = approveButton.innerHTML;
 
             // Disable buttons and show loading state
             approveButton.disabled = true;
-            cancelButton.disabled = true;
+            if (cancelButton) cancelButton.disabled = true;
             approveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
             approveButton.classList.add('opacity-75', 'cursor-not-allowed');
-            cancelButton.classList.add('opacity-50', 'cursor-not-allowed');
+            if (cancelButton) cancelButton.classList.add('opacity-50', 'cursor-not-allowed');
 
-            // Submit the approval
             const requestData = { id: itemId };
+
             postJson('@Url.Action("Approve", "Admin")', requestData)
                 .then(result => {
                     if (result && result.success) {
-                        // Show success state briefly
                         approveButton.innerHTML = '<i class="fas fa-check me-2"></i>Approved Successfully!';
                         approveButton.classList.remove('bg-green-600', 'hover:bg-green-800', 'focus:ring-green-300');
                         approveButton.classList.add('bg-green-500', 'focus:ring-green-200');
 
-                        // Keep the success state for 1.5 seconds before closing
                         setTimeout(() => {
                             const row = document.getElementById('row-' + itemId);
                             if (row) {
-                                // Add fade out animation
                                 row.style.transition = 'opacity 0.5s ease-out';
                                 row.style.opacity = '0';
                                 setTimeout(() => row.remove(), 500);
                             }
 
-                            // Close modal
                             const modal = document.getElementById('approveModal_' + itemId);
                             if (modal) {
                                 modal.classList.add('hidden');
                                 modal.classList.remove('flex');
                             }
 
-                            // Show success message
                             showToast('success', result.message || 'Verification approved successfully');
                         }, 1500);
                     } else {
-                        // Reset everything on error
-                        resetApprovalForm(itemId, approveButton, cancelButton, originalButtonText, textarea);
+                        // Reset UI on error
+                        console.error('Approve failed', result);
+                        resetApprovalForm(itemId, approveButton, cancelButton, originalButtonText);
                         showToast('error', result?.message || 'Failed to approve verification');
                     }
                 })
                 .catch(error => {
-                    // Reset everything on error
-                    resetApprovalForm(itemId, approveButton, cancelButton, originalButtonText, textarea);
-                    console.error('Error:', error);
+                    console.error('Error while approving:', error);
+                    resetApprovalForm(itemId, approveButton, cancelButton, originalButtonText);
                     showToast('error', 'An error occurred while approving the verification');
                 });
         }
 
-        function resetApprovalForm(itemId, approveButton, cancelButton, originalButtonText, textarea) {
-            // Re-enable form inputs
-            textarea.disabled = false;
-
-            // Reset buttons
-            approveButton.disabled = false;
-            cancelButton.disabled = false;
-            approveButton.innerHTML = originalButtonText;
-            approveButton.classList.remove('opacity-75', 'cursor-not-allowed', 'bg-green-500', 'focus:ring-green-200');
-            approveButton.classList.add('bg-green-600', 'hover:bg-green-800', 'focus:ring-green-300');
-            cancelButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                function resetApprovalForm(itemId, approveButton, cancelButton, originalButtonText) {
+            // Re-enable buttons
+            if (approveButton) {
+                approveButton.disabled = false;
+                approveButton.innerHTML = originalButtonText;
+                approveButton.classList.remove('opacity-75', 'cursor-not-allowed', 'bg-green-500', 'focus:ring-green-200');
+                approveButton.classList.add('bg-green-600', 'hover:bg-green-800', 'focus:ring-green-300');
+            }
+            if (cancelButton) {
+                cancelButton.disabled = false;
+                cancelButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
         }
 
         function submitRejection(itemId) {

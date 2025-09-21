@@ -40,6 +40,17 @@ try
         DotNetEnv.Env.Load();
     }
 
+    builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+    {
+        ["Email:SmtpServer"] = Environment.GetEnvironmentVariable("SMTP_SERVER"),
+        ["Email:SmtpPort"] = "587",
+        ["Email:SmtpUsername"] = Environment.GetEnvironmentVariable("SMTP_USERNAME"),
+        ["Email:SmtpPassword"] = Environment.GetEnvironmentVariable("SMTP_PASSWORD"),
+        ["Email:FromEmail"] = Environment.GetEnvironmentVariable("FROM_EMAIL"),
+        ["Email:FromName"] = "GigHub",
+        ["Email:EnableSsl"] = "true"
+    });
+
     // Configure services
     ConfigureServices(builder);
 
@@ -64,6 +75,23 @@ static void ConfigureServices(WebApplicationBuilder builder)
     var services = builder.Services;
     var configuration = builder.Configuration;
     var environment = builder.Environment;
+
+    if (File.Exists(".env"))
+    {
+        DotNetEnv.Env.Load();
+    }
+
+    // Add environment variable mapping for Email configuration (NEW)
+    builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+    {
+        ["Email:SmtpServer"] = Environment.GetEnvironmentVariable("SMTP_SERVER"),
+        ["Email:SmtpPort"] = "587",
+        ["Email:SmtpUsername"] = Environment.GetEnvironmentVariable("SMTP_USERNAME"),
+        ["Email:SmtpPassword"] = Environment.GetEnvironmentVariable("SMTP_PASSWORD"),
+        ["Email:FromEmail"] = Environment.GetEnvironmentVariable("FROM_EMAIL"),
+        ["Email:FromName"] = "GigHub",
+        ["Email:EnableSsl"] = "true"
+    });
 
     // Add controllers and views
     services.AddControllersWithViews(options =>
