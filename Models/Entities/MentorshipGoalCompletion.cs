@@ -8,26 +8,34 @@ namespace Freelancing.Models.Entities
 
         [Required]
         public Guid MentorshipMatchId { get; set; }
-        public MentorshipMatch MentorshipMatch { get; set; }
 
         [Required]
         public Guid GoalId { get; set; }
-        public Goal Goal { get; set; }
 
         [Required]
         public string CompletedByUserId { get; set; }
-        public UserAccount CompletedByUser { get; set; }
 
         [Required]
+        public string CompletionType { get; set; } // "Mentor" or "Mentee"
+
         public DateTime CompletedAt { get; set; }
 
-        [Required]
-        [StringLength(20)]
-        public string CompletionType { get; set; } // "Mentor" or "Mentee"
+        // References to evidence and notes
+        public Guid? MenteeEvidenceId { get; set; }
+        public Guid? MentorNoteId { get; set; }
 
         // Navigation properties for easy querying
         public bool IsCompletedByMentor { get; set; }
         public bool IsCompletedByMentee { get; set; }
+
+        // Computed property to maintain backward compatibility
         public bool IsFullyCompleted => IsCompletedByMentor && IsCompletedByMentee;
+
+        // Navigation properties
+        public virtual MentorshipMatch MentorshipMatch { get; set; }
+        public virtual Goal Goal { get; set; }
+        public virtual UserAccount CompletedByUser { get; set; }
+        public virtual MenteeSessionEvidence? MenteeEvidence { get; set; }
+        public virtual MentorSessionNote? MentorNote { get; set; }
     }
 }

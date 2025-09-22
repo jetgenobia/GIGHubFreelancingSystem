@@ -1,0 +1,100 @@
+﻿@model Freelancing.Models.MentorNoteDisplay
+@{
+    Layout = "_LayoutFreelancer";
+    ViewData["Title"] = "Mentor Note";
+}
+
+<div class="p-4 sm:ml-64">
+    <div class="pt-2 mt-20">
+        <div class="mt-1">
+            <div class="block w-full p-6">
+                <div class="flex items-center space-x-4 mb-4">
+                    <a href="@Url.Action("Goals", new { matchId = Model.MatchId })" class="text-blue-600 hover:text-blue-800">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                    </a>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900">Mentor Note for: @Model.GoalName</h2>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <div class="text-sm text-gray-600">Submitted by: <strong>@Model.MentorName</strong></div>
+                </div>
+
+                @if (string.IsNullOrWhiteSpace(Model.Notes) && !Model.IsTaskAssigned)
+                {
+                    <div class="text-sm text-gray-500">No mentor notes found.</div>
+                }
+                else
+                {
+                    @if (!string.IsNullOrWhiteSpace(Model.Notes))
+                    {
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+                            <textarea rows="6" readonly class="form-control block w-full p-3 text-sm text-gray-900 border border-gray-300 rounded-lg">@Model.Notes</textarea>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Feedback))
+                    {
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Feedback</label>
+                            <textarea rows="4" readonly class="form-control block w-full p-3 text-sm text-gray-900 border border-gray-300 rounded-lg">@Model.Feedback</textarea>
+                        </div>
+                    }
+
+                    @if (Model.ProgressRating.HasValue)
+                    {
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Progress Rating</label>
+                            <div class="bg-white block w-full p-3 text-sm text-gray-900 border border-gray-300 rounded-lg">
+                                <div class="flex inline-flex items-center gap-2">
+                                    <div class="text-sm text-gray-800 font-bold">@Model.ProgressRating / 5</div>
+                                    @if (Model.ProgressRating == 1)
+                                    {
+                                        <div class="text-sm text-gray-800">Needs significant improvement</div>
+                                    }
+                                    else if (Model.ProgressRating == 2)
+                                    {
+                                        <div class="text-sm text-gray-800">Below expectations</div>
+                                    }
+                                    else if (Model.ProgressRating == 3)
+                                    {
+                                        <div class="text-sm text-gray-800">Meets expectations</div>
+                                    }
+                                    else if (Model.ProgressRating == 4)
+                                    {
+                                        <div class="text-sm text-gray-800">Exceeds expectations</div>
+                                    }
+                                    else if (Model.ProgressRating == 5)
+                                    {
+                                        <div class="text-sm text-gray-800">Outstanding progress</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    @if (Model.IsTaskAssigned)
+                    {
+                        <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+                            <h3 class="text-lg font-semibold text-orange-800 mb-2">@Model.TaskTitle</h3>
+                            <p class="text-orange-500 text-sm">@Model.TaskDescription</p>
+                            <div class="mt-2 flex items-end justify-end">
+                                <a asp-action="SubmitMenteeEvidence" asp-controller="MentorshipManage" asp-route-matchId="@Model.MatchId" asp-route-goalId="@Model.GoalId" class="inline-flex items-center">
+                                    <span class="text-sm font-medium text-orange-500">Submit Work →</span>
+                                </a>
+                            </div>
+                        </div>
+                    }
+
+                    @if (Model.SubmittedAt.HasValue)
+                    {
+                        <div class="text-xs text-gray-500 mt-4">@Model.SubmittedAt.Value.ToString("MMM dd, yyyy 'at' h:mm tt")</div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>

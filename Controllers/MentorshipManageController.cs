@@ -1,11 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore;
-using Freelancing.Data;
-using Freelancing.Models.Entities;
+﻿using Freelancing.Data;
 using Freelancing.Models;
+using Freelancing.Models.Entities;
 using Freelancing.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Freelancing.Controllers
 {
@@ -15,33 +16,35 @@ namespace Freelancing.Controllers
         private readonly ApplicationDbContext _context;
         private readonly IMentorshipSchedulingService _schedulingService;
         private readonly INotificationService _notificationService;
+        private readonly ILogger<MentorshipManageController> _logger;
 
-        public MentorshipManageController(ApplicationDbContext context, IMentorshipSchedulingService schedulingService, INotificationService notificationService)
+        public MentorshipManageController(ApplicationDbContext context, IMentorshipSchedulingService schedulingService, INotificationService notificationService, ILogger<MentorshipManageController> logger)
         {
             _context = context;
             _schedulingService = schedulingService;
             _notificationService = notificationService;
+            _logger = logger;
         }
 
         [HttpGet]
         public async Task<IActionResult> Goals(Guid matchId)
         {
             var userId = GetCurrentUserId();
-            var match = await _context.MentorshipMatches
+            var mentorshipMatch = await _context.MentorshipMatches
                 .Include(mm => mm.Mentor)
                 .Include(mm => mm.Mentee)
                 .FirstOrDefaultAsync(mm => mm.Id == matchId && (mm.MentorId == userId || mm.MenteeId == userId) && (mm.Status == "Active" || mm.Status == "Completed"));
-            
-            if (match == null)
+
+            if (mentorshipMatch == null)
             {
                 TempData["Error"] = "Access denied or mentorship not found";
                 return RedirectToAction("AvailableMentors", "MentorshipMatching");
             }
 
-            var isCurrentUserMentor = match.MentorId == userId;
-            var partnerName = isCurrentUserMentor 
-                ? $"{match.Mentee.FirstName} {match.Mentee.LastName}"
-                : $"{match.Mentor.FirstName} {match.Mentor.LastName}";
+            var isCurrentUserMentor = mentorshipMatch.MentorId == userId;
+            var partnerName = isCurrentUserMentor
+                ? $"{mentorshipMatch.Mentee.FirstName} {mentorshipMatch.Mentee.LastName}"
+                : $"{mentorshipMatch.Mentor.FirstName} {mentorshipMatch.Mentor.LastName}";
 
             // Get all active goals ordered by their sequence
             var goals = await _context.Goals
@@ -54,6 +57,15 @@ namespace Freelancing.Controllers
                 .Where(mgc => mgc.MentorshipMatchId == matchId)
                 .ToListAsync();
 
+            // Get evidence and notes for checking submission status
+            var evidenceSubmissions = await _context.MenteeSessionEvidences
+                .Where(mse => mse.MentorshipMatchId == matchId)
+                .ToListAsync();
+
+            var mentorNotes = await _context.MentorSessionNotes
+                .Where(msn => msn.MentorshipMatchId == matchId)
+                .ToListAsync();
+
             var goalViewModels = new List<GoalItemViewModel>();
             var completedGoalsCount = 0;
 
@@ -61,15 +73,19 @@ namespace Freelancing.Controllers
             {
                 var goal = goals[i];
                 var completions = goalCompletions.Where(mgc => mgc.GoalId == goal.Id).ToList();
-                
-                var isCompletedByMentor = completions.Any(c => c.CompletedByUserId == match.MentorId);
-                var isCompletedByMentee = completions.Any(c => c.CompletedByUserId == match.MenteeId);
+
+                var isCompletedByMentor = completions.Any(c => c.CompletedByUserId == mentorshipMatch.MentorId);
+                var isCompletedByMentee = completions.Any(c => c.CompletedByUserId == mentorshipMatch.MenteeId);
                 var isFullyCompleted = isCompletedByMentor && isCompletedByMentee;
 
                 if (isFullyCompleted)
                 {
                     completedGoalsCount++;
                 }
+
+                // Check if evidence and notes have been submitted
+                var hasEvidence = evidenceSubmissions.Any(es => es.GoalId == goal.Id && es.UserId == mentorshipMatch.MenteeId);
+                var hasMentorNote = mentorNotes.Any(mn => mn.GoalId == goal.Id && mn.MentorId == mentorshipMatch.MentorId);
 
                 // Determine if current user can mark this goal as done
                 var canMarkAsDone = false;
@@ -93,10 +109,10 @@ namespace Freelancing.Controllers
                 {
                     var previousGoal = goals[i - 1];
                     var previousCompletions = goalCompletions.Where(mgc => mgc.GoalId == previousGoal.Id).ToList();
-                    var previousCompletedByMentor = previousCompletions.Any(c => c.CompletedByUserId == match.MentorId);
-                    var previousCompletedByMentee = previousCompletions.Any(c => c.CompletedByUserId == match.MenteeId);
+                    var previousCompletedByMentor = previousCompletions.Any(c => c.CompletedByUserId == mentorshipMatch.MentorId);
+                    var previousCompletedByMentee = previousCompletions.Any(c => c.CompletedByUserId == mentorshipMatch.MenteeId);
                     var previousFullyCompleted = previousCompletedByMentor && previousCompletedByMentee;
-                    
+
                     showMarkAsDoneButton = previousFullyCompleted && canMarkAsDone;
                 }
 
@@ -128,7 +144,14 @@ namespace Freelancing.Controllers
                     CompletedBy = completedBy,
                     CompletedAt = completions.Any() ? completions.Max(c => c.CompletedAt) : null,
                     IconSvg = goal.IconSvg,
+                    IsFullyCompleted = isFullyCompleted,
 
+                    // Evidence and note tracking
+                    HasMenteeEvidence = hasEvidence,
+                    HasMentorNote = hasMentorNote,
+                    IsCurrentUserMentor = isCurrentUserMentor,
+
+                    // Custom goal properties
                     IsCustomGoal = goal.IsCustom,
                     Priority = goal.Priority,
                     TargetDate = goal.TargetDate,
@@ -573,6 +596,646 @@ namespace Freelancing.Controllers
             return RedirectToAction("Sessions", new { matchId = session.MentorshipMatchId });
         }
 
+        [HttpGet]
+        public async Task<IActionResult> SubmitMenteeEvidence(Guid matchId, Guid goalId)
+        {
+            var userId = GetCurrentUserId();
+            var match = await _context.MentorshipMatches
+                .Include(mm => mm.Mentee)
+                .FirstOrDefaultAsync(mm => mm.Id == matchId && mm.MenteeId == userId && (mm.Status == "Active" || mm.Status == "Completed"));
+
+            if (match == null)
+            {
+                TempData["Error"] = "Access denied or mentorship not found";
+                return RedirectToAction("AvailableMentors", "MentorshipMatching");
+            }
+
+            var goal = await _context.Goals
+                .FirstOrDefaultAsync(g => g.Id == goalId && g.IsActive);
+
+            if (goal == null)
+            {
+                TempData["Error"] = "Goal not found";
+                return RedirectToAction("Goals", new { matchId });
+            }
+
+            // Check if evidence already submitted
+            var existingEvidence = await _context.MenteeSessionEvidences
+                .FirstOrDefaultAsync(mse => mse.MentorshipMatchId == matchId &&
+                                           mse.GoalId == goalId &&
+                                           mse.UserId == userId);
+
+            var mentorNote = await _context.MentorSessionNotes
+                .Where(msn => msn.MentorshipMatchId == matchId && msn.GoalId == goalId)
+                .OrderByDescending(msn => msn.SubmittedAt)
+                .FirstOrDefaultAsync();
+
+            var goalCompletions = await _context.MentorshipGoalCompletions
+                .Where(mgc => mgc.MentorshipMatchId == matchId)
+                .ToListAsync();
+            var completionsForGoal = goalCompletions.Where(c => c.GoalId == goalId).ToList();
+            var isCompletedByMentor = completionsForGoal.Any(c => c.CompletedByUserId == match.MentorId);
+            var isCompletedByMentee = completionsForGoal.Any(c => c.CompletedByUserId == match.MenteeId);
+            var isFullyCompleted = isCompletedByMentor && isCompletedByMentee;
+            var completedAt = completionsForGoal.Any() ? completionsForGoal.Max(c => c.CompletedAt) : (DateTime?)null;
+
+            var viewModel = new MenteeEvidenceFormViewModel
+            {
+                MatchId = matchId,
+                GoalId = goalId,
+                GoalName = goal.GoalName,
+                GoalDescription = goal.GoalDescription,
+
+                IsCompletedByMentor = isCompletedByMentor,
+                IsCompletedByMentee = isCompletedByMentee,
+                IsFullyCompleted = isFullyCompleted,
+                CompletedAt = completedAt
+            };
+
+            if (mentorNote != null && mentorNote.IsTaskAssigned)
+            {
+                viewModel.IsTaskAssigned = true;
+                viewModel.MentorTaskTitle = mentorNote.TaskTitle;
+                viewModel.MentorTaskDescription = mentorNote.TaskDescription;
+            }
+
+            if(existingEvidence != null)
+            {
+                viewModel.Id = existingEvidence.Id;
+                viewModel.WhatWasDone = existingEvidence.WhatWasDone;
+                viewModel.AdditionalNotes = existingEvidence.AdditionalNotes;
+                if (!string.IsNullOrEmpty(existingEvidence.EvidenceFilePaths))
+                {
+                    try
+                    {
+                        viewModel.ExistingEvidenceFilePaths = System.Text.Json.JsonSerializer
+                            .Deserialize<List<string>>(existingEvidence.EvidenceFilePaths) ?? new List<string>();
+                        // By default treat all existing files as retained (checkboxes will be checked)
+                        viewModel.RetainedEvidenceFilePaths = new List<string>(viewModel.ExistingEvidenceFilePaths);
+                    }
+                    catch
+                    {
+                        viewModel.ExistingEvidenceFilePaths = new List<string>();
+                        viewModel.RetainedEvidenceFilePaths = new List<string>();
+                    }
+                }
+            }
+
+            return View(viewModel);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SubmitMenteeEvidence(MenteeEvidenceFormViewModel model)
+        {
+            _logger.LogInformation("SubmitMenteeEvidence called for MatchId={MatchId}, GoalId={GoalId}, EvidenceFilesCount={Count}",
+                model?.MatchId, model?.GoalId, model?.EvidenceFiles?.Count ?? 0);
+
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors)
+                                             .Select(e => string.IsNullOrEmpty(e.ErrorMessage) ? (e.Exception?.Message ?? "Unknown error") : e.ErrorMessage)
+                                             .ToList();
+
+                _logger.LogWarning("SubmitMenteeEvidence ModelState invalid: {Errors}", string.Join(" | ", errors));
+                if (errors.Any())
+                    TempData["Error"] = errors.First();
+                else
+                    TempData["Error"] = "Form validation failed. Please check required fields.";
+
+                var goal = await _context.Goals.FindAsync(model.GoalId);
+                if (goal != null)
+                {
+                    model.GoalName = goal.GoalName;
+                    model.GoalDescription = goal.GoalDescription;
+                }
+                return View(model);
+            }
+
+            var userId = GetCurrentUserId();
+            var match = await _context.MentorshipMatches
+                .FirstOrDefaultAsync(mm => mm.Id == model.MatchId && mm.MenteeId == userId && (mm.Status == "Active" || mm.Status == "Completed"));
+
+            if (match == null)
+            {
+                TempData["Error"] = "Access denied or mentorship not found";
+                return RedirectToAction("AvailableMentors", "MentorshipMatching");
+            }
+
+            // Start with retained existing filenames (sent from the form)
+            var finalFileNames = new List<string>();
+            if (model.RetainedEvidenceFilePaths != null && model.RetainedEvidenceFilePaths.Any())
+            {
+                // view sends filenames only
+                finalFileNames.AddRange(model.RetainedEvidenceFilePaths);
+            }
+
+            // Save newly uploaded files (persist file to disk with GUID prefix, but store filename only)
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".pdf", ".doc", ".docx", ".txt" };
+            var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "mentorship-evidence");
+            if (!Directory.Exists(uploadsDir))
+                Directory.CreateDirectory(uploadsDir);
+
+            if (model.EvidenceFiles != null && model.EvidenceFiles.Any())
+            {
+                foreach (var file in model.EvidenceFiles)
+                {
+                    if (file == null || file.Length == 0) continue;
+
+                    var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                    if (!allowedExtensions.Contains(fileExtension))
+                    {
+                        ModelState.AddModelError("EvidenceFiles", $"File {file.FileName} is not a valid file type.");
+                        continue;
+                    }
+                    if (file.Length > 10 * 1024 * 1024)
+                    {
+                        ModelState.AddModelError("EvidenceFiles", $"File {file.FileName} is too large. Maximum size is 10MB.");
+                        continue;
+                    }
+
+                    // store on disk as GUID_originalName to avoid collisions
+                    var storedFileName = $"{Guid.NewGuid()}_{Path.GetFileName(file.FileName)}";
+                    var filePath = Path.Combine(uploadsDir, storedFileName);
+
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await file.CopyToAsync(stream);
+                    }
+
+                    // Store only the filename in DB
+                    finalFileNames.Add(storedFileName);
+                }
+            }
+
+            // Attempt to find existing evidence entity by Id first, then by the unique key (MatchId+GoalId+UserId).
+            MenteeSessionEvidence? evidenceEntity = null;
+            if (model.Id.HasValue)
+            {
+                evidenceEntity = await _context.MenteeSessionEvidences.FindAsync(model.Id.Value);
+            }
+
+            if (evidenceEntity == null)
+            {
+                evidenceEntity = await _context.MenteeSessionEvidences
+                    .FirstOrDefaultAsync(e => e.MentorshipMatchId == model.MatchId && e.GoalId == model.GoalId && e.UserId == userId);
+
+                if (evidenceEntity != null)
+                {
+                    // ensure model.Id reflects existing DB entity (helps debugging/roundtrips)
+                    model.Id = evidenceEntity.Id;
+                }
+            }
+
+            // Track whether this operation will update an existing record or create a new one
+            var isUpdate = evidenceEntity != null;
+
+            if (evidenceEntity != null)
+            {
+                // Delete any server files that were not retained
+                if (!string.IsNullOrEmpty(evidenceEntity.EvidenceFilePaths))
+                {
+                    try
+                    {
+                        var existingFileNames = System.Text.Json.JsonSerializer.Deserialize<List<string>>(evidenceEntity.EvidenceFilePaths) ?? new List<string>();
+                        var toDelete = existingFileNames.Except(model.RetainedEvidenceFilePaths ?? new List<string>()).ToList();
+                        foreach (var delFileName in toDelete)
+                        {
+                            try
+                            {
+                                var physical = Path.Combine(uploadsDir, delFileName);
+                                if (System.IO.File.Exists(physical))
+                                    System.IO.File.Delete(physical);
+                            }
+                            catch { /* swallow individual delete errors */ }
+                        }
+                    }
+                    catch { /* ignore deserialization issues */ }
+                }
+
+                evidenceEntity.WhatWasDone = model.WhatWasDone;
+                evidenceEntity.AdditionalNotes = model.AdditionalNotes;
+                evidenceEntity.EvidenceFilePaths = finalFileNames.Any() ? System.Text.Json.JsonSerializer.Serialize(finalFileNames) : null;
+                evidenceEntity.SubmittedAt = DateTime.UtcNow.ToLocalTime();
+
+                _context.MenteeSessionEvidences.Update(evidenceEntity);
+            }
+            else
+            {
+                evidenceEntity = new MenteeSessionEvidence
+                {
+                    MentorshipMatchId = model.MatchId,
+                    GoalId = model.GoalId,
+                    UserId = userId,
+                    WhatWasDone = model.WhatWasDone,
+                    AdditionalNotes = model.AdditionalNotes,
+                    EvidenceFilePaths = finalFileNames.Any() ? System.Text.Json.JsonSerializer.Serialize(finalFileNames) : null,
+                    SubmittedAt = DateTime.UtcNow.ToLocalTime()
+                };
+                _context.MenteeSessionEvidences.Add(evidenceEntity);
+            }
+
+            var evidenceSaved = false;
+            try
+            {
+                await _context.SaveChangesAsync();
+                // set success message based on update vs create
+                TempData["Success"] = isUpdate ? "Notes updated successfully!" : "Notes submitted successfully!";
+                evidenceSaved = true;
+            }
+            catch (DbUpdateException dbEx)
+            {
+                // Defensive: unique index race or unexpected duplicate — try to recover by updating the existing row.
+                _logger.LogWarning(dbEx, "DbUpdateException while saving MenteeSessionEvidence. Attempting to recover by merging with existing record.");
+
+                var existing = await _context.MenteeSessionEvidences
+                    .FirstOrDefaultAsync(e => e.MentorshipMatchId == model.MatchId && e.GoalId == model.GoalId && e.UserId == userId);
+
+                if (existing != null)
+                {
+                    // merge finalFileNames with existing stored file names (avoid losing files)
+                    var existingFileNames = new List<string>();
+                    if (!string.IsNullOrEmpty(existing.EvidenceFilePaths))
+                    {
+                        try { existingFileNames = System.Text.Json.JsonSerializer.Deserialize<List<string>>(existing.EvidenceFilePaths) ?? new List<string>(); } catch { existingFileNames = new List<string>(); }
+                    }
+                    var merged = existingFileNames.Union(finalFileNames).ToList();
+
+                    existing.WhatWasDone = model.WhatWasDone;
+                    existing.AdditionalNotes = model.AdditionalNotes;
+                    existing.EvidenceFilePaths = merged.Any() ? System.Text.Json.JsonSerializer.Serialize(merged) : null;
+                    existing.SubmittedAt = DateTime.UtcNow.ToLocalTime();
+
+                    _context.MenteeSessionEvidences.Update(existing);
+                    await _context.SaveChangesAsync();
+
+                    TempData["Success"] = "Notes updated successfully!";
+                    evidenceSaved = true;
+                }
+                else
+                {
+                    // couldn't recover: rethrow so caller sees the error
+                    throw;
+                }
+            }
+
+            // Notify mentor that the mentee submitted/updated evidence/notes
+            if (evidenceSaved)
+            {
+                try
+                {
+                    // Use the current user's full name claim if available (mentee who submitted)
+                    var menteeName = User.FindFirst("FullName")?.Value ?? "Your mentee";
+                    var goal = await _context.Goals.FindAsync(model.GoalId);
+                    var goalName = !string.IsNullOrWhiteSpace(goal?.GoalName) ? goal!.GoalName : (model.GoalName ?? "the goal");
+
+                    var notificationTitle = isUpdate ? "Mentee Notes Updated" : "New Mentee Notes";
+                    var notificationMessage = $"{menteeName} has {(isUpdate ? "updated" : "submitted")} notes/work for \"{goalName}\". Please check them.";
+
+                    var evidenceIconSvg = "<svg viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><g id=\"SVGRepo_bgCarrier\" stroke-width=\"0\"></g><g id=\"SVGRepo_tracerCarrier\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></g><g id=\"SVGRepo_iconCarrier\"> <path d=\"M10 12H14M12 10V14M19.9592 15H16.6C16.0399 15 15.7599 15 15.546 15.109C15.3578 15.2049 15.2049 15.3578 15.109 15.546C15 15.7599 15 16.0399 15 16.6V19.9592M20 14.1031V7.2C20 6.07989 20 5.51984 19.782 5.09202C19.5903 4.71569 19.2843 4.40973 18.908 4.21799C18.4802 4 17.9201 4 16.8 4H7.2C6.0799 4 5.51984 4 5.09202 4.21799C4.71569 4.40973 4.40973 4.71569 4.21799 5.09202C4 5.51984 4 6.0799 4 7.2V16.8C4 17.9201 4 18.4802 4.21799 18.908C4.40973 19.2843 4.71569 19.5903 5.09202 19.782C5.51984 20 6.0799 20 7.2 20H14.1031C14.5923 20 14.8369 20 15.067 19.9447C15.2711 19.8957 15.4662 19.8149 15.6451 19.7053C15.847 19.5816 16.0199 19.4086 16.3658 19.0627L19.0627 16.3658C19.4086 16.0199 19.5816 15.847 19.7053 15.6451C19.8149 15.4662 19.8957 15.2711 19.9447 15.067C20 14.8369 20 14.5923 20 14.1031Z\" stroke=\"#000000\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path> </g></svg>";
+
+                    var redirectUrl = $"/MentorshipManage/ViewMenteeSubmission?matchId={model.MatchId}&goalId={model.GoalId}";
+
+                    await _notificationService.CreateNotificationAsync(
+                        match.MentorId,
+                        notificationTitle,
+                        notificationMessage,
+                        "mentee_evidence",
+                        evidenceIconSvg,
+                        redirectUrl
+                    );
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to create notification for mentor after mentee evidence submission.");
+                    // don't fail the user flow if notification creation fails
+                }
+            }
+
+            return RedirectToAction(nameof(SubmitMenteeEvidence), new { matchId = model.MatchId, goalId = model.GoalId });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> SubmitMentorNote(Guid matchId, Guid goalId)
+        {
+            var userId = GetCurrentUserId();
+            var match = await _context.MentorshipMatches
+                .Include(mm => mm.Mentee)
+                .FirstOrDefaultAsync(mm => mm.Id == matchId && mm.MentorId == userId && (mm.Status == "Active" || mm.Status == "Completed"));
+
+            if (match == null)
+            {
+                TempData["Error"] = "Access denied or mentorship not found";
+                return RedirectToAction("AvailableMentors", "MentorshipMatching");
+            }
+
+            var goal = await _context.Goals
+                .FirstOrDefaultAsync(g => g.Id == goalId && g.IsActive);
+
+            if (goal == null)
+            {
+                TempData["Error"] = "Goal not found";
+                return RedirectToAction("Goals", new { matchId });
+            }
+
+            // If mentor already has a note for this match+goal return the populated form for editing
+            var existingNote = await _context.MentorSessionNotes
+                .FirstOrDefaultAsync(msn => msn.MentorshipMatchId == matchId &&
+                                           msn.GoalId == goalId &&
+                                           msn.MentorId == userId);
+
+            var goalCompletions = await _context.MentorshipGoalCompletions
+                .Where(mgc => mgc.MentorshipMatchId == matchId)
+                .ToListAsync();
+            var completionsForGoal = goalCompletions.Where(c => c.GoalId == goalId).ToList();
+            var isCompletedByMentor = completionsForGoal.Any(c => c.CompletedByUserId == match.MentorId);
+            var isCompletedByMentee = completionsForGoal.Any(c => c.CompletedByUserId == match.MenteeId);
+            var isFullyCompleted = isCompletedByMentor && isCompletedByMentee;
+            var completedAt = completionsForGoal.Any() ? completionsForGoal.Max(c => c.CompletedAt) : (DateTime?)null;
+
+            var viewModel = new MentorNoteFormViewModel
+            {
+                MatchId = matchId,
+                GoalId = goalId,
+                GoalName = goal.GoalName,
+                GoalDescription = goal.GoalDescription,
+                MenteeName = $"{match.Mentee.FirstName} {match.Mentee.LastName}",
+
+                IsCompletedByMentor = isCompletedByMentor,
+                IsCompletedByMentee = isCompletedByMentee,
+                IsFullyCompleted = isFullyCompleted,
+                CompletedAt = completedAt
+            };
+
+            if (existingNote != null)
+            {
+                // populate for editing
+                viewModel.Id = existingNote.Id;
+                viewModel.Notes = existingNote.Notes;
+                viewModel.Feedback = existingNote.Feedback;
+                viewModel.ProgressRating = existingNote.ProgressRating;
+                viewModel.IsTaskAssigned = existingNote.IsTaskAssigned;
+                viewModel.TaskTitle = existingNote.TaskTitle;
+                viewModel.TaskDescription = existingNote.TaskDescription;
+            }
+
+            return View(viewModel);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SubmitMentorNote(MentorNoteFormViewModel model)
+        {
+            _logger.LogInformation("SubmitMentorNote called for MatchId={MatchId}, GoalId={GoalId}", model?.MatchId, model?.GoalId);
+
+            // Basic server-side conditional validation: if task assigned require title/description
+            if (model.IsTaskAssigned)
+            {
+                if (string.IsNullOrWhiteSpace(model.TaskTitle))
+                    ModelState.AddModelError(nameof(model.TaskTitle), "Task title is required when assigning a task.");
+                if (string.IsNullOrWhiteSpace(model.TaskDescription))
+                    ModelState.AddModelError(nameof(model.TaskDescription), "Task description is required when assigning a task.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors)
+                                             .Select(e => string.IsNullOrEmpty(e.ErrorMessage) ? (e.Exception?.Message ?? "Unknown error") : e.ErrorMessage)
+                                             .ToList();
+
+                _logger.LogWarning("SubmitMentorNote ModelState invalid: {Errors}", string.Join(" | ", errors));
+
+                if (errors.Any())
+                    TempData["Error"] = errors.First();
+                else
+                    TempData["Error"] = "Form validation failed. Please check required fields.";
+
+                var mentorshipMatch = await _context.MentorshipMatches
+                    .Include(mm => mm.Mentee)
+                    .FirstOrDefaultAsync(mm => mm.Id == model.MatchId);
+                var goal = await _context.Goals.FindAsync(model.GoalId);
+
+                if (goal != null)
+                {
+                    model.GoalName = goal.GoalName;
+                    model.GoalDescription = goal.GoalDescription;
+                }
+                if (mentorshipMatch != null)
+                {
+                    model.MenteeName = $"{mentorshipMatch.Mentee.FirstName} {mentorshipMatch.Mentee.LastName}";
+                }
+                return View(model);
+            }
+
+            var userId = GetCurrentUserId();
+            var match = await _context.MentorshipMatches
+                .FirstOrDefaultAsync(mm => mm.Id == model.MatchId && mm.MentorId == userId && (mm.Status == "Active" || mm.Status == "Completed"));
+
+            if (match == null)
+            {
+                TempData["Error"] = "Access denied or mentorship not found";
+                return RedirectToAction("AvailableMentors", "MentorshipMatching");
+            }
+
+            // Check if a note already exists — update it, otherwise create new
+            var existingNote = await _context.MentorSessionNotes
+                .FirstOrDefaultAsync(msn => msn.MentorshipMatchId == model.MatchId &&
+                                           msn.GoalId == model.GoalId &&
+                                           msn.MentorId == userId);
+
+            var noteWasSaved = false;
+            if (existingNote != null)
+            {
+                existingNote.Notes = model.Notes;
+                existingNote.Feedback = model.Feedback;
+                existingNote.ProgressRating = model.ProgressRating;
+                existingNote.IsTaskAssigned = model.IsTaskAssigned;
+                existingNote.TaskTitle = model.IsTaskAssigned ? model.TaskTitle : null;
+                existingNote.TaskDescription = model.IsTaskAssigned ? model.TaskDescription : null;
+                existingNote.SubmittedAt = DateTime.UtcNow.ToLocalTime();
+
+                _context.MentorSessionNotes.Update(existingNote);
+                await _context.SaveChangesAsync();
+
+                TempData["Success"] = "Notes updated successfully!";
+                noteWasSaved = true;
+            }
+            else
+            {
+                var note = new MentorSessionNote
+                {
+                    MentorshipMatchId = model.MatchId,
+                    GoalId = model.GoalId,
+                    MentorId = userId,
+                    Notes = model.Notes,
+                    Feedback = model.Feedback,
+                    ProgressRating = model.ProgressRating,
+                    IsTaskAssigned = model.IsTaskAssigned,
+                    TaskTitle = model.IsTaskAssigned ? model.TaskTitle : null,
+                    TaskDescription = model.IsTaskAssigned ? model.TaskDescription : null,
+                    SubmittedAt = DateTime.UtcNow.ToLocalTime()
+                };
+
+                _context.MentorSessionNotes.Add(note);
+                await _context.SaveChangesAsync();
+
+                TempData["Success"] = "Notes submitted successfully!";
+                noteWasSaved = true;
+            }
+
+            if (noteWasSaved)
+            {
+                try
+                {
+                    var mentorName = User.FindFirst("FullName")?.Value ?? "Your mentor";
+                    var goal = await _context.Goals.FindAsync(model.GoalId);
+                    var goalName = !string.IsNullOrWhiteSpace(goal?.GoalName) ? goal!.GoalName : (model.GoalName ?? "the goal");
+
+                    var notificationTitle = existingNote != null ? "Mentor Note Updated" : "New Mentor Note";
+                    var notificationMessage = $"{mentorName} has {(existingNote != null ? "updated" : "submitted")} session notes/task for \"{goalName}\".";
+
+                    var noteIconSvg = "<svg viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><g id=\"SVGRepo_bgCarrier\" stroke-width=\"0\"></g><g id=\"SVGRepo_tracerCarrier\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></g><g id=\"SVGRepo_iconCarrier\"> <path d=\"M10 12H14M12 10V14M19.9592 15H16.6C16.0399 15 15.7599 15 15.546 15.109C15.3578 15.2049 15.2049 15.3578 15.109 15.546C15 15.7599 15 16.0399 15 16.6V19.9592M20 14.1031V7.2C20 6.07989 20 5.51984 19.782 5.09202C19.5903 4.71569 19.2843 4.40973 18.908 4.21799C18.4802 4 17.9201 4 16.8 4H7.2C6.0799 4 5.51984 4 5.09202 4.21799C4.71569 4.40973 4.40973 4.71569 4.21799 5.09202C4 5.51984 4 6.0799 4 7.2V16.8C4 17.9201 4 18.4802 4.21799 18.908C4.40973 19.2843 4.71569 19.5903 5.09202 19.782C5.51984 20 6.0799 20 7.2 20H14.1031C14.5923 20 14.8369 20 15.067 19.9447C15.2711 19.8957 15.4662 19.8149 15.6451 19.7053C15.847 19.5816 16.0199 19.4086 16.3658 19.0627L19.0627 16.3658C19.4086 16.0199 19.5816 15.847 19.7053 15.6451C19.8149 15.4662 19.8957 15.2711 19.9447 15.067C20 14.8369 20 14.5923 20 14.1031Z\" stroke=\"#000000\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path> </g></svg>";
+
+                    var redirectUrl = $"/MentorshipManage/SubmitMenteeEvidence?matchId={model.MatchId}&goalId={model.GoalId}";
+
+                    await _notificationService.CreateNotificationAsync(
+                        match.MenteeId,
+                        notificationTitle,
+                        notificationMessage,
+                        "mentor_note",
+                        noteIconSvg,
+                        redirectUrl
+                    );
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to create notification for mentee after mentor note submission.");
+                    // don't fail the user flow if notification creation fails
+                }
+            }
+
+            return RedirectToAction(nameof(SubmitMentorNote), new { matchId = model.MatchId, goalId = model.GoalId });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ViewMentorNotes(Guid matchId, Guid goalId)
+        {
+            var userId = GetCurrentUserId();
+
+            // Allow both mentor and mentee to view mentor notes for the match
+            var match = await _context.MentorshipMatches
+                .Include(mm => mm.Mentor)
+                .Include(mm => mm.Mentee)
+                .FirstOrDefaultAsync(mm => mm.Id == matchId && (mm.MentorId == userId || mm.MenteeId == userId) && (mm.Status == "Active" || mm.Status == "Completed"));
+
+            if (match == null)
+            {
+                TempData["Error"] = "Access denied or mentorship not found";
+                return RedirectToAction("Goals", new { matchId });
+            }
+
+            var goal = await _context.Goals.FirstOrDefaultAsync(g => g.Id == goalId && g.IsActive);
+            if (goal == null)
+            {
+                TempData["Error"] = "Goal not found";
+                return RedirectToAction("Goals", new { matchId });
+            }
+
+            var mentorNote = await _context.MentorSessionNotes
+                .Where(msn => msn.MentorshipMatchId == matchId && msn.GoalId == goalId)
+                .OrderByDescending(msn => msn.SubmittedAt)
+                .FirstOrDefaultAsync();
+
+            var vm = new Freelancing.Models.MentorNoteDisplay
+            {
+                MatchId = matchId,
+                GoalId = goalId,
+                GoalName = goal.GoalName,
+                MentorName = $"{match.Mentor.FirstName} {match.Mentor.LastName}",
+                MenteeName = $"{match.Mentee.FirstName} {match.Mentee.LastName}"
+            };
+
+            if (mentorNote != null)
+            {
+                vm.Id = mentorNote.Id;
+                vm.Notes = mentorNote.Notes;
+                vm.Feedback = mentorNote.Feedback;
+                vm.ProgressRating = mentorNote.ProgressRating;
+                vm.IsTaskAssigned = mentorNote.IsTaskAssigned;
+                vm.TaskTitle = mentorNote.TaskTitle;
+                vm.TaskDescription = mentorNote.TaskDescription;
+                vm.SubmittedAt = mentorNote.SubmittedAt;
+            }
+
+            return View(vm);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ViewMenteeSubmission(Guid matchId, Guid goalId)
+        {
+            var userId = GetCurrentUserId();
+
+            // Only mentor may view this endpoint
+            var match = await _context.MentorshipMatches
+                .Include(mm => mm.Mentee)
+                .FirstOrDefaultAsync(mm => mm.Id == matchId && mm.MentorId == userId && (mm.Status == "Active" || mm.Status == "Completed"));
+
+            if (match == null)
+            {
+                TempData["Error"] = "Access denied or mentorship not found";
+                return RedirectToAction("Goals", new { matchId });
+            }
+
+            var goal = await _context.Goals.FirstOrDefaultAsync(g => g.Id == goalId && g.IsActive);
+            if (goal == null)
+            {
+                TempData["Error"] = "Goal not found";
+                return RedirectToAction("Goals", new { matchId });
+            }
+
+            var evidences = await _context.MenteeSessionEvidences
+                .Where(e => e.MentorshipMatchId == matchId && e.GoalId == goalId)
+                .OrderByDescending(e => e.SubmittedAt)
+                .ToListAsync();
+
+            var mentorNote = await _context.MentorSessionNotes
+                .Where(msn => msn.MentorshipMatchId == matchId && msn.GoalId == goalId)
+                .OrderByDescending(msn => msn.SubmittedAt)
+                .FirstOrDefaultAsync();
+
+            var goalCompletions = await _context.MentorshipGoalCompletions
+                .Where(mgc => mgc.MentorshipMatchId == matchId)
+                .ToListAsync();
+            var completionsForGoal = goalCompletions.Where(c => c.GoalId == goalId).ToList();
+            var isCompletedByMentor = completionsForGoal.Any(c => c.CompletedByUserId == match.MentorId);
+            var isCompletedByMentee = completionsForGoal.Any(c => c.CompletedByUserId == match.MenteeId);
+            var isFullyCompleted = isCompletedByMentor && isCompletedByMentee;
+            var completedAt = completionsForGoal.Any() ? completionsForGoal.Max(c => c.CompletedAt) : (DateTime?)null;
+
+            var vm = new Models.MenteeEvidenceDisplayViewModel
+            {
+                MatchId = matchId,
+                GoalId = goalId,
+                GoalName = goal.GoalName,
+                MenteeName = $"{match.Mentee.FirstName} {match.Mentee.LastName}",
+                Evidences = evidences,
+
+                IsCompletedByMentor = isCompletedByMentor,
+                IsCompletedByMentee = isCompletedByMentee,
+                IsFullyCompleted = isFullyCompleted,
+                CompletedAt = completedAt
+            };
+
+            if (mentorNote != null && mentorNote.IsTaskAssigned)
+            {
+                vm.IsTaskAssigned = true;
+                vm.TaskTitle = mentorNote.TaskTitle;
+                vm.TaskDescription = mentorNote.TaskDescription;
+            }
+
+            return View(vm);
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> MarkGoalAsDone(Guid matchId, Guid goalId)
@@ -580,25 +1243,17 @@ namespace Freelancing.Controllers
             var userId = GetCurrentUserId();
             var match = await _context.MentorshipMatches
                 .FirstOrDefaultAsync(mm => mm.Id == matchId && (mm.MentorId == userId || mm.MenteeId == userId) && (mm.Status == "Active" || mm.Status == "Completed"));
-            
+
             if (match == null)
             {
                 TempData["Error"] = "Access denied or mentorship not found";
                 return RedirectToAction("AvailableMentors", "MentorshipMatching");
             }
 
-            var isCurrentUserMentor = match.MentorId == userId;
-            var completionType = isCurrentUserMentor ? "Mentor" : "Mentee";
-
-            // Check if goal already completed by this user
-            var existingCompletion = await _context.MentorshipGoalCompletions
-                .FirstOrDefaultAsync(mgc => mgc.MentorshipMatchId == matchId && 
-                                          mgc.GoalId == goalId && 
-                                          mgc.CompletedByUserId == userId);
-
-            if (existingCompletion != null)
+            // Enforce: only mentor can mark from this flow
+            if (match.MentorId != userId)
             {
-                TempData["Error"] = "You have already marked this goal as done";
+                TempData["Error"] = "Only the mentor can mark this goal as complete from this view.";
                 return RedirectToAction("Goals", new { matchId });
             }
 
@@ -612,7 +1267,26 @@ namespace Freelancing.Controllers
                 return RedirectToAction("Goals", new { matchId });
             }
 
-            // Check if previous goal is completed (except for the first goal)
+            // Ensure required forms have been submitted
+            var menteeEvidence = await _context.MenteeSessionEvidences
+                .FirstOrDefaultAsync(mse => mse.MentorshipMatchId == matchId && mse.GoalId == goalId && mse.UserId == match.MenteeId);
+
+            if (menteeEvidence == null)
+            {
+                TempData["Error"] = "The mentee must submit evidence before you can mark this goal as complete.";
+                return RedirectToAction("Goals", new { matchId });
+            }
+
+            var mentorNote = await _context.MentorSessionNotes
+                .FirstOrDefaultAsync(msn => msn.MentorshipMatchId == matchId && msn.GoalId == goalId && msn.MentorId == userId);
+
+            if (mentorNote == null)
+            {
+                TempData["Error"] = "You must submit session notes before marking this goal as complete.";
+                return RedirectToAction("SubmitMentorNote", new { matchId, goalId });
+            }
+
+            // Check previous goal completion constraint (unchanged)
             if (goal.Order > 1)
             {
                 var previousGoal = await _context.Goals
@@ -636,20 +1310,107 @@ namespace Freelancing.Controllers
                 }
             }
 
-            // Create the completion record
-            var completion = new MentorshipGoalCompletion
+            // Avoid duplicate mentor completion
+            var existingMentorCompletion = await _context.MentorshipGoalCompletions
+                .FirstOrDefaultAsync(mgc => mgc.MentorshipMatchId == matchId && mgc.GoalId == goalId && mgc.CompletedByUserId == match.MentorId);
+
+            if (existingMentorCompletion != null)
             {
+                TempData["Error"] = "You have already marked this goal as done";
+                return RedirectToAction("Goals", new { matchId });
+            }
+
+            var now = DateTime.UtcNow.ToLocalTime();
+
+            // Create mentor completion record
+            var mentorCompletion = new MentorshipGoalCompletion
+            {
+                Id = Guid.NewGuid(),
                 MentorshipMatchId = matchId,
                 GoalId = goalId,
-                CompletedByUserId = userId,
-                CompletedAt = DateTime.UtcNow.ToLocalTime(),
-                CompletionType = completionType
+                CompletedByUserId = match.MentorId,
+                CompletionType = "Mentor",
+                CompletedAt = now,
+                MenteeEvidenceId = menteeEvidence?.Id,
+                MentorNoteId = mentorNote?.Id,
+                IsCompletedByMentor = true,
+                IsCompletedByMentee = false
             };
 
-            _context.MentorshipGoalCompletions.Add(completion);
+            _context.MentorshipGoalCompletions.Add(mentorCompletion);
+
+            // Ensure mentee completion record exists (so UI sees both sides completed)
+            var existingMenteeCompletion = await _context.MentorshipGoalCompletions
+                .FirstOrDefaultAsync(mgc => mgc.MentorshipMatchId == matchId && mgc.GoalId == goalId && mgc.CompletedByUserId == match.MenteeId);
+
+            if (existingMenteeCompletion == null)
+            {
+                var menteeCompletion = new MentorshipGoalCompletion
+                {
+                    Id = Guid.NewGuid(),
+                    MentorshipMatchId = matchId,
+                    GoalId = goalId,
+                    CompletedByUserId = match.MenteeId,
+                    CompletionType = "Mentee",
+                    CompletedAt = now,
+                    MenteeEvidenceId = menteeEvidence?.Id,
+                    MentorNoteId = mentorNote?.Id,
+                    IsCompletedByMentor = false,
+                    IsCompletedByMentee = true
+                };
+                _context.MentorshipGoalCompletions.Add(menteeCompletion);
+            }
+            else
+            {
+                // ensure flags are set
+                if (!existingMenteeCompletion.IsCompletedByMentee)
+                {
+                    existingMenteeCompletion.IsCompletedByMentee = true;
+                    _context.MentorshipGoalCompletions.Update(existingMenteeCompletion);
+                }
+            }
+
             await _context.SaveChangesAsync();
 
             TempData["Success"] = "Goal marked as done successfully";
+
+            // Notify both mentor and mentee that the goal is complete and they may move to the next goal
+            try
+            {
+                var actorName = User.FindFirst("FullName")?.Value ?? "Your mentor";
+                var goalName = !string.IsNullOrWhiteSpace(goal?.GoalName) ? goal!.GoalName : "the goal";
+                var notificationTitle = "Goal Completed";
+                var notificationMessage = $"{actorName} marked \"{goalName}\" complete. You may move to the next goal!";
+                var finishIconSvg = "<svg viewBox='0 0 20 20' version='1.1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' fill='#000000'><g id='SVGRepo_bgCarrier' stroke-width='0'></g><g id='SVGRepo_tracerCarrier' stroke-linecap='round' stroke-linejoin='round'></g><g id='SVGRepo_iconCarrier'> <title>finish_line [#103]</title> <desc>Created with Sketch.</desc> <defs> </defs> <g id='Page-1' stroke='none' stroke-width='1' fill='none' fill-rule='evenodd'> <g id='Dribbble-Light-Preview' transform='translate(-260.000000, -7759.000000)' fill='#000000'> <g id='icons' transform='translate(56.000000, 160.000000)'> <path d='M214,7611 L218,7611 L218,7607 L214,7607 L214,7611 Z M210,7607 L214,7607 L214,7603 L210,7603 L210,7607 Z M214,7603 L218,7603 L218,7599 L214,7599 L214,7603 Z M222,7599 L222,7603 L218,7603 L218,7607 L222,7607 L222,7611 L224,7611 L224,7599 L222,7599 Z M206,7607 L210,7607 L210,7611 L206,7611 L206,7619 L204,7619 L204,7599 L210,7599 L210,7603 L206,7603 L206,7607 Z' id='finish_line-[#103]'> </path> </g> </g> </g> </g></svg>";
+
+                var redirectUrl = $"/MentorshipManage/Goals?matchId={matchId}";
+
+                // notify mentor
+                await _notificationService.CreateNotificationAsync(
+                    match.MentorId,
+                    notificationTitle,
+                    notificationMessage,
+                    "goal_completed",
+                    finishIconSvg,
+                    redirectUrl
+                );
+
+                // notify mentee
+                await _notificationService.CreateNotificationAsync(
+                    match.MenteeId,
+                    notificationTitle,
+                    notificationMessage,
+                    "goal_completed",
+                    finishIconSvg,
+                    redirectUrl
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to create completion notifications after marking goal done (matchId={MatchId}, goalId={GoalId}).", matchId, goalId);
+                // do not fail the user flow if notifications fail
+            }
+
             return RedirectToAction("Goals", new { matchId });
         }
 

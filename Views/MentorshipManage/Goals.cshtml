@@ -59,7 +59,7 @@
                     @if (Model.IsCurrentUserMentor)
                     {
                         <a href="@Url.Action("CreateGoal", new { matchId = Model.MatchId })"
-                           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-geh hover:bg-blue-geh">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                             </svg>
@@ -76,7 +76,7 @@
                             <!-- Add custom goal indicators -->
                             @if (goal.IsCustomGoal)
                             {
-                                
+
                             }
 
                             <!-- Rest of your existing goal content -->
@@ -110,7 +110,7 @@
                                                         <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                                             <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
                                                         </svg>
-                                                        <span>Completed by both</span>
+                                                        <span>Goal Completed</span>
                                                     }
                                                     else
                                                     {
@@ -130,16 +130,86 @@
 
                                 <!-- Action -->
                                 <div class="w-full md:w-auto">
-                                    @if (goal.ShowMarkAsDoneButton)
+                                    @if (goal.IsCurrentUserMentor && goal.HasMenteeEvidence && goal.HasMentorNote)
                                     {
-                                        <form asp-action="MarkGoalAsDone" method="post" class="w-full md:w-auto">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="matchId" value="@Model.MatchId" />
-                                            <input type="hidden" name="goalId" value="@goal.GoalId" />
-                                            <button type="submit" class="w-full md:w-auto focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-4 py-2.5">
-                                                Mark as Done
-                                            </button>
-                                        </form>
+                                        <div class="flex flex-col md:flex-row lg:flex-col gap-2">
+                                            <a href="@Url.Action("ViewMenteeSubmission", new { matchId = Model.MatchId, goalId = goal.GoalId })"
+                                               class="w-full md:w-auto focus:outline-none text-gray-500 bg-beige-geh hover:bg-beige-geh focus:ring-4 focus:ring-beige-geh font-medium rounded-lg text-sm px-4 py-2.5 inline-block text-center">
+                                                View Submission
+                                            </a>
+                                            <a href="@Url.Action("SubmitMentorNote", new { matchId = Model.MatchId, goalId = goal.GoalId })"
+                                               class="w-full md:w-auto focus:outline-none text-white bg-orange-geh hover:bg-orange-geh focus:ring-4 focus:ring-orange-300 font-medium rounded-lg text-sm px-4 py-2.5 inline-block text-center">
+                                                My Notes
+                                            </a>
+                                        </div>
+                                    }
+                                    else if (!goal.IsCurrentUserMentor && goal.HasMentorNote && goal.HasMenteeEvidence)
+                                    {
+                                        <div class="flex flex-col md:flex-row lg:flex-col gap-2">
+                                            <a href="@Url.Action("ViewMentorNotes", new { matchId = Model.MatchId, goalId = goal.GoalId })"
+                                               class="w-full md:w-auto focus:outline-none text-gray-500 bg-beige-geh hover:bg-beige-geh focus:ring-4 focus:ring-beige-geh font-medium rounded-lg text-sm px-4 py-2.5 inline-block text-center">
+                                                View Mentor's Note
+                                            </a>
+                                            <a href="@Url.Action("SubmitMenteeEvidence", new { matchId = Model.MatchId, goalId = goal.GoalId })"
+                                               class="w-full md:w-auto focus:outline-none text-white bg-orange-geh hover:bg-orange-geh focus:ring-4 focus:ring-orange-300 font-medium rounded-lg text-sm px-4 py-2.5 inline-block text-center">
+                                                My Notes
+                                            </a>
+                                        </div>
+                                    }
+                                    else if (goal.ShowMarkAsDoneButton)
+                                    {
+                                        var needsEvidence = !goal.IsCurrentUserMentor && !goal.HasMenteeEvidence && goal.HasMentorNote;
+                                        var needsMentorNote = goal.IsCurrentUserMentor && !goal.HasMentorNote;
+
+                                        var hasEvidence = !goal.IsCurrentUserMentor && goal.HasMentorNote;
+                                        var hasMentorNote = goal.IsCurrentUserMentor && goal.HasMentorNote;
+
+                                        @if (needsEvidence)
+                                        {
+                                            <div class="flex flex-col md:flex-row lg:flex-col gap-2">
+                                                <a href="@Url.Action("ViewMentorNotes", new { matchId = Model.MatchId, goalId = goal.GoalId })"
+                                                   class="w-full md:w-auto focus:outline-none text-gray-500 bg-beige-geh hover:bg-beige-geh focus:ring-4 focus:ring-beige-geh font-medium rounded-lg text-sm px-4 py-2.5 inline-block text-center">
+                                                    View Mentor's Note
+                                                </a>
+                                                <a href="@Url.Action("SubmitMenteeEvidence", new { matchId = Model.MatchId, goalId = goal.GoalId })"
+                                                   class="w-full md:w-auto focus:outline-none text-white bg-orange-geh hover:bg-orange-geh focus:ring-4 focus:ring-orange-300 font-medium rounded-lg text-sm px-4 py-2.5 inline-block text-center">
+                                                    Submit Notes
+                                                </a>
+                                            </div>
+                                        }
+                                        else if (!goal.HasMentorNote && !goal.IsCurrentUserMentor && !goal.HasMenteeEvidence)
+                                        {
+                                            <div class="text-sm text-gray-500 mt-3 text-center md:text-right">
+                                                <span>Waiting for mentor's notes before you can submit</span>
+                                            </div>
+                                        }
+                                        else if (needsMentorNote)
+                                        {
+                                            <a href="@Url.Action("SubmitMentorNote", new { matchId = Model.MatchId, goalId = goal.GoalId })"
+                                               class="w-full md:w-auto focus:outline-none text-white bg-orange-geh hover:bg-orange-geh focus:ring-4 focus:ring-orange-300 font-medium rounded-lg text-sm px-4 py-2.5 inline-block text-center">
+                                                Submit Notes
+                                            </a>
+                                        }
+                                        else if (hasEvidence)
+                                        {
+                                            <div class="flex flex-col md:flex-row lg:flex-col gap-2">
+                                                <a href="@Url.Action("ViewMentorNotes", new { matchId = Model.MatchId, goalId = goal.GoalId })"
+                                                   class="w-full md:w-auto focus:outline-none text-gray-500 bg-beige-geh hover:bg-beige-geh focus:ring-4 focus:ring-beige-geh font-medium rounded-lg text-sm px-4 py-2.5 inline-block text-center">
+                                                    View Mentor's Note'
+                                                </a>
+                                                <a href="@Url.Action("SubmitMenteeEvidence", new { matchId = Model.MatchId, goalId = goal.GoalId })"
+                                                   class="w-full md:w-auto focus:outline-none text-white bg-orange-geh hover:bg-orange-geh focus:ring-4 focus:ring-orange-300 font-medium rounded-lg text-sm px-4 py-2.5 inline-block text-center">
+                                                    My Notes
+                                                </a>
+                                            </div>
+                                        }
+                                        else if (hasMentorNote)
+                                        {
+                                            <a href="@Url.Action("SubmitMentorNote", new { matchId = Model.MatchId, goalId = goal.GoalId })"
+                                               class="w-full md:w-auto focus:outline-none text-white bg-orange-geh hover:bg-orange-geh focus:ring-4 focus:ring-orange-300 font-medium rounded-lg text-sm px-4 py-2.5 inline-block text-center">
+                                                My Notes
+                                            </a>
+                                        }
                                     }
                                     else if (!goal.IsFullyCompleted)
                                     {
@@ -177,9 +247,9 @@
                                         @if (!string.IsNullOrEmpty(goal.Priority))
                                         {
                                             <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                                                      @(goal.Priority == "High" ? "bg-red-100 text-red-800" :
-                                                                                                                                goal.Priority == "Medium" ? "bg-yellow-100 text-yellow-800" :
-                                                                                                                                "bg-green-100 text-green-800") mr-2">
+                                                                                                                  @(goal.Priority == "High" ? "bg-red-100 text-red-800" :
+                                                                                                                                                                                                                                                                                                                                                                                          goal.Priority == "Medium" ? "bg-yellow-100 text-yellow-800" :
+                                                                                                                                                                                                                                                                                                                                                                                          "bg-green-100 text-green-800") mr-2">
                                     @goal.Priority Priority
                                 </span>
                                                                 }

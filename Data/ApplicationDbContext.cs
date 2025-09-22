@@ -25,6 +25,9 @@ namespace Freelancing.Data
         public DbSet<MentorshipGoalCompletion> MentorshipGoalCompletions { get; set; }
         public DbSet<MentorReview> MentorReviews { get; set; }
 
+        public DbSet<MenteeSessionEvidence> MenteeSessionEvidences { get; set; }
+        public DbSet<MentorSessionNote> MentorSessionNotes { get; set; }
+
         // New chat-related entities
         public DbSet<MentorshipChatMessage> MentorshipChatMessages { get; set; }
         public DbSet<MentorshipChatFile> MentorshipChatFiles { get; set; }
@@ -224,6 +227,67 @@ namespace Freelancing.Data
                 .Property(mcf => mcf.UploadedAt)
                 .HasDefaultValueSql("GETUTCDATE()");
 
+            modelBuilder.Entity<MenteeSessionEvidence>()
+                .HasOne(mse => mse.MentorshipMatch)
+                .WithMany()
+                .HasForeignKey(mse => mse.MentorshipMatchId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<MenteeSessionEvidence>()
+                .HasOne(mse => mse.Goal)
+                .WithMany()
+                .HasForeignKey(mse => mse.GoalId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<MenteeSessionEvidence>()
+                .HasOne(mse => mse.User)
+                .WithMany()
+                .HasForeignKey(mse => mse.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // Ensure unique evidence per goal per mentorship
+            modelBuilder.Entity<MenteeSessionEvidence>()
+                .HasIndex(mse => new { mse.MentorshipMatchId, mse.GoalId, mse.UserId })
+                .IsUnique();
+
+            modelBuilder.Entity<MenteeSessionEvidence>()
+                .HasIndex(mse => mse.SubmittedAt);
+
+            modelBuilder.Entity<MenteeSessionEvidence>()
+                .Property(mse => mse.SubmittedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            // MentorSessionNote relationships and configurations
+            modelBuilder.Entity<MentorSessionNote>()
+                .HasOne(msn => msn.MentorshipMatch)
+                .WithMany()
+                .HasForeignKey(msn => msn.MentorshipMatchId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<MentorSessionNote>()
+                .HasOne(msn => msn.Goal)
+                .WithMany()
+                .HasForeignKey(msn => msn.GoalId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<MentorSessionNote>()
+                .HasOne(msn => msn.Mentor)
+                .WithMany()
+                .HasForeignKey(msn => msn.MentorId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // Ensure unique note per goal per mentorship
+            modelBuilder.Entity<MentorSessionNote>()
+                .HasIndex(msn => new { msn.MentorshipMatchId, msn.GoalId, msn.MentorId })
+                .IsUnique();
+
+            modelBuilder.Entity<MentorSessionNote>()
+                .HasIndex(msn => msn.SubmittedAt);
+
+            modelBuilder.Entity<MentorSessionNote>()
+                .Property(msn => msn.SubmittedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
             // MentorshipGoalCompletion relationships and configurations
             modelBuilder.Entity<MentorshipGoalCompletion>()
                 .HasOne(mgc => mgc.MentorshipMatch)
@@ -265,6 +329,19 @@ namespace Freelancing.Data
                 .HasOne(mgc => mgc.CompletedByUser)
                 .WithMany()
                 .HasForeignKey(mgc => mgc.CompletedByUserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // New relationships for evidence and notes
+            modelBuilder.Entity<MentorshipGoalCompletion>()
+                .HasOne(mgc => mgc.MenteeEvidence)
+                .WithMany()
+                .HasForeignKey(mgc => mgc.MenteeEvidenceId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<MentorshipGoalCompletion>()
+                .HasOne(mgc => mgc.MentorNote)
+                .WithMany()
+                .HasForeignKey(mgc => mgc.MentorNoteId)
                 .OnDelete(DeleteBehavior.NoAction);
 
             // Add indexes for better performance

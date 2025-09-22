@@ -427,6 +427,31 @@ namespace Freelancing.Controllers
             // Get goal progress for the mentee
             dashboardModel.CompletedGoalsCount = await GetCompletedGoalsCountAsync(currentUserId);
 
+            // Only show the most recent mentor notes (adjust takeCount if you need more/less)
+            const int takeCount = 2;
+            var recentMentorNotes = await _context.MentorSessionNotes
+                .Include(n => n.MentorshipMatch)
+                .ThenInclude(mm => mm.Mentor)
+                .Where(n => n.MentorshipMatch.MenteeId == currentUserId)
+                .OrderByDescending(n => n.SubmittedAt)
+                .Select(n => new
+                {
+                    NoteId = n.Id,
+                    MatchId = n.MentorshipMatchId,
+                    MentorId = n.MentorshipMatch.MentorId,
+                    MentorName = n.MentorshipMatch.Mentor.FirstName + " " + n.MentorshipMatch.Mentor.LastName,
+                    NoteText = n.Notes,
+                    ProgressRating = n.ProgressRating,
+                    IsTaskAssigned = n.IsTaskAssigned,
+                    TaskTitle = n.TaskTitle,
+                    TaskDescription = n.TaskDescription,
+                    SubmittedAt = n.SubmittedAt
+                })
+                .Take(takeCount)
+                .ToListAsync();
+
+            ViewBag.RecentMentorNotes = recentMentorNotes;
+
             return View(dashboardModel);
         }
 

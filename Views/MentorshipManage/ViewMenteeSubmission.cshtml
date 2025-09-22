@@ -1,0 +1,210 @@
+﻿@model Freelancing.Models.MenteeEvidenceDisplayViewModel
+@{
+    Layout = "_LayoutFreelancer";
+    ViewData["Title"] = "Mentee Submission";
+}
+
+<div class="p-4 sm:ml-64">
+    <div class="pt-2 mt-20">
+        <div class="mt-1">
+            <div class="block w-full p-6">
+                <div class="flex items-center space-x-4 mb-4">
+                    <a href="@Url.Action("Goals", new { matchId = Model.MatchId })" class="text-blue-600 hover:text-blue-800">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                    </a>
+                    <h2 class="text-2xl font-bold text-gray-900">Submission for: @Model.GoalName</h2>
+                </div>
+                <p class="text-sm text-gray-600 mb-4">Submitted by: <strong>@Model.MenteeName</strong></p>
+
+                @if (!Model.Evidences.Any())
+                {
+                    <div class="text-sm text-gray-500">No submission found.</div>
+                }
+                else
+                {
+                    @foreach (var e in Model.Evidences)
+                    {
+                        <div class="mb-6">
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+                                <textarea rows="6" readonly class="form-control block w-full p-3 text-sm text-gray-900 border border-gray-300 rounded-lg"
+                                  placeholder="Describe in detail what you learned, practiced, or accomplished during this session. Include specific examples, code snippets, projects worked on, or skills demonstrated.">@(e.WhatWasDone ?? "")</textarea>
+                            </div>
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Additional Notes</label>
+                                <textarea rows="6" readonly class="form-control block w-full p-3 text-sm text-gray-900 border border-gray-300 rounded-lg"
+                                  placeholder="">@(e.AdditionalNotes ?? "")</textarea>
+                            </div>
+                            @if (Model.IsTaskAssigned == true){
+                                <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+                                    <h3 class="text-lg font-semibold text-orange-800 mb-2">@Model.TaskTitle</h3>
+                                    <p class="text-orange-500 text-sm">@Model.TaskDescription</p>
+                                </div>
+                                @if (!string.IsNullOrEmpty(e.EvidenceFilePaths))
+                                {
+                                    <div class="mt-2">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Submitted Work</label>
+                                        <div class="flex flex-wrap gap-2 mt-2">
+                                            @{
+                                                try
+                                                {
+                                                    var fileNames = System.Text.Json.JsonSerializer.Deserialize<List<string>>(e.EvidenceFilePaths) ?? new List<string>();
+                                                    var uploadsBase = "/uploads/mentorship-evidence/";
+                                                    foreach (var stored in fileNames)
+                                                    {
+                                                        var storedFileName = System.IO.Path.GetFileName(stored);
+                                                        var displayName = System.Text.RegularExpressions.Regex.Replace(storedFileName, @"^[0-9a-fA-F\-]{36}_", "");
+                                                        var href = stored.StartsWith("/") ? stored : uploadsBase + storedFileName;
+                                                        <a href="@href" target="_blank" class="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-700 rounded">@displayName</a>
+                                                    }
+                                                }
+                                                catch
+                                                {
+                                                    <span class="text-sm text-gray-500">Error loading files</span>
+                                                }
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            <div class="text-xs text-gray-500 mt-8">@e.SubmittedAt.ToString("MMM dd, yyyy 'at' h:mm tt")</div>
+                            <div class="flex items-end justify-end">
+                                @if (Model.IsFullyCompleted == false)
+                                {
+                                    <button type="button"
+                                            data-match="@Model.MatchId"
+                                            data-goal="@Model.GoalId"
+                                            data-goalname="@Model.GoalName"
+                                            onclick="openFinishProjectModal(this)"
+                                            class="w-full md:w-auto focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-4 py-2.5">
+                                        Mark Goal as Done
+                                    </button>
+                                }
+                                else
+                                {
+                                    
+                                }
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="confirmMarkDoneForm" asp-action="MarkGoalAsDone" method="post" class="hidden">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="matchId" id="confirmMatchId" value="" />
+    <input type="hidden" name="goalId" id="confirmGoalId" value="" />
+</form>
+<div id="finishProjectModal" tabindex="-1" class="hidden fixed inset-0 z-50 overflow-y-auto overflow-x-hidden" aria-hidden="true" aria-modal="true" role="dialog">
+    <div class="modal-backdrop absolute inset-0 backdrop-blur-md bg-black/20"></div>
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="relative w-full max-w-md">
+            <div class="relative bg-white rounded-lg shadow">
+                <button type="button" class="absolute top-3 end-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center" onclick="closeFinishProjectModal()">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                </button>
+
+                <div class="p-6 text-center">
+                    <svg class="mx-auto mb-4 text-gray-500 w-12 h-12" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 11V6m0 8h.01M19 10a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    </svg>
+                    <h3 id="finishProjectModalTitle" class="mb-5 text-lg font-normal text-gray-800">Are you sure you want to mark this goal as done?</h3>
+                    <p id="finishProjectModalBody" class="mb-5 text-sm text-gray-600">The other party will be notified and must also confirm completion.</p>
+
+                    <button type="button"
+                            id="finishProjectConfirmBtn"
+                            onclick="submitFinishProject()"
+                            class="text-white bg-green-600 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center me-2">
+                        Yes, mark as done
+                    </button>
+                    <button type="button"
+                            onclick="closeFinishProjectModal()"
+                            class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10">
+                        No, cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            // Open modal, populate confirm form values and UI text.
+            window.openFinishProjectModal = function (btn) {
+                try {
+                    var matchId = btn?.dataset?.match;
+                    var goalId = btn?.dataset?.goal;
+                    var goalName = btn?.dataset?.goalname || '';
+
+                    var modal = document.getElementById('finishProjectModal');
+                    var title = document.getElementById('finishProjectModalTitle');
+                    var body = document.getElementById('finishProjectModalBody');
+                    var confirmMatch = document.getElementById('confirmMatchId');
+                    var confirmGoal = document.getElementById('confirmGoalId');
+
+                    if (!modal || !confirmMatch || !confirmGoal) return;
+
+                    confirmMatch.value = matchId || '';
+                    confirmGoal.value = goalId || '';
+
+                    // customize modal text
+                    title.textContent = 'Mark goal as done';
+                    body.textContent = goalName ? `Are you sure you want to mark "${goalName}" as done? The mentee will be notified.` : 'Are you sure you want to mark this goal as done?';
+
+                    modal.classList.remove('hidden');
+                    modal.setAttribute('aria-hidden', 'false');
+                } catch (ex) {
+                    console.error('openFinishProjectModal error', ex);
+                }
+            };
+
+            window.closeFinishProjectModal = function () {
+                try {
+                    var modal = document.getElementById('finishProjectModal');
+                    if (!modal) return;
+                    modal.classList.add('hidden');
+                    modal.setAttribute('aria-hidden', 'true');
+                } catch (ex) {
+                    console.error('closeFinishProjectModal error', ex);
+                }
+            };
+
+            window.submitFinishProject = function () {
+                try {
+                    // Submit the hidden form to perform MarkGoalAsDone POST
+                    var form = document.getElementById('confirmMarkDoneForm');
+                    if (!form) {
+                        console.error('confirmMarkDoneForm not found');
+                        return;
+                    }
+                    // optionally disable the confirm button to avoid double submits
+                    var btn = document.getElementById('finishProjectConfirmBtn');
+                    if (btn) { btn.disabled = true; btn.textContent = 'Submitting...'; }
+                    form.submit();
+                } catch (ex) {
+                    console.error('submitFinishProject error', ex);
+                }
+            };
+
+            // close modal when pressing Escape
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    var modal = document.getElementById('finishProjectModal');
+                    if (modal && !modal.classList.contains('hidden')) {
+                        closeFinishProjectModal();
+                    }
+                }
+            });
+        })();
+    </script>
+}

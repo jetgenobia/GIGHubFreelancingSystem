@@ -25,7 +25,10 @@
     --color-shalimar: #FAFFB8;
     --color-aero: #C7FFF0;
     --color-orange-landing: #FFA857;
-    
+    --color-beige-geh: #F9EBB2;
+    --color-blue-geh: #45AAB8;
+    --color-orange-geh: #F76D57;
+
     --font-sans: InterVariable, sans-serif;
     --font-family-body: Inter, ui-sans-serif, system-ui, -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
     --font-family-sans: Inter, ui-sans-serif, system-ui, -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";

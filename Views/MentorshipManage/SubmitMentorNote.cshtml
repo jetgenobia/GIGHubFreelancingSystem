@@ -1,0 +1,240 @@
+﻿@model Freelancing.Models.MentorNoteFormViewModel
+@{
+    Layout = "_LayoutFreelancer";
+    ViewData["Title"] = "Submit Session Notes";
+}
+
+<div class="p-4 sm:ml-64">
+    <div class="pt-2 mt-20">
+        <div class="mt-1">
+            <div class="block w-full p-6">
+                <div class="flex items-center space-x-4 mb-4">
+                    <a href="@Url.Action("Goals", new { matchId = Model.MatchId })" class="text-blue-600 hover:text-blue-800">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                    </a>
+                    <h2 class="text-2xl font-bold text-gray-900">Submit Session Notes</h2>
+                </div>
+
+                @if (TempData["Error"] != null)
+                {
+                    <div class="mt-2 p-4 mb-4 text-sm text-red-800 border border-red-300 rounded-lg bg-red-50" role="alert">
+                        <svg class="shrink-0 inline w-4 h-4 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
+                        </svg>
+                        <span class="sr-only">Error!</span>
+                        <div>
+                            @TempData["Error"]
+                        </div>
+                    </div>
+                }
+                @if (TempData["Success"] != null)
+                {
+                    <div class="mt-2 flex items-center p-4 mb-4 text-sm text-green-800 border border-green-300 rounded-lg bg-green-50" role="alert">
+                        <svg class="shrink-0 inline w-4 h-4 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z" />
+                        </svg>
+                        <span class="sr-only">Success</span>
+                        <div>
+                            @TempData["Success"]
+                        </div>
+                    </div>
+                }
+
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <h3 class="text-lg font-semibold text-blue-900 mb-2">@Model.GoalName</h3>
+                    <p class="text-blue-700 text-sm">@Model.GoalDescription</p>
+                    <p class="text-blue-600 text-sm mt-2"><strong>Mentee:</strong> @Model.MenteeName</p>
+                </div>
+
+                <form asp-action="SubmitMentorNote" method="post" class="space-y-6" id="mentor-note-form">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="MatchId" />
+                    <input type="hidden" asp-for="GoalId" />
+                    <input type="hidden" asp-for="GoalName" />
+                    <input type="hidden" asp-for="GoalDescription" />
+                    <input type="hidden" asp-for="MenteeName" />
+
+                    <div>
+                        @if (Model.IsFullyCompleted == false)
+                        {
+                            <label asp-for="Notes" class="block text-sm font-medium text-gray-700 mb-2"></label>
+                            <textarea asp-for="Notes" rows="6" class="form-control block w-full p-3 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                                      placeholder="Provide detailed notes about this mentorship session. What did you cover? How did the mentee perform? What concepts were discussed?"></textarea>
+                            <span asp-validation-for="Notes" class="text-red-600 text-sm"></span>
+                        }
+                        else
+                        {
+                            <label asp-for="Notes" class="block text-sm font-medium text-gray-700 mb-2"></label>
+                            <textarea asp-for="Notes" readonly rows="6" class="form-control block w-full p-3 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                                      placeholder="Provide detailed notes about this mentorship session. What did you cover? How did the mentee perform? What concepts were discussed?"></textarea>
+                            <span asp-validation-for="Notes" class="text-red-600 text-sm"></span>
+                        }
+                    </div>
+
+                    <div>
+                        @if (Model.IsFullyCompleted == false)
+                        {
+                            <label asp-for="Feedback" class="block text-sm font-medium text-gray-700 mb-2"></label>
+                            <textarea asp-for="Feedback" rows="4" class="form-control block w-full p-3 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                                      placeholder="Provide constructive feedback for your mentee. What did they do well? What areas need improvement?"></textarea>
+                            <span asp-validation-for="Feedback" class="text-red-600 text-sm"></span>
+                        }
+                        else
+                        {
+                            <label asp-for="Feedback" class="block text-sm font-medium text-gray-700 mb-2"></label>
+                            <textarea asp-for="Feedback" readonly rows="4" class="form-control block w-full p-3 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                                      placeholder="Provide constructive feedback for your mentee. What did they do well? What areas need improvement?"></textarea>
+                            <span asp-validation-for="Feedback" class="text-red-600 text-sm"></span>
+                        }
+                    </div>
+
+                    <div>
+                        @if (Model.IsFullyCompleted == false)
+                        {
+                            <label asp-for="ProgressRating" class="block text-sm font-medium text-gray-700 mb-2"></label>
+                            <select asp-for="ProgressRating" class="form-control border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                                <option value="">Select a rating</option>
+                                <option value="1">1 - Needs significant improvement</option>
+                                <option value="2">2 - Below expectations</option>
+                                <option value="3">3 - Meets expectations</option>
+                                <option value="4">4 - Exceeds expectations</option>
+                                <option value="5">5 - Outstanding progress</option>
+                            </select>
+                            <span asp-validation-for="ProgressRating" class="text-red-600 text-sm"></span>
+                        }
+                        else
+                        {
+                            <label asp-for="ProgressRating" class="block text-sm font-medium text-gray-700 mb-2"></label>
+                            <select asp-for="ProgressRating" disabled class="form-control border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                                <option value="">Select a rating</option>
+                                <option value="1">1 - Needs significant improvement</option>
+                                <option value="2">2 - Below expectations</option>
+                                <option value="3">3 - Meets expectations</option>
+                                <option value="4">4 - Exceeds expectations</option>
+                                <option value="5">5 - Outstanding progress</option>
+                            </select>
+                            <input type="hidden" asp-for="ProgressRating" />
+                            <span asp-validation-for="ProgressRating" class="text-red-600 text-sm"></span>
+                        }
+
+                    </div>
+
+                    <div>
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input asp-for="IsTaskAssigned"
+                                   id="assignTaskCheckbox"
+                                   type="checkbox"
+                                   class="sr-only peer"
+                                   disabled="@(Model.IsFullyCompleted ? "disabled" : null)"
+                                   aria-disabled="@(Model.IsFullyCompleted ? "true" : "false")" />
+                            <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            <span class="ms-3 text-sm font-medium text-gray-900">Would you like to assign a task?</span>
+                        </label>
+                        @if (Model.IsFullyCompleted)
+                        {
+                            <input type="hidden" asp-for="IsTaskAssigned" />
+                        }
+                    </div>
+
+                    <div id="Task" class="@(Model.IsTaskAssigned ? "" : "hidden")">
+                        <div>
+                            @if (Model.IsFullyCompleted == false)
+                            {
+                                <label asp-for="TaskTitle" class="block text-sm font-medium text-gray-700 mb-2"></label>
+                                <input asp-for="TaskTitle" rows="4" class="form-control block w-full p-3 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 mb-6" />
+                                <span asp-validation-for="TaskTitle" class="text-red-600 text-sm"></span>
+                            }
+                            else
+                            {
+                                <label asp-for="TaskTitle" class="block text-sm font-medium text-gray-700 mb-2"></label>
+                                <input asp-for="TaskTitle" readonly rows="4" class="form-control block w-full p-3 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 mb-6" />
+                                <span asp-validation-for="TaskTitle" class="text-red-600 text-sm"></span>
+                            }
+                        </div>
+
+                        <div>
+                            @if (Model.IsFullyCompleted == false)
+                            {
+                                <label asp-for="TaskDescription" class="block text-sm font-medium text-gray-700 mb-2"></label>
+                                <textarea asp-for="TaskDescription" rows="4" class="form-control block w-full p-3 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"></textarea>
+                                <span asp-validation-for="TaskDescription" class="text-red-600 text-sm"></span>
+                            }
+                            else
+                            {
+                                <label asp-for="TaskDescription" class="block text-sm font-medium text-gray-700 mb-2"></label>
+                                <textarea asp-for="TaskDescription" readonly rows="4" class="form-control block w-full p-3 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"></textarea>
+                                <span asp-validation-for="TaskDescription" class="text-red-600 text-sm"></span>
+                            }
+                        </div>
+                    </div>
+
+                    @if (Model.IsFullyCompleted == false)
+                    {
+                        <div class="flex items-center justify-end space-x-4">
+                            <a href="@Url.Action("Goals", new { matchId = Model.MatchId })"
+                               class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 border border-gray-300 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                                Cancel
+                            </a>
+                            <button type="submit" id="mentor-submit-btn"
+                                    class="px-6 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                Submit Notes
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+
+                    }
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            try {
+                console.log('SubmitMentorNote page loaded');
+                const form = document.getElementById('mentor-note-form');
+                const submitBtn = document.getElementById('mentor-submit-btn');
+                if (!form) { console.error('mentor-note-form not found'); return; }
+
+                // Toggle task block based on checkbox
+                const checkbox = document.getElementById('assignTaskCheckbox');
+                const taskBlock = document.getElementById('Task');
+
+                function updateTaskVisibility() {
+                    if (!checkbox) return;
+                    if (checkbox.checked) {
+                        taskBlock.classList.remove('hidden');
+                    } else {
+                        taskBlock.classList.add('hidden');
+                        document.querySelector('[name="TaskTitle"]').value = '';
+                        document.querySelector('[name="TaskDescription"]').value = '';
+                    }
+                }
+
+                if (checkbox) {
+                    checkbox.addEventListener('change', updateTaskVisibility);
+                    // initialize visibility on load
+                    updateTaskVisibility();
+                }
+
+                form.addEventListener('submit', function (e) {
+                    console.log('mentor note form submit event fired');
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Submitting...';
+                });
+            } catch (err) {
+                console.error('SubmitMentorNote script error', err);
+            }
+        });
+    </script>
+}

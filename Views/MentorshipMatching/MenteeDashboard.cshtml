@@ -85,7 +85,7 @@
             }
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div class="md:col-span-2 w-full max-w p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
+            <div class="w-full max-w p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
                 <div class="flex items-center justify-between mb-4">
                     <h5 class="text-xl font-bold leading-none text-gray-900">My Mentor</h5>
                 </div>
@@ -253,6 +253,58 @@
                             </a>
                         </div>
                     }
+                </div>
+            </div>
+            <div class="w-full max-w p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
+                <div class="flex items-center justify-between mb-4">
+                    <h5 class="text-xl font-bold leading-none text-gray-900">Recent Session Notes</h5>
+                    @{
+                        var recentNotes = ViewBag.RecentMentorNotes as IEnumerable<dynamic>;
+                        string? viewAllMatchId = null;
+                        if (recentNotes != null && recentNotes.Any())
+                        {
+                            var firstNote = recentNotes.FirstOrDefault();
+                            viewAllMatchId = firstNote?.MatchId?.ToString();
+                        }
+
+                        if (string.IsNullOrEmpty(viewAllMatchId))
+                        {
+                            viewAllMatchId = Model.RequestsSent.FirstOrDefault(r => r.Status == "Active")?.Id.ToString()
+                            ?? Model.RequestsSent.FirstOrDefault()?.Id.ToString();
+                        }
+                    }
+                    <a asp-controller ="MentorshipManage"
+                                     asp-action="Goals"
+                                     asp-route-matchId="@viewAllMatchId" type="button" class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-full text-xs px-3 py-1.5 me-2 mb-2">View All</a>
+                </div>
+                <div class="recent-mentor-notes">
+                    <ul role="list" class="divide-y divide-gray-300">
+                        @if (ViewBag.RecentMentorNotes is IEnumerable<object> notes && notes.Any())
+                        {
+                            @foreach (dynamic n in notes)
+                            {
+                                <li class="py-3 sm:py-4">
+                                    <div class="flex items-center justify-between">
+                                        <div class="min-w-0 flex-1">
+                                            @if (!string.IsNullOrWhiteSpace((string?)n.NoteText))
+                                            {
+                                                <div class="text-sm font-medium text-gray-900 line-clamp-2" title="@n.NoteText">@n.NoteText</div>
+                                            }
+                                            else
+                                            {
+                                                <div class="text-sm font-medium text-gray-400">No session notes.</div>
+                                            }
+                                            <div class="text-sm text-gray-600 mt-1">@(n.SubmittedAt?.ToString("MMM dd, yyyy h:mm tt") ?? "")</div>
+                                        </div>
+                                    </div>
+                                </li>
+                            }
+                        }
+                        else
+                        {
+                            <li class="py-3 sm:py-4"><div class="text-sm text-center text-gray-500">No session notes.</div></li>
+                        }
+                    </ul>
                 </div>
             </div>
             <div class="w-full max-w p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
