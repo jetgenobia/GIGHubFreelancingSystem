@@ -96,8 +96,8 @@ namespace Freelancing.Controllers
                     // Generate email confirmation token
                     var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
                     var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
-                    var callbackUrl = Url.Action("ConfirmEmail", "Account", 
-                        new { userId = user.Id, token = encodedToken }, 
+                    var callbackUrl = Url.Action("ConfirmEmail", "Account",
+                        new { userId = user.Id, token = encodedToken },
                         Request.Scheme);
 
                     try
@@ -432,9 +432,121 @@ namespace Freelancing.Controllers
             return View(model);
         }
 
-        public IActionResult ChangePassword()
+        [Authorize]
+        [HttpGet]
+        public async Task<IActionResult> AccountSettings(bool showAuthenticator = false)
         {
-            return View();
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Challenge();
+
+            var model = new AccountSettingsViewModel
+            {
+                IsTwoFactorEnabled = await _userManager.GetTwoFactorEnabledAsync(user),
+                // show the QR/setup UI only when requested and 2FA isn't already enabled
+                ShowEnableAuthenticator = showAuthenticator && !await _userManager.GetTwoFactorEnabledAsync(user)
+            };
+
+            if (model.ShowEnableAuthenticator)
+            {
+                await PopulateAuthenticatorFieldsAsync(model, user);
+            }
+
+            // If EnableAuthenticator POST put recovery codes in TempData, pick them up
+            if (TempData.ContainsKey("RecoveryCodes"))
+            {
+                var codesCsv = TempData["RecoveryCodes"]?.ToString();
+                if (!string.IsNullOrEmpty(codesCsv))
+                {
+                    model.RecoveryCodes = codesCsv.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                }
+            }
+
+            return View(model);
+        }
+
+        private async Task PopulateAuthenticatorFieldsAsync(AccountSettingsViewModel model, UserAccount user)
+        {
+            // Ensure an authenticator key exists
+            var unformattedKey = await _userManager.GetAuthenticatorKeyAsync(user);
+            if (string.IsNullOrEmpty(unformattedKey))
+            {
+                await _userManager.ResetAuthenticatorKeyAsync(user);
+                unformattedKey = await _userManager.GetAuthenticatorKeyAsync(user);
+            }
+
+            model.SharedKey = FormatKey(unformattedKey);
+            model.AuthenticatorUri = GenerateQrCodeUri(user.Email ?? user.UserName ?? "user", unformattedKey, "GIGHub");
+
+            // generate QR base64 image
+            using var qrGenerator = new QRCoder.QRCodeGenerator();
+            var qrData = qrGenerator.CreateQrCode(model.AuthenticatorUri, QRCoder.QRCodeGenerator.ECCLevel.Q);
+            using var png = new QRCoder.PngByteQRCode(qrData);
+            var bytes = png.GetGraphic(20);
+            model.QrCodeImageUrl = $"data:image/png;base64,{Convert.ToBase64String(bytes)}";
+        }
+
+        [Authorize]
+        [HttpGet]
+        public async Task<JsonResult> GetAuthenticatorSetup()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Json(new { ok = false });
+
+            var vm = new AccountSettingsViewModel();
+            await PopulateAuthenticatorFieldsAsync(vm, user);
+
+            return Json(new
+            {
+                ok = true,
+                sharedKey = vm.SharedKey,
+                qrImage = vm.QrCodeImageUrl,
+                authenticatorUri = vm.AuthenticatorUri
+            });
+        }
+
+
+        // POST endpoint to change password
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ChangePassword(AccountSettingsViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                // Return to the same view with validation messages
+                return View("AccountSettings", model);
+            }
+
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return Challenge(); // or NotFound
+            }
+
+            // Prevent reusing current password as new password
+            var isSameAsCurrent = await _userManager.CheckPasswordAsync(user, model.NewPassword);
+            if (isSameAsCurrent)
+            {
+                ModelState.AddModelError(nameof(model.NewPassword), "New password cannot be the same as the current password.");
+                return View("AccountSettings", model);
+            }
+
+            // Attempt to change password (this validates the current password and enforces password policy)
+            var result = await _userManager.ChangePasswordAsync(user, model.CurrentPassword, model.NewPassword);
+            if (result.Succeeded)
+            {
+                await _signInManager.RefreshSignInAsync(user);
+                TempData["ChangePasswordSuccess"] = "Your password has been changed successfully.";
+                return RedirectToAction("AccountSettings");
+            }
+
+            // Handle failures (invalid current password, password policy violations, etc.)
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError("", error.Description);
+            }
+
+            return View("AccountSettings", model);
         }
 
         [HttpGet]
@@ -557,23 +669,45 @@ namespace Freelancing.Controllers
         {
             var user = await _userManager.GetUserAsync(User) ?? throw new InvalidOperationException("User not found.");
 
-            // Normalize code
             var verificationCode = model.VerificationCode?.Replace(" ", string.Empty).Replace("-", string.Empty) ?? string.Empty;
 
             var isValid = await _userManager.VerifyTwoFactorTokenAsync(user, _userManager.Options.Tokens.AuthenticatorTokenProvider, verificationCode);
             if (!isValid)
             {
+                // Return the AccountSettings view with the QR + validation error inline
+                var vm = new AccountSettingsViewModel
+                {
+                    ShowEnableAuthenticator = true
+                };
+                await PopulateAuthenticatorFieldsAsync(vm, user);
                 ModelState.AddModelError("", "Verification code is invalid.");
-                // reload QR + key for view
-                return await EnableAuthenticator();
+                return View("AccountSettings", vm);
             }
 
             await _userManager.SetTwoFactorEnabledAsync(user, true);
 
             var recoveryCodes = await _userManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
+            // keep codes in TempData for the view render
             TempData["RecoveryCodes"] = string.Join(",", recoveryCodes);
 
-            return RedirectToAction("TwoFactorEnabled");
+            // Return AccountSettings view showing recovery codes inline
+            var resultVm = new AccountSettingsViewModel
+            {
+                IsTwoFactorEnabled = true,
+                RecoveryCodes = recoveryCodes.ToArray()
+            };
+
+            return View("AccountSettings", resultVm);
+        }
+
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult ConfirmRecoveryCodesSaved()
+        {
+            // remove transient codes and return to settings (2FA is enabled)
+            TempData.Remove("RecoveryCodes");
+            return RedirectToAction("AccountSettings");
         }
 
         [Authorize]
@@ -597,7 +731,7 @@ namespace Freelancing.Controllers
         [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ResetAuthenticatorConfirmed()
+        public async Task<IActionResult> ResetAuthenticatorConfirmed(string? returnUrl = null)
         {
             var user = await _userManager.GetUserAsync(User) ?? throw new InvalidOperationException("User not found.");
 
@@ -605,11 +739,18 @@ namespace Freelancing.Controllers
             // turn off 2FA — force re-setup
             await _userManager.SetTwoFactorEnabledAsync(user, false);
 
-            // After reset, redirect to EnableAuthenticator to get new key
-            return RedirectToAction("EnableAuthenticator");
+            // Provide a transient success message
+            TempData["Message"] = "Two-factor authenticator has been reset. You will need to re-enable it to generate new recovery codes.";
+
+            // If a local returnUrl was provided, redirect back there — otherwise go to AccountSettings
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            {
+                return Redirect(returnUrl);
+            }
+
+            return RedirectToAction("AccountSettings");
         }
 
-        [Authorize]
         [HttpGet]
         public IActionResult ManageRecoveryCodes()
         {
@@ -618,7 +759,6 @@ namespace Freelancing.Controllers
             return View();
         }
 
-        [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> GenerateNewRecoveryCodes()
