@@ -192,6 +192,40 @@ namespace Freelancing.Controllers
                 ViewBag.ContractCreatedAt = contract.CreatedAt;
                 ViewBag.ClientHasSigned = contract.ClientSignedAt.HasValue;
                 ViewBag.FreelancerHasSigned = contract.FreelancerSignedAt.HasValue;
+
+                if (!string.IsNullOrEmpty(contract.Timeline))
+                {
+                    try
+                    {
+                        using var doc = JsonDocument.Parse(contract.Timeline);
+                        var root = doc.RootElement;
+
+                        if (root.ValueKind == JsonValueKind.Object)
+                        {
+                            if (root.TryGetProperty("startDate", out var startEl) && startEl.ValueKind == JsonValueKind.String)
+                            {
+                                var startStr = startEl.GetString();
+                                if (!string.IsNullOrEmpty(startStr) && DateTime.TryParse(startStr, out var startDt))
+                                {
+                                    viewModel.ContractStartDate = startDt;
+                                }
+                            }
+
+                            if (root.TryGetProperty("deadline", out var deadlineEl) && deadlineEl.ValueKind == JsonValueKind.String)
+                            {
+                                var deadlineStr = deadlineEl.GetString();
+                                if (!string.IsNullOrEmpty(deadlineStr) && DateTime.TryParse(deadlineStr, out var deadlineDt))
+                                {
+                                    viewModel.ContractDeadline = deadlineDt;
+                                }
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // If parsing fails, silently ignore and fall back to project/bid dates.
+                    }
+                }
             }
             else
             {

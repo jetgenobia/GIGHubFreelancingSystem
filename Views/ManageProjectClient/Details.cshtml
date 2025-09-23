@@ -138,11 +138,18 @@
                                     <span class="text-gray-500">Category:</span>
                                     <span class="font-medium">@Model.ProjectCategory</span>
                                 </div>
+                                @if (Model.ContractStartDate.HasValue)
+                                {
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-500">Start Date:</span>
+                                        <span class="font-medium text-green-600">@Model.ContractStartDate.Value.ToString("MMM dd, yyyy")</span>
+                                    </div>
+                                }
                                 @if (Model.ProjectDeadline.HasValue)
                                 {
                                     <div class="flex justify-between">
                                         <span class="text-gray-500">Deadline:</span>
-                                        <span class="font-medium text-orange-600">@Model.ProjectDeadline.Value.ToString("MMM dd, yyyy 'at' h:mm tt")</span>
+                                        <span class="font-medium text-orange-600">@Model.ProjectDeadline.Value.ToString("MMM dd, yyyy h:mm tt")</span>
                                     </div>
                                 }
                                 else
@@ -150,13 +157,6 @@
                                     <div class="flex justify-between">
                                         <span class="text-gray-500">Deadline:</span>
                                         <span class="font-medium text-orange-600">No deadline set</span>
-                                    </div>
-                                }
-                                @if (Model.BiddingAcceptedDate.HasValue)
-                                {
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-500">Start Date:</span>
-                                        <span class="font-medium text-green-600">@Model.BiddingAcceptedDate.Value.ToString("MMM dd, yyyy")</span>
                                     </div>
                                 }
                             </div>

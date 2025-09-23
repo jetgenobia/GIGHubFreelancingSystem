@@ -184,10 +184,10 @@
             noFilesMessage.style.display = 'none';
 
             const fileItem = document.createElement('div');
-            fileItem.className = 'flex items-center justify-between p-2 bg-white rounded border border-gray-300';
+            fileItem.className = 'flex items-center justify-between p-2 bg-white rounded border border-gray-300 overflow-hidden';
 
             const fileInfo = document.createElement('div');
-            fileInfo.className = 'flex items-center space-x-2';
+            fileInfo.className = 'flex items-center space-x-2 min-w-0';
 
             const fileIcon = document.createElement('div');
             fileIcon.className = 'w-8 h-8 bg-blue-100 rounded flex items-center justify-center';
@@ -202,7 +202,7 @@
 
             const removeBtn = document.createElement('button');
             removeBtn.type = 'button';
-            removeBtn.className = 'text-red-500 hover:text-red-700';
+            removeBtn.className = 'flex-shrink-0 ml-2 text-red-500 hover:text-red-700';
             removeBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
             removeBtn.onclick = function() {
                 // Remove file from DataTransfer object
@@ -293,10 +293,10 @@
             updateHiddenInput();
 
             const linkItem = document.createElement('div');
-            linkItem.className = 'flex items-center justify-between p-2 bg-blue-50 rounded border border-gray-300';
+            linkItem.className = 'flex items-center justify-between p-2 bg-blue-50 rounded border border-gray-300 overflow-hidden';
 
             const linkInfo = document.createElement('div');
-            linkInfo.className = 'flex items-center space-x-2';
+            linkInfo.className = 'flex items-center space-x-2 min-w-0';
 
             const linkIcon = document.createElement('div');
             linkIcon.className = 'w-6 h-6 bg-blue-100 rounded flex items-center justify-center';
@@ -311,7 +311,7 @@
 
             const removeBtn = document.createElement('button');
             removeBtn.type = 'button';
-            removeBtn.className = 'text-red-500 hover:text-red-700 ml-2';
+            removeBtn.className = 'flex-shrink-0 ml-2 text-red-500 hover:text-red-700 ml-2';
             removeBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
             removeBtn.onclick = function() {
                 const index = repositoryLinks.indexOf(link);

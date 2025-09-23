@@ -534,7 +534,10 @@ namespace Freelancing.Controllers
 
         private async Task UpdateContractTermsAsync(Guid contractId, CreateContractViewModel model)
         {
-            var contract = await _context.Contracts.FindAsync(contractId);
+            var contract = await _context.Contracts
+                .Include(c => c.Project)
+                .FirstOrDefaultAsync(c => c.Id == contractId);
+
             if (contract == null) return;
 
             // Update payment terms
@@ -579,6 +582,29 @@ namespace Freelancing.Controllers
 
             // Update deliverable requirements
             contract.DeliverableRequirements = JsonSerializer.Serialize(model.DeliverableRequirements);
+
+            try
+            {
+                object? projectTarget = contract.Project ?? await _context.Projects.FindAsync(contract.ProjectId);
+                if (projectTarget != null)
+                {
+                    var prop = projectTarget.GetType().GetProperty("Deadline");
+                    if (prop != null && prop.CanWrite)
+                    {
+                        if (prop.PropertyType == typeof(DateTime) || prop.PropertyType == typeof(DateTime?))
+                        {
+                            prop.SetValue(projectTarget, model.Deadline);
+                        }
+                        else if (prop.PropertyType == typeof(string))
+                        {
+                            prop.SetValue(projectTarget, model.Deadline.ToString("yyyy-MM-ddTHH:mm"));
+                        }
+                    }
+                }
+            }
+            catch
+            {
+            }
 
             await _context.SaveChangesAsync();
 
