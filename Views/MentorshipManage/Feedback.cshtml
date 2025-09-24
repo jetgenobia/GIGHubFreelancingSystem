@@ -8,8 +8,28 @@
 <div class="p-4 sm:ml-64">
     <div class="p-4 mt-20">
         <div>
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">Mentor Feedback</h1>
-            <p class="text-gray-600">Share your thoughts with your mentor</p>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                @if (ViewBag.IsExistingReview == true)
+                {
+                    <text>Mentor Feedback</text>
+                }
+                else
+                {
+                    <text>Mentor Feedback</text>
+                }
+            </h1>
+            <p class="text-gray-600">
+                @if (ViewBag.IsExistingReview == true)
+                {
+                    <text>Share your thoughts about your mentor</text>
+                    <br />
+                    <span class="text-sm text-blue-600">Previously submitted on @ViewBag.ReviewSubmittedDate</span>
+                }
+                else
+                {
+                    <text>Share your thoughts with your mentor</text>
+                }
+            </p>
         </div>
         <div class="max-w-4xl mx-auto">
             @if (TempData["Error"] != null)
@@ -20,6 +40,17 @@
                     </svg>
                     <span class="sr-only">Error!</span>
                     <div>@TempData["Error"]</div>
+                </div>
+            }
+
+            @if (TempData["Success"] != null)
+            {
+                <div class="mb-6 p-4 text-sm text-green-800 border border-green-300 rounded-lg bg-green-50" role="alert">
+                    <svg class="shrink-0 inline w-4 h-4 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z" />
+                    </svg>
+                    <span class="sr-only">Success</span>
+                    <div>@TempData["Success"]</div>
                 </div>
             }
 
@@ -66,51 +97,49 @@
                         <span class="text-sm text-gray-600 ml-2" id="ratingText">Click to rate</span>
                     </div>
                     <input type="hidden" asp-for="Rating" id="ratingInput" />
-                    <div asp-validation-summary="ModelOnly" class="text-red-600 text-sm"></div>
+                    <span asp-validation-for="Rating" class="text-red-600 text-sm block text-center mt-2"></span>
                 </div>
 
-                                 <!-- Recommendation Section -->
-                 <div class="max-w-xl mx-auto">
-                     <h3 class="text-lg font-semibold text-gray-900 mb-4 text-center">Would you recommend this mentor to a friend?</h3>
-                     <div class="flex justify-center" style="gap: 20px;">
-                         <div class="flex items-center">
-                             <input type="radio" asp-for="WouldRecommend" value="true" id="recommendYes" class="sr-only" />
-                             <label for="recommendYes" class="recommend-btn">
-                                 Yes
-                             </label>
-                         </div>
-                         <div class="flex items-center">
-                             <input type="radio" asp-for="WouldRecommend" value="false" id="recommendNo" class="sr-only" />
-                             <label for="recommendNo" class="recommend-btn">
-                                 No
-                             </label>
-                         </div>
-                     </div>
-                     <div asp-validation-summary="ModelOnly" class="text-red-600 text-sm mt-2 text-center"></div>
-                 </div>
+                <!-- Recommendation Section -->
+                <div class="max-w-xl mx-auto">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4 text-center">Would you recommend this mentor to a friend?</h3>
+                    <div class="flex justify-center" style="gap: 20px;">
+                        <div class="flex items-center">
+                            <input type="radio" asp-for="WouldRecommend" value="true" id="recommendYes" class="sr-only" />
+                            <label for="recommendYes" class="recommend-btn">
+                                Yes
+                            </label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="radio" asp-for="WouldRecommend" value="false" id="recommendNo" class="sr-only" />
+                            <label for="recommendNo" class="recommend-btn">
+                                No
+                            </label>
+                        </div>
+                    </div>
+                    <span asp-validation-for="WouldRecommend" class="text-red-600 text-sm block text-center mt-2"></span>
+                </div>
 
                 <!-- Comments Section -->
                 <div class="max-w-xl mx-auto">
                     <h3 class="text-lg font-semibold text-gray-900 mb-4 text-center">General Comments</h3>
                     <textarea asp-for="Comments" rows="4" class="border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5" placeholder="Share your overall experience with this mentor..."></textarea>
-                    <div asp-validation-summary="ModelOnly" class="text-red-600 text-sm mt-2 text-center"></div>
+                    <span asp-validation-for="Comments" class="text-red-600 text-sm block mt-2"></span>
                 </div>
 
                 <!-- Strengths Section -->
                 <div class="max-w-xl mx-auto">
                     <h3 class="text-lg font-semibold text-gray-900 mb-4 text-center">Mentor's Strengths</h3>
                     <textarea asp-for="Strengths" rows="3" class="border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5" placeholder="What did this mentor do well? What were their strengths?"></textarea>
-                    <div asp-validation-summary="ModelOnly" class="text-red-600 text-sm mt-2"></div>
+                    <span asp-validation-for="Strengths" class="text-red-600 text-sm block mt-2"></span>
                 </div>
 
                 <!-- Areas for Improvement Section -->
                 <div class="max-w-xl mx-auto">
                     <h3 class="text-lg font-semibold text-gray-900 mb-4 text-center">Areas for Improvement</h3>
                     <textarea asp-for="AreasForImprovement" rows="3" class="border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5" placeholder="What could this mentor improve on? (Optional)"></textarea>
-                    <div asp-validation-summary="ModelOnly" class="text-red-600 text-sm mt-2"></div>
+                    <span asp-validation-for="AreasForImprovement" class="text-red-600 text-sm block mt-2"></span>
                 </div>
-
-
 
                 <!-- Submit Button -->
                 <div class="flex justify-end space-x-4" style="margin-top: 40px">
@@ -118,7 +147,14 @@
                         Cancel
                     </a>
                     <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200">
-                        Submit Feedback
+                        @if (ViewBag.IsExistingReview == true)
+                        {
+                            <text>Update Feedback</text>
+                        }
+                        else
+                        {
+                            <text>Submit Feedback</text>
+                        }
                     </button>
                 </div>
             </form>
@@ -159,35 +195,35 @@
             });
         });
 
-                 function updateStars() {
-             starButtons.forEach((button, index) => {
-                 const rating = index + 1;
-                 if (rating <= currentRating) {
-                     button.classList.remove('text-gray-300');
-                     button.classList.add('text-yellow-400');
-                     button.innerHTML = '★';
-                 } else {
-                     button.classList.remove('text-yellow-400');
-                     button.classList.add('text-gray-300');
-                     button.innerHTML = '☆';
-                 }
-             });
-         }
+        function updateStars() {
+            starButtons.forEach((button, index) => {
+                const rating = index + 1;
+                if (rating <= currentRating) {
+                    button.classList.remove('text-gray-300');
+                    button.classList.add('text-yellow-400');
+                    button.innerHTML = '★';
+                } else {
+                    button.classList.remove('text-yellow-400');
+                    button.classList.add('text-gray-300');
+                    button.innerHTML = '☆';
+                }
+            });
+        }
 
-                 function highlightStars(rating) {
-             starButtons.forEach((button, index) => {
-                 const starRating = index + 1;
-                 if (starRating <= rating) {
-                     button.classList.remove('text-gray-300');
-                     button.classList.add('text-yellow-400');
-                     button.innerHTML = '★';
-                 } else {
-                     button.classList.remove('text-yellow-400');
-                     button.classList.add('text-gray-300');
-                     button.innerHTML = '☆';
-                 }
-             });
-         }
+        function highlightStars(rating) {
+            starButtons.forEach((button, index) => {
+                const starRating = index + 1;
+                if (starRating <= rating) {
+                    button.classList.remove('text-gray-300');
+                    button.classList.add('text-yellow-400');
+                    button.innerHTML = '★';
+                } else {
+                    button.classList.remove('text-yellow-400');
+                    button.classList.add('text-gray-300');
+                    button.innerHTML = '☆';
+                }
+            });
+        }
 
         function updateRatingText() {
             ratingInput.value = currentRating;
@@ -198,76 +234,85 @@
             }
         }
 
-        // Initialize with any existing rating
-        if (ratingInput.value) {
-            currentRating = parseInt(ratingInput.value);
+        // Initialize with any existing rating from the model
+        const existingRating = parseInt(ratingInput.value) || 0;
+        if (existingRating > 0) {
+            currentRating = existingRating;
             updateStars();
             updateRatingText();
+        }
+
+        // Initialize radio buttons with existing values
+        const wouldRecommendValue = '@Model.WouldRecommend.ToString().ToLower()';
+        if (wouldRecommendValue === 'true') {
+            document.getElementById('recommendYes').checked = true;
+        } else if (wouldRecommendValue === 'false') {
+            document.getElementById('recommendNo').checked = true;
         }
     });
 </script>
 
- <style>
-     .star-btn {
-         cursor: pointer;
-         transition: all 0.3s ease;
-         font-size: 3rem;
-         line-height: 1;
-     }
- 
-         .star-btn:hover {
-             transform: scale(1.15);
-         }
- 
-         .star-btn.text-yellow-400 {
-             filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.6));
-             text-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
-         }
- 
-         .star-btn:not(.text-yellow-400) {
-             color: #d1d5db !important;
-         }
- 
-         .star-btn.text-yellow-400 {
-             color: #fbbf24 !important;
-         }
+<style>
+    .star-btn {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 3rem;
+        line-height: 1;
+    }
 
-           /* Custom Recommendation Button Styles */
-      .recommend-btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          padding: 12px 24px;
-          border: 2px solid #e5e7eb;
-          border-radius: 12px;
-          background: white;
-          transition: all 0.3s ease;
-          min-width: 100px;
-          font-weight: 600;
-          color: #374151;
-          font-size: 16px;
-      }
+        .star-btn:hover {
+            transform: scale(1.15);
+        }
 
-      .recommend-btn:hover {
-          border-color: #3b82f6;
-          background: #f8fafc;
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
-          color: #1f2937;
-      }
+        .star-btn.text-yellow-400 {
+            filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.6));
+            text-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+        }
 
-      /* Selected state */
-      input[type="radio"]:checked + .recommend-btn {
-          border-color: #3b82f6;
-          background: #3b82f6;
-          color: white;
-          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-      }
+        .star-btn:not(.text-yellow-400) {
+            color: #d1d5db !important;
+        }
 
-      /* Focus state */
-      .recommend-btn:focus-within {
-          outline: none;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-      }
- </style>
+        .star-btn.text-yellow-400 {
+            color: #fbbf24 !important;
+        }
+
+    /* Custom Recommendation Button Styles */
+    .recommend-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        padding: 12px 24px;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        background: white;
+        transition: all 0.3s ease;
+        min-width: 100px;
+        font-weight: 600;
+        color: #374151;
+        font-size: 16px;
+    }
+
+        .recommend-btn:hover {
+            border-color: #3b82f6;
+            background: #f8fafc;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+            color: #1f2937;
+        }
+
+    /* Selected state */
+    input[type="radio"]:checked + .recommend-btn {
+        border-color: #3b82f6;
+        background: #3b82f6;
+        color: white;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    /* Focus state */
+    .recommend-btn:focus-within {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+</style>

@@ -1096,7 +1096,7 @@ namespace Freelancing.Controllers
 
                     var noteIconSvg = "<svg viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><g id=\"SVGRepo_bgCarrier\" stroke-width=\"0\"></g><g id=\"SVGRepo_tracerCarrier\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></g><g id=\"SVGRepo_iconCarrier\"> <path d=\"M10 12H14M12 10V14M19.9592 15H16.6C16.0399 15 15.7599 15 15.546 15.109C15.3578 15.2049 15.2049 15.3578 15.109 15.546C15 15.7599 15 16.0399 15 16.6V19.9592M20 14.1031V7.2C20 6.07989 20 5.51984 19.782 5.09202C19.5903 4.71569 19.2843 4.40973 18.908 4.21799C18.4802 4 17.9201 4 16.8 4H7.2C6.0799 4 5.51984 4 5.09202 4.21799C4.71569 4.40973 4.40973 4.71569 4.21799 5.09202C4 5.51984 4 6.0799 4 7.2V16.8C4 17.9201 4 18.4802 4.21799 18.908C4.40973 19.2843 4.71569 19.5903 5.09202 19.782C5.51984 20 6.0799 20 7.2 20H14.1031C14.5923 20 14.8369 20 15.067 19.9447C15.2711 19.8957 15.4662 19.8149 15.6451 19.7053C15.847 19.5816 16.0199 19.4086 16.3658 19.0627L19.0627 16.3658C19.4086 16.0199 19.5816 15.847 19.7053 15.6451C19.8149 15.4662 19.8957 15.2711 19.9447 15.067C20 14.8369 20 14.5923 20 14.1031Z\" stroke=\"#000000\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path> </g></svg>";
 
-                    var redirectUrl = $"/MentorshipManage/SubmitMenteeEvidence?matchId={model.MatchId}&goalId={model.GoalId}";
+                    var redirectUrl = $"/MentorshipManage/ViewMentorNotes?matchId={model.MatchId}&goalId={model.GoalId}";
 
                     await _notificationService.CreateNotificationAsync(
                         match.MenteeId,
@@ -1422,7 +1422,7 @@ namespace Freelancing.Controllers
                 .Include(mm => mm.Mentor)
                 .Include(mm => mm.Mentee)
                 .FirstOrDefaultAsync(mm => mm.Id == matchId && mm.MenteeId == userId && mm.Status == "Completed");
-            
+
             if (match == null)
             {
                 TempData["Error"] = "Access denied or completed mentorship not found";
@@ -1433,12 +1433,6 @@ namespace Freelancing.Controllers
             var existingReview = await _context.MentorReviews
                 .FirstOrDefaultAsync(mr => mr.MentorshipMatchId == matchId);
 
-            if (existingReview != null)
-            {
-                TempData["Error"] = "You have already submitted a review for this mentorship";
-                return RedirectToAction("MenteeDashboard", "MentorshipMatching");
-            }
-
             var viewModel = new MentorFeedbackViewModel
             {
                 MatchId = matchId,
@@ -1448,6 +1442,24 @@ namespace Freelancing.Controllers
                 MatchStartDate = match.StartDate ?? match.MatchedDate,
                 MatchEndDate = match.EndDate
             };
+
+            // If review exists, populate the form with existing data
+            if (existingReview != null)
+            {
+                viewModel.Rating = existingReview.Rating;
+                viewModel.WouldRecommend = existingReview.WouldRecommend;
+                viewModel.Comments = existingReview.Comments;
+                viewModel.Strengths = existingReview.Strengths;
+                viewModel.AreasForImprovement = existingReview.AreasForImprovement;
+
+                // Add a flag to indicate this is an existing review
+                ViewBag.IsExistingReview = true;
+                ViewBag.ReviewSubmittedDate = existingReview.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt");
+            }
+            else
+            {
+                ViewBag.IsExistingReview = false;
+            }
 
             return View(viewModel);
         }
@@ -1461,7 +1473,7 @@ namespace Freelancing.Controllers
                 .Include(mm => mm.Mentor)
                 .Include(mm => mm.Mentee)
                 .FirstOrDefaultAsync(mm => mm.Id == model.MatchId && mm.MenteeId == userId && mm.Status == "Completed");
-            
+
             if (match == null)
             {
                 TempData["Error"] = "Access denied or completed mentorship not found";
@@ -1472,12 +1484,6 @@ namespace Freelancing.Controllers
             var existingReview = await _context.MentorReviews
                 .FirstOrDefaultAsync(mr => mr.MentorshipMatchId == model.MatchId);
 
-            if (existingReview != null)
-            {
-                TempData["Error"] = "You have already submitted a review for this mentorship";
-                return RedirectToAction("MenteeDashboard", "MentorshipMatching");
-            }
-
             if (!ModelState.IsValid)
             {
                 // Repopulate the view model with mentor info
@@ -1486,37 +1492,63 @@ namespace Freelancing.Controllers
                 model.MenteeName = $"{match.Mentee.FirstName} {match.Mentee.LastName}";
                 model.MatchStartDate = match.StartDate ?? match.MatchedDate;
                 model.MatchEndDate = match.EndDate;
+
+                ViewBag.IsExistingReview = existingReview != null;
+                if (existingReview != null)
+                {
+                    ViewBag.ReviewSubmittedDate = existingReview.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt");
+                }
+
                 return View(model);
             }
 
-            var review = new MentorReview
+            if (existingReview != null)
             {
-                MentorshipMatchId = model.MatchId,
-                MentorId = match.MentorId,
-                MenteeId = userId,
-                Rating = model.Rating,
-                WouldRecommend = model.WouldRecommend,
-                Comments = model.Comments,
-                Strengths = model.Strengths,
-                AreasForImprovement = model.AreasForImprovement,
+                // Update existing review
+                existingReview.Rating = model.Rating;
+                existingReview.WouldRecommend = model.WouldRecommend;
+                existingReview.Comments = model.Comments;
+                existingReview.Strengths = model.Strengths;
+                existingReview.AreasForImprovement = model.AreasForImprovement;
+                existingReview.CreatedAt = DateTime.UtcNow.ToLocalTime(); // Update timestamp
 
-                CreatedAt = DateTime.UtcNow.ToLocalTime()
-            };
+                _context.MentorReviews.Update(existingReview);
+                await _context.SaveChangesAsync();
 
-            _context.MentorReviews.Add(review);
-            await _context.SaveChangesAsync();
+                TempData["Success"] = "Your feedback has been updated successfully.";
+            }
+            else
+            {
+                // Create new review
+                var review = new MentorReview
+                {
+                    MentorshipMatchId = model.MatchId,
+                    MentorId = match.MentorId,
+                    MenteeId = userId,
+                    Rating = model.Rating,
+                    WouldRecommend = model.WouldRecommend,
+                    Comments = model.Comments,
+                    Strengths = model.Strengths,
+                    AreasForImprovement = model.AreasForImprovement,
+                    CreatedAt = DateTime.UtcNow.ToLocalTime()
+                };
 
-            // Send notification to the mentor about the review
-            await _notificationService.CreateNotificationAsync(
-                match.MentorId,
-                "New Review Received",
-                $"{match.Mentee.FirstName} {match.Mentee.LastName} has submitted a review for your mentorship.",
-                "mentor_review",
-                "<svg viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><g id=\"SVGRepo_bgCarrier\" stroke-width=\"0\"></g><g id=\"SVGRepo_tracerCarrier\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></g><g id=\"SVGRepo_iconCarrier\"> <path d=\"M16 1C17.6569 1 19 2.34315 19 4C19 4.55228 18.5523 5 18 5C17.4477 5 17 4.55228 17 4C17 3.44772 16.5523 3 16 3H4C3.44772 3 3 3.44772 3 4V20C3 20.5523 3.44772 21 4 21H16C16.5523 21 17 20.5523 17 20V19C17 18.4477 17.4477 18 18 18C18.5523 18 19 18.4477 19 19V20C19 21.6569 17.6569 23 16 23H4C2.34315 23 1 21.6569 1 20V4C1 2.34315 2.34315 1 4 1H16Z\" fill=\"#0F0F0F\"></path> <path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M20.7991 8.20087C20.4993 7.90104 20.0132 7.90104 19.7133 8.20087L11.9166 15.9977C11.7692 16.145 11.6715 16.3348 11.6373 16.5404L11.4728 17.5272L12.4596 17.3627C12.6652 17.3285 12.855 17.2308 13.0023 17.0835L20.7991 9.28666C21.099 8.98682 21.099 8.5007 20.7991 8.20087ZM18.2991 6.78666C19.38 5.70578 21.1325 5.70577 22.2134 6.78665C23.2942 7.86754 23.2942 9.61999 22.2134 10.7009L14.4166 18.4977C13.9744 18.9398 13.4052 19.2327 12.7884 19.3355L11.8016 19.5C10.448 19.7256 9.2744 18.5521 9.50001 17.1984L9.66448 16.2116C9.76728 15.5948 10.0602 15.0256 10.5023 14.5834L18.2991 6.78666Z\" fill=\"#0F0F0F\"></path> <path d=\"M5 7C5 6.44772 5.44772 6 6 6H14C14.5523 6 15 6.44772 15 7C15 7.55228 14.5523 8 14 8H6C5.44772 8 5 7.55228 5 7Z\" fill=\"#0F0F0F\"></path> <path d=\"M5 11C5 10.4477 5.44772 10 6 10H10C10.5523 10 11 10.4477 11 11C11 11.5523 10.5523 12 10 12H6C5.44772 12 5 11.5523 5 11Z\" fill=\"#0F0F0F\"></path> <path d=\"M5 15C5 14.4477 5.44772 14 6 14H7C7.55228 14 8 14.4477 8 15C8 15.5523 7.55228 16 7 16H6C5.44772 16 5 15.5523 5 15Z\" fill=\"#0F0F0F\"></path> </g></svg>",
-                "/MentorshipManage/MyReviews"
-            );
+                _context.MentorReviews.Add(review);
+                await _context.SaveChangesAsync();
 
-            TempData["Success"] = "Thank you for your feedback! Your review has been submitted successfully.";
+                TempData["Success"] = "Thank you for your feedback! Your review has been submitted successfully.";
+
+                // Send notification to the mentor about the review
+                await _notificationService.CreateNotificationAsync(
+                    match.MentorId,
+                    "New Review Received",
+                    $"{match.Mentee.FirstName} {match.Mentee.LastName} has submitted a review for your mentorship.",
+                    "mentor_review",
+                    "<svg viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><g id=\"SVGRepo_bgCarrier\" stroke-width=\"0\"></g><g id=\"SVGRepo_tracerCarrier\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></g><g id=\"SVGRepo_iconCarrier\"> <path d=\"M16 1C17.6569 1 19 2.34315 19 4C19 4.55228 18.5523 5 18 5C17.4477 5 17 4.55228 17 4C17 3.44772 16.5523 3 16 3H4C3.44772 3 3 3.44772 3 4V20C3 20.5523 3.44772 21 4 21H16C16.5523 21 17 20.5523 17 20V19C17 18.4477 17.4477 18 18 18C18.5523 18 19 18.4477 19 19V20C19 21.6569 17.6569 23 16 23H4C2.34315 23 1 21.6569 1 20V4C1 2.34315 2.34315 1 4 1H16Z\" fill=\"#0F0F0F\"></path> <path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M20.7991 8.20087C20.4993 7.90104 20.0132 7.90104 19.7133 8.20087L11.9166 15.9977C11.7692 16.145 11.6715 16.3348 11.6373 16.5404L11.4728 17.5272L12.4596 17.3627C12.6652 17.3285 12.855 17.2308 13.0023 17.0835L20.7991 9.28666C21.099 8.98682 21.099 8.5007 20.7991 8.20087ZM18.2991 6.78666C19.38 5.70578 21.1325 5.70577 22.2134 6.78665C23.2942 7.86754 23.2942 9.61999 22.2134 10.7009L14.4166 18.4977C13.9744 18.9398 13.4052 19.2327 12.7884 19.3355L11.8016 19.5C10.448 19.7256 9.2744 18.5521 9.50001 17.1984L9.66448 16.2116C9.76728 15.5948 10.0602 15.0256 10.5023 14.5834L18.2991 6.78666Z\" fill=\"#0F0F0F\"></path> <path d=\"M5 7C5 6.44772 5.44772 6 6 6H14C14.5523 6 15 6.44772 15 7C15 7.55228 14.5523 8 14 8H6C5.44772 8 5 7.55228 5 7Z\" fill=\"#0F0F0F\"></path> <path d=\"M5 11C5 10.4477 5.44772 10 6 10H10C10.5523 10 11 10.4477 11 11C11 11.5523 10.5523 12 10 12H6C5.44772 12 5 11.5523 5 11Z\" fill=\"#0F0F0F\"></path> <path d=\"M5 15C5 14.4477 5.44772 14 6 14H7C7.55228 14 8 14.4477 8 15C8 15.5523 7.55228 16 7 16H6C5.44772 16 5 15.5523 5 15Z\" fill=\"#0F0F0F\"></path> </g></svg>",
+                    "/MentorshipManage/MyReviews"
+                );
+            }
+
             return RedirectToAction("MenteeDashboard", "MentorshipMatching");
         }
 

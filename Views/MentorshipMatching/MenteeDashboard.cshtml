@@ -517,10 +517,9 @@
         fetch('/MentorshipMatching/FinishMentorship', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'RequestVerificationToken': token
+                'Content-Type': 'application/x-www-form-urlencoded'
             },
-            body: `matchId=${matchId}`
+            body: `matchId=${matchId}&__RequestVerificationToken=${encodeURIComponent(token)}`
         })
         .then(response => response.json())
         .then(data => {
@@ -550,11 +549,11 @@
         const modal = document.getElementById('confirmationMessageModal');
         const messageElement = document.getElementById('confirmationMessage');
         const icon = modal.querySelector('svg');
-        
+
         if (messageElement) {
             messageElement.textContent = message;
         }
-        
+
         // Update icon color based on message type
         if (type === 'success') {
             icon.classList.remove('text-red-500');
@@ -563,7 +562,7 @@
             icon.classList.remove('text-green-500');
             icon.classList.add('text-red-500');
         }
-        
+
         if (modal) {
             modal.classList.remove('hidden');
         }
@@ -594,7 +593,7 @@
         // Handle backdrop click to close modals
         const finishModal = document.getElementById('finishMentorshipModal');
         const confirmationModal = document.getElementById('confirmationMessageModal');
-        
+
         if (finishModal) {
             finishModal.addEventListener('click', function (event) {
                 if (event.target === finishModal) {
@@ -602,7 +601,7 @@
                 }
             });
         }
-        
+
         if (confirmationModal) {
             confirmationModal.addEventListener('click', function (event) {
                 if (event.target === confirmationModal) {
@@ -617,11 +616,11 @@
             if (event.key === 'Escape') {
                 const finishModal = document.getElementById('finishMentorshipModal');
                 const confirmationModal = document.getElementById('confirmationMessageModal');
-                
+
                 if (finishModal && !finishModal.classList.contains('hidden')) {
                     finishModal.classList.add('hidden');
                 }
-                
+
                 if (confirmationModal && !confirmationModal.classList.contains('hidden')) {
                     confirmationModal.classList.add('hidden');
                     window.location.reload();

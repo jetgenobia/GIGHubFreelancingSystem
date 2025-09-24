@@ -10,7 +10,14 @@
     <div class="pt-2 mt-20">
         <div class="mt-1">
             <div class="block w-full p-6">
-                <h2 class="mb-4 text-2xl font-bold text-gray-900">Schedule Mentorship Session</h2>
+                <div class="flex items-center space-x-4 mb-4">
+                    <a href="javascript:history.back()" class="text-blue-600 hover:text-blue-800">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                    </a>
+                    <h1 class="text-3xl font-bold text-gray-900">Schedule Mentorship Session</h1>
+                </div>
 
                 @if (TempData["Error"] != null)
                 {

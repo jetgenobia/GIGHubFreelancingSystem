@@ -83,13 +83,31 @@
                             <p class="text-orange-500 text-sm">@Model.TaskDescription</p>
                             <div class="mt-2 flex items-end justify-end">
                                 <a asp-action="SubmitMenteeEvidence" asp-controller="MentorshipManage" asp-route-matchId="@Model.MatchId" asp-route-goalId="@Model.GoalId" class="inline-flex items-center">
-                                    <span class="text-sm font-medium text-orange-500">Submit Work →</span>
+                                    <span class="text-sm font-medium text-orange-500">Submit Notes & Work →</span>
+                                </a>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="inline-flex flex items-center justify-between w-full">
+                            @if (Model.SubmittedAt.HasValue)
+                            {
+                                <div class="text-xs text-gray-500">@Model.SubmittedAt.Value.ToString("MMM dd, yyyy 'at' h:mm tt")</div>
+                            }
+                            else
+                            {
+                                <div></div>
+                            }
+                            <div>
+                                <a asp-action="SubmitMenteeEvidence" asp-controller="MentorshipManage" asp-route-matchId="@Model.MatchId" asp-route-goalId="@Model.GoalId" class="inline-flex items-center">
+                                    <span class="text-sm font-medium text-orange-500">Submit Notes →</span>
                                 </a>
                             </div>
                         </div>
                     }
 
-                    @if (Model.SubmittedAt.HasValue)
+                    @if (Model.SubmittedAt.HasValue && Model.IsTaskAssigned)
                     {
                         <div class="text-xs text-gray-500 mt-4">@Model.SubmittedAt.Value.ToString("MMM dd, yyyy 'at' h:mm tt")</div>
                     }
