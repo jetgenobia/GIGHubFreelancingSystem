@@ -68,7 +68,7 @@ USER appuser
 EXPOSE 8080 8081
 
 # Set environment variables
-ENV ASPNETCORE_URLS=http://+:${PORT:-8080}
+ENV ASPNETCORE_URLS=https://+:8080;http://+:8081
 ENV ASPNETCORE_ENVIRONMENT=Production
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
