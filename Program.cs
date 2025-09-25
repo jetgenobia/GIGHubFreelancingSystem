@@ -521,6 +521,11 @@ static async Task ConfigurePipelineAsync(WebApplication app)
         {
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
+            Console.WriteLine("=== DEBUG: DbContext Connection String ===");
+            var contextConnectionString = context.Database.GetConnectionString();
+            Console.WriteLine($"DbContext connection string: '{contextConnectionString}'");
+            Console.WriteLine("=== END DbContext DEBUG ===");
+
             // Ensure database is created and migrated
             await context.Database.MigrateAsync();
 
