@@ -264,20 +264,14 @@ static void ConfigureServices(WebApplicationBuilder builder)
 
     services.AddDbContext<ApplicationDbContext>(options =>
     {
-        options.UseSqlServer(connectionString, sqlOptions =>
+        options.UseNpgsql(connectionString, npgsqlOptions =>
         {
-            sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
-            sqlOptions.EnableRetryOnFailure(
+            npgsqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+            npgsqlOptions.EnableRetryOnFailure(
                 maxRetryCount: 3,
                 maxRetryDelay: TimeSpan.FromSeconds(30),
-                errorNumbersToAdd: null);
+                errorCodesToAdd: null);
         });
-
-        if (environment.IsDevelopment())
-        {
-            options.EnableSensitiveDataLogging();
-            options.EnableDetailedErrors();
-        }
     });
 
     // Identity configuration
