@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -72,7 +72,7 @@ namespace Freelancing.Migrations
                     Category = table.Column<string>(type: "text", nullable: false),
                     TemplateContent = table.Column<string>(type: "text", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()"),
                     LastModifiedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     PreviewImagePath = table.Column<string>(type: "text", nullable: true),
                     UsageCount = table.Column<int>(type: "integer", nullable: false),
@@ -115,7 +115,7 @@ namespace Freelancing.Migrations
                     ProjectId = table.Column<Guid>(type: "uuid", nullable: false),
                     FreelancerId = table.Column<string>(type: "text", nullable: false),
                     WasSuccessful = table.Column<bool>(type: "boolean", nullable: false),
-                    RecordedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()")
+                    RecordedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
                 {
@@ -288,7 +288,7 @@ namespace Freelancing.Migrations
                     Message = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
                     Type = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     IconSvg = table.Column<string>(type: "text", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()"),
                     IsRead = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
                     ReadAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     RelatedUrl = table.Column<string>(type: "text", nullable: true),
@@ -425,7 +425,7 @@ namespace Freelancing.Migrations
                     WhatWasDone = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
                     AdditionalNotes = table.Column<string>(type: "character varying(5000)", maxLength: 5000, nullable: true),
                     EvidenceFilePaths = table.Column<string>(type: "text", nullable: true),
-                    SubmittedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()")
+                    SubmittedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
                 {
@@ -461,7 +461,7 @@ namespace Freelancing.Migrations
                     Comments = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
                     Strengths = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     AreasForImprovement = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()")
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
                 {
@@ -498,7 +498,7 @@ namespace Freelancing.Migrations
                     IsTaskAssigned = table.Column<bool>(type: "boolean", nullable: false),
                     TaskTitle = table.Column<string>(type: "text", nullable: true),
                     TaskDescription = table.Column<string>(type: "text", nullable: true),
-                    SubmittedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()")
+                    SubmittedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
                 {
@@ -533,7 +533,7 @@ namespace Freelancing.Migrations
                     FileUrl = table.Column<string>(type: "text", nullable: true),
                     FileType = table.Column<string>(type: "text", nullable: true),
                     FileSize = table.Column<long>(type: "bigint", nullable: true),
-                    SentAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    SentAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()"),
                     IsRead = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
                     ReadAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
@@ -590,7 +590,7 @@ namespace Freelancing.Migrations
                     GoalId = table.Column<Guid>(type: "uuid", nullable: false),
                     CompletedByUserId = table.Column<string>(type: "text", nullable: false),
                     CompletionType = table.Column<string>(type: "text", nullable: false),
-                    CompletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    CompletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()"),
                     MenteeEvidenceId = table.Column<Guid>(type: "uuid", nullable: true),
                     MentorNoteId = table.Column<Guid>(type: "uuid", nullable: true),
                     IsCompletedByMentor = table.Column<bool>(type: "boolean", nullable: false),
@@ -638,7 +638,7 @@ namespace Freelancing.Migrations
                     FilePath = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
                     ContentType = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     FileSize = table.Column<long>(type: "bigint", nullable: false),
-                    UploadedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()")
+                    UploadedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
                 {
@@ -686,7 +686,7 @@ namespace Freelancing.Migrations
                     Rating = table.Column<int>(type: "integer", nullable: false),
                     WouldRecommend = table.Column<bool>(type: "boolean", nullable: false),
                     Comments = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()")
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
                 {
@@ -954,7 +954,7 @@ namespace Freelancing.Migrations
                     ContractId = table.Column<Guid>(type: "uuid", nullable: false),
                     TerminationReason = table.Column<string>(type: "text", nullable: false),
                     TerminationDetails = table.Column<string>(type: "text", nullable: false),
-                    RequestedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    RequestedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()"),
                     RequestedByUserId = table.Column<string>(type: "text", nullable: false),
                     RequestedByUserRole = table.Column<string>(type: "text", nullable: false),
                     Status = table.Column<string>(type: "text", nullable: false),
@@ -999,7 +999,7 @@ namespace Freelancing.Migrations
                     Status = table.Column<string>(type: "text", nullable: false),
                     SubmittedFilesPaths = table.Column<string>(type: "text", nullable: true),
                     RepositoryLinks = table.Column<string>(type: "text", nullable: true),
-                    SubmittedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    SubmittedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()"),
                     ReviewedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     ReviewComments = table.Column<string>(type: "text", nullable: true),
                     ReviewedByUserId = table.Column<string>(type: "text", nullable: true),
