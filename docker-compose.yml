@@ -1,0 +1,106 @@
+version: '3.8'
+services:
+  # SQL Server Database
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: gighub-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=${SQL_SA_PASSWORD}
+      - MSSQL_PID=Express
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - gighub-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P '${SQL_SA_PASSWORD}' -C -Q 'SELECT 1' || exit 1"]
+      interval: 30s
+      timeout: 30s
+      retries: 10
+      start_period: 120s
+  
+  # Python Flask ML API
+  flask-ml-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.flask
+    container_name: gighub-flask-api
+    environment:
+      - FLASK_ENV=production
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./wwwroot/models:/app:ro
+    networks:
+      - gighub-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  
+  # ASP.NET Core Application
+  gighub-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gighub-app
+    environment:
+      # Database configuration
+      - CONNECTION_STRING=Server=sqlserver,1433;Database=GigHubDB;User Id=sa;Password=${SQL_SA_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=True
+      
+      # Encryption
+      - ENCRYPTION_MASTER_KEY=${ENCRYPTION_MASTER_KEY}
+      
+      # Email configuration
+      - SMTP_SERVER=${SMTP_SERVER}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - FROM_EMAIL=${FROM_EMAIL}
+      
+      # Azure ML (optional)
+      - AZURE_ML_ENDPOINT=${AZURE_ML_ENDPOINT}
+      - AZURE_ML_API_KEY=${AZURE_ML_API_KEY}
+      - AZURE_SUBSCRIPTION_ID=${AZURE_SUBSCRIPTION_ID}
+      
+      # ASP.NET Core settings
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=https://+:8080;http://+:8081
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=GighubAdmin123!
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
+      - DOTNET_RUNNING_IN_CONTAINER=true
+      - DISABLE_HTTPS_REQUIREMENT=true
+      - Admin__Email=admin@gighub.com
+      - Admin__Password=AdminGighub@1
+    ports:
+      - "8080:8080"
+      - "8081:8081" 
+    volumes:
+      - ./Logs:/app/Logs
+      - ./wwwroot/uploads:/app/wwwroot/uploads
+      - ./https:/https:ro
+    networks:
+      - gighub-network
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      flask-ml-api:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  gighub-network:
+    driver: bridge
+
+volumes:
+  sqlserver_data:
+    driver: local

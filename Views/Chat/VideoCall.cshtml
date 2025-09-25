@@ -313,7 +313,30 @@
                 
             } catch (error) {
                 console.error('Error initializing video call:', error);
-                showError('Failed to access camera/microphone. Please check permissions.');
+                console.error('Error details:', {
+                    name: error.name,
+                    message: error.message,
+                    constraint: error.constraint
+                });
+                
+                let errorMessage = 'Failed to access camera/microphone. ';
+                
+                // Provide specific error messages based on the error type
+                if (error.name === 'NotAllowedError') {
+                    errorMessage += 'Please allow camera and microphone permissions in your browser and try again.';
+                } else if (error.name === 'NotFoundError') {
+                    errorMessage += 'No camera or microphone found. Please check your devices.';
+                } else if (error.name === 'NotSupportedError') {
+                    errorMessage += 'Camera/microphone not supported on this device or browser.';
+                } else if (error.name === 'NotReadableError') {
+                    errorMessage += 'Camera/microphone is already in use by another application.';
+                } else if (error.name === 'OverconstrainedError') {
+                    errorMessage += 'Camera/microphone constraints cannot be satisfied.';
+                } else {
+                    errorMessage += 'Please check permissions and ensure you\'re using HTTPS.';
+                }
+                
+                showError(errorMessage);
             }
         }
 

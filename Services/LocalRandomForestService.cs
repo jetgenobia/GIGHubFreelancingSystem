@@ -14,7 +14,7 @@ namespace Freelancing.Services
         private readonly ILogger<LocalRandomForestService> _logger;
         private readonly HttpClient _httpClient;
         private bool _isInitialized = false;
-        private readonly string _apiUrl = "http://localhost:5000";
+        private readonly string _apiUrl = "http://flask-ml-api:5000";
 
         public LocalRandomForestService(ILogger<LocalRandomForestService> logger, HttpClient httpClient)
         {

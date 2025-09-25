@@ -361,13 +361,13 @@
 
                                 <div class="freelancer-info">
                                     <h3 class="font-bold">@recommendation.FreelancerName</h3>
-                                    <div class="confidence-indicator">
-                                        <span>ML Confidence:</span>
+                                    @* <div class="confidence-indicator">
+                                        <span>Confidence:</span>
                                         <div class="confidence-bar">
                                             <div class="confidence-fill" style="width: @(recommendation.Confidence * 100)%"></div>
                                         </div>
                                         <span>@((recommendation.Confidence * 100).ToString("F0"))%</span>
-                                    </div>
+                                    </div> *@
                                 </div>
 
                                 <div class="match-score">

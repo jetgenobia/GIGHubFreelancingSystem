@@ -358,6 +358,16 @@
             border-radius: 0;
             padding: 0;
         }
+
+        .hide-mobile {
+            display: none;
+        }
+
+        @@media (min-width: 640px) {
+            .hide-mobile {
+                display: block;
+            }
+        }
     </style>
 </head>
 <body data-user-id="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value">
@@ -371,7 +381,7 @@
                             <path clip-rule="evenodd" fill-rule="evenodd" d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zm0 10.5a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75zM2 10a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 10z"></path>
                         </svg>
                     </button>
-                    <a class="-m-1.5 p-1.5 ms-5" asp-area="" asp-controller="Home" asp-action="Index">
+                    <a class="-m-1.5 p-1.5 ms-5 hide-mobile" asp-area="" asp-controller="Home" asp-action="Index">
                         <span class="sr-only">Your Company</span>
                         <img class="h-16 w-auto" src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(2).png?updatedAt=1749718355580" alt="">
                     </a>

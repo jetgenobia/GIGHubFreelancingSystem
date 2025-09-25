@@ -94,13 +94,17 @@ static void ConfigureServices(WebApplicationBuilder builder)
     });
 
     // Add controllers and views
-    services.AddControllersWithViews(options =>
+    services.AddControllersWithViews();
+    /*services.AddControllersWithViews(options =>
     {
-        if (!environment.IsDevelopment())
+        *//*// Only require HTTPS in production when HTTPS is not disabled
+        var disableHttpsRequirement = Environment.GetEnvironmentVariable("DISABLE_HTTPS_REQUIREMENT") == "true";
+
+        if (!environment.IsDevelopment() && !disableHttpsRequirement)
         {
             options.Filters.Add(new Microsoft.AspNetCore.Mvc.RequireHttpsAttribute());
-        }
-    });
+        }*//*
+    });*/
 
     services.AddRazorPages();
 
@@ -439,8 +443,14 @@ static async Task ConfigurePipelineAsync(WebApplication app)
     }
 
     // Security middleware
-    app.UseHttpsRedirection();
-
+    if (!environment.IsDevelopment() && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER")))
+    {
+        // Skip HTTPS redirection when running in Docker
+    }
+    else
+    {
+        app.UseHttpsRedirection();
+    }
     // Security headers middleware
     app.Use(async (context, next) =>
     {
@@ -449,7 +459,7 @@ static async Task ConfigurePipelineAsync(WebApplication app)
             context.Response.Headers.Add("X-Frame-Options", "DENY");
             context.Response.Headers.Add("X-Content-Type-Options", "nosniff");
             context.Response.Headers.Add("Referrer-Policy", "strict-origin-when-cross-origin");
-            context.Response.Headers.Add("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+            context.Response.Headers.Add("Permissions-Policy", "camera=(self), microphone=(self), geolocation=()");
 
             var csp = app.Configuration["Security:ContentSecurityPolicy"];
             if (!string.IsNullOrEmpty(csp))

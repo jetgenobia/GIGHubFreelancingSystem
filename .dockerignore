@@ -1,0 +1,31 @@
+# Directories
+**/bin/
+**/obj/
+**/.vs/
+**/node_modules/
+**/Logs/
+**/.git/
+
+# Files
+**/.env
+**/.env.local
+**/.env.production
+**/.gitignore
+**/.gitattributes
+**/README.md
+**/docker-compose*.yml
+**/Dockerfile*
+**/*.md
+
+# OS Files
+**/.DS_Store
+**/Thumbs.db
+
+# IDE Files
+**/*.swp
+**/*.swo
+**/*~
+
+# Build outputs
+**/dist/
+**/build/
