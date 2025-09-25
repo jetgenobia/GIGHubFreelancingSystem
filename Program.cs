@@ -254,12 +254,22 @@ static void ConfigureServices(WebApplicationBuilder builder)
     });
 
     // Database configuration
-    var connectionString = Environment.GetEnvironmentVariable("CONNECTION_STRING")
+    Console.WriteLine("=== DEBUG: Environment Variables ===");
+    Console.WriteLine($"CONNECTION_STRING: '{Environment.GetEnvironmentVariable("CONNECTION_STRING")}'");
+    Console.WriteLine($"DATABASE_URL: '{Environment.GetEnvironmentVariable("DATABASE_URL")}'");
+    Console.WriteLine($"Config Freelancing: '{configuration.GetConnectionString("Freelancing")}'");
+
+    // Try multiple sources
+    var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
+                          ?? Environment.GetEnvironmentVariable("CONNECTION_STRING")
                           ?? configuration.GetConnectionString("Freelancing");
+
+    Console.WriteLine($"Final connection string: '{connectionString}'");
+    Console.WriteLine("=== END DEBUG ===");
 
     if (string.IsNullOrEmpty(connectionString))
     {
-        throw new InvalidOperationException("Database connection string not configured");
+        throw new InvalidOperationException("Database connection string not configured. Check environment variables.");
     }
 
     services.AddDbContext<ApplicationDbContext>(options =>
