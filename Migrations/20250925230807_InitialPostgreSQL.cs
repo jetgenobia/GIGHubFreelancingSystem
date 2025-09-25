@@ -1,12 +1,13 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
 namespace Freelancing.Migrations
 {
     /// <inheritdoc />
-    public partial class initial : Migration
+    public partial class InitialPostgreSQL : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -15,10 +16,10 @@ namespace Freelancing.Migrations
                 name: "AspNetRoles",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    NormalizedName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    ConcurrencyStamp = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    NormalizedName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    ConcurrencyStamp = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -29,32 +30,32 @@ namespace Freelancing.Migrations
                 name: "AspNetUsers",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    FirstName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    LastName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Photo = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Role = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    FRole = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Bio = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ExperienceLevel = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    DeletionReason = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    MentorshipId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    UserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    NormalizedUserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    Email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    NormalizedEmail = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    EmailConfirmed = table.Column<bool>(type: "bit", nullable: false),
-                    PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    SecurityStamp = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ConcurrencyStamp = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    PhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    PhoneNumberConfirmed = table.Column<bool>(type: "bit", nullable: false),
-                    TwoFactorEnabled = table.Column<bool>(type: "bit", nullable: false),
-                    LockoutEnd = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
-                    LockoutEnabled = table.Column<bool>(type: "bit", nullable: false),
-                    AccessFailedCount = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    FirstName = table.Column<string>(type: "text", nullable: false),
+                    LastName = table.Column<string>(type: "text", nullable: false),
+                    Photo = table.Column<string>(type: "text", nullable: true),
+                    Role = table.Column<string>(type: "text", nullable: false),
+                    FRole = table.Column<string>(type: "text", nullable: false),
+                    Bio = table.Column<string>(type: "text", nullable: true),
+                    ExperienceLevel = table.Column<string>(type: "text", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletionReason = table.Column<string>(type: "text", nullable: true),
+                    MentorshipId = table.Column<Guid>(type: "uuid", nullable: true),
+                    UserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    NormalizedUserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    Email = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    NormalizedEmail = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    EmailConfirmed = table.Column<bool>(type: "boolean", nullable: false),
+                    PasswordHash = table.Column<string>(type: "text", nullable: true),
+                    SecurityStamp = table.Column<string>(type: "text", nullable: true),
+                    ConcurrencyStamp = table.Column<string>(type: "text", nullable: true),
+                    PhoneNumber = table.Column<string>(type: "text", nullable: true),
+                    PhoneNumberConfirmed = table.Column<bool>(type: "boolean", nullable: false),
+                    TwoFactorEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    LockoutEnd = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    LockoutEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    AccessFailedCount = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -65,17 +66,17 @@ namespace Freelancing.Migrations
                 name: "ContractTemplates",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Category = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    TemplateContent = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
-                    LastModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    PreviewImagePath = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UsageCount = table.Column<int>(type: "int", nullable: false),
-                    TemplateVersion = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: false),
+                    Category = table.Column<string>(type: "text", nullable: false),
+                    TemplateContent = table.Column<string>(type: "text", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    LastModifiedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    PreviewImagePath = table.Column<string>(type: "text", nullable: true),
+                    UsageCount = table.Column<int>(type: "integer", nullable: false),
+                    TemplateVersion = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -86,20 +87,20 @@ namespace Freelancing.Migrations
                 name: "Goals",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    GoalName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    GoalDescription = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
-                    Order = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    IconSvg = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    IsCustom = table.Column<bool>(type: "bit", nullable: false),
-                    Priority = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    TargetDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Category = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    SuccessCriteria = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    GoalName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    GoalDescription = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
+                    Order = table.Column<int>(type: "integer", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    IconSvg = table.Column<string>(type: "text", nullable: true),
+                    IsCustom = table.Column<bool>(type: "boolean", nullable: false),
+                    Priority = table.Column<string>(type: "text", nullable: true),
+                    TargetDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Category = table.Column<string>(type: "text", nullable: true),
+                    SuccessCriteria = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -110,11 +111,11 @@ namespace Freelancing.Migrations
                 name: "HiringOutcomes",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ProjectId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    FreelancerId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    WasSuccessful = table.Column<bool>(type: "bit", nullable: false),
-                    RecordedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()")
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ProjectId = table.Column<Guid>(type: "uuid", nullable: false),
+                    FreelancerId = table.Column<string>(type: "text", nullable: false),
+                    WasSuccessful = table.Column<bool>(type: "boolean", nullable: false),
+                    RecordedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()")
                 },
                 constraints: table =>
                 {
@@ -125,9 +126,9 @@ namespace Freelancing.Migrations
                 name: "UserSkills",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Category = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Category = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -138,11 +139,11 @@ namespace Freelancing.Migrations
                 name: "AspNetRoleClaims",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    RoleId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    ClaimType = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ClaimValue = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    RoleId = table.Column<string>(type: "text", nullable: false),
+                    ClaimType = table.Column<string>(type: "text", nullable: true),
+                    ClaimValue = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -159,11 +160,11 @@ namespace Freelancing.Migrations
                 name: "AspNetUserClaims",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    ClaimType = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ClaimValue = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    ClaimType = table.Column<string>(type: "text", nullable: true),
+                    ClaimValue = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -180,10 +181,10 @@ namespace Freelancing.Migrations
                 name: "AspNetUserLogins",
                 columns: table => new
                 {
-                    LoginProvider = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    ProviderKey = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    ProviderDisplayName = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false)
+                    LoginProvider = table.Column<string>(type: "text", nullable: false),
+                    ProviderKey = table.Column<string>(type: "text", nullable: false),
+                    ProviderDisplayName = table.Column<string>(type: "text", nullable: true),
+                    UserId = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -200,8 +201,8 @@ namespace Freelancing.Migrations
                 name: "AspNetUserRoles",
                 columns: table => new
                 {
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    RoleId = table.Column<string>(type: "nvarchar(450)", nullable: false)
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    RoleId = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -224,10 +225,10 @@ namespace Freelancing.Migrations
                 name: "AspNetUserTokens",
                 columns: table => new
                 {
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    LoginProvider = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Value = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    LoginProvider = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Value = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -244,27 +245,27 @@ namespace Freelancing.Migrations
                 name: "IdentityVerifications",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserAccountId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    IdDocumentType = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    IdDocumentExpiryDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IdDocumentVerified = table.Column<bool>(type: "bit", nullable: true),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserAccountId = table.Column<string>(type: "text", nullable: false),
+                    IdDocumentType = table.Column<string>(type: "text", nullable: true),
+                    IdDocumentExpiryDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IdDocumentVerified = table.Column<bool>(type: "boolean", nullable: true),
                     IdDocumentConfidence = table.Column<float>(type: "real", nullable: true),
-                    FaceVerified = table.Column<bool>(type: "bit", nullable: true),
+                    FaceVerified = table.Column<bool>(type: "boolean", nullable: true),
                     FaceConfidence = table.Column<float>(type: "real", nullable: true),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    RejectionReason = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    VerifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    RejectedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsEncrypted = table.Column<bool>(type: "bit", nullable: false),
-                    EncryptionMethod = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    EncryptedIdDocumentNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    EncryptedIdDocumentImage = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    EncryptedFaceImage = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    RejectionReason = table.Column<string>(type: "text", nullable: true),
+                    VerifiedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    RejectedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsEncrypted = table.Column<bool>(type: "boolean", nullable: false),
+                    EncryptionMethod = table.Column<string>(type: "text", nullable: false),
+                    EncryptedIdDocumentNumber = table.Column<string>(type: "text", nullable: true),
+                    EncryptedIdDocumentImage = table.Column<string>(type: "text", nullable: true),
+                    EncryptedFaceImage = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -281,20 +282,20 @@ namespace Freelancing.Migrations
                 name: "Notifications",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Message = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    Type = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    IconSvg = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
-                    IsRead = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
-                    ReadAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    RelatedUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    IsEncrypted = table.Column<bool>(type: "bit", nullable: false),
-                    EncryptionMethod = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    EncryptedTitle = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    EncryptedMessage = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    Title = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Message = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    Type = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    IconSvg = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    IsRead = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    ReadAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    RelatedUrl = table.Column<string>(type: "text", nullable: true),
+                    IsEncrypted = table.Column<bool>(type: "boolean", nullable: false),
+                    EncryptionMethod = table.Column<string>(type: "text", nullable: true),
+                    EncryptedTitle = table.Column<string>(type: "text", nullable: true),
+                    EncryptedMessage = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -310,12 +311,12 @@ namespace Freelancing.Migrations
                 name: "PeerMentorships",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    FirstName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    LastName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Role = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    FirstName = table.Column<string>(type: "text", nullable: false),
+                    LastName = table.Column<string>(type: "text", nullable: false),
+                    Email = table.Column<string>(type: "text", nullable: false),
+                    Role = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -331,13 +332,13 @@ namespace Freelancing.Migrations
                 name: "Portfolios",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ProjectImages = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ProjectLink = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    Title = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: false),
+                    ProjectImages = table.Column<string>(type: "text", nullable: true),
+                    ProjectLink = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -353,8 +354,8 @@ namespace Freelancing.Migrations
                 name: "UserAccountSkills",
                 columns: table => new
                 {
-                    UserAccountId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    UserSkillId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    UserAccountId = table.Column<string>(type: "text", nullable: false),
+                    UserSkillId = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -376,17 +377,17 @@ namespace Freelancing.Migrations
                 name: "MentorshipMatches",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    MentorId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    MenteeId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    MentorMentorshipId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    MenteeMentorshipId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    MatchedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    StartDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    EndDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    DeclinedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Notes = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    MentorId = table.Column<string>(type: "text", nullable: false),
+                    MenteeId = table.Column<string>(type: "text", nullable: false),
+                    MentorMentorshipId = table.Column<Guid>(type: "uuid", nullable: false),
+                    MenteeMentorshipId = table.Column<Guid>(type: "uuid", nullable: false),
+                    MatchedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Status = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    StartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    EndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeclinedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Notes = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -414,19 +415,53 @@ namespace Freelancing.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "MenteeSessionEvidences",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    MentorshipMatchId = table.Column<Guid>(type: "uuid", nullable: false),
+                    GoalId = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    WhatWasDone = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    AdditionalNotes = table.Column<string>(type: "character varying(5000)", maxLength: 5000, nullable: true),
+                    EvidenceFilePaths = table.Column<string>(type: "text", nullable: true),
+                    SubmittedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MenteeSessionEvidences", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_MenteeSessionEvidences_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_MenteeSessionEvidences_Goals_GoalId",
+                        column: x => x.GoalId,
+                        principalTable: "Goals",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_MenteeSessionEvidences_MentorshipMatches_MentorshipMatchId",
+                        column: x => x.MentorshipMatchId,
+                        principalTable: "MentorshipMatches",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "MentorReviews",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    MentorshipMatchId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    MentorId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    MenteeId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Rating = table.Column<int>(type: "int", nullable: false),
-                    WouldRecommend = table.Column<bool>(type: "bit", nullable: false),
-                    Comments = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
-                    Strengths = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    AreasForImprovement = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()")
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    MentorshipMatchId = table.Column<Guid>(type: "uuid", nullable: false),
+                    MentorId = table.Column<string>(type: "text", nullable: false),
+                    MenteeId = table.Column<string>(type: "text", nullable: false),
+                    Rating = table.Column<int>(type: "integer", nullable: false),
+                    WouldRecommend = table.Column<bool>(type: "boolean", nullable: false),
+                    Comments = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    Strengths = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    AreasForImprovement = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()")
                 },
                 constraints: table =>
                 {
@@ -450,22 +485,59 @@ namespace Freelancing.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "MentorSessionNotes",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    MentorshipMatchId = table.Column<Guid>(type: "uuid", nullable: false),
+                    GoalId = table.Column<Guid>(type: "uuid", nullable: false),
+                    MentorId = table.Column<string>(type: "text", nullable: false),
+                    Notes = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    Feedback = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    ProgressRating = table.Column<int>(type: "integer", nullable: true),
+                    IsTaskAssigned = table.Column<bool>(type: "boolean", nullable: false),
+                    TaskTitle = table.Column<string>(type: "text", nullable: true),
+                    TaskDescription = table.Column<string>(type: "text", nullable: true),
+                    SubmittedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MentorSessionNotes", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_MentorSessionNotes_AspNetUsers_MentorId",
+                        column: x => x.MentorId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_MentorSessionNotes_Goals_GoalId",
+                        column: x => x.GoalId,
+                        principalTable: "Goals",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_MentorSessionNotes_MentorshipMatches_MentorshipMatchId",
+                        column: x => x.MentorshipMatchId,
+                        principalTable: "MentorshipMatches",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "MentorshipChatMessages",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    MentorshipMatchId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    SenderId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Message = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: false),
-                    MessageType = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    FileUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    FileType = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    MentorshipMatchId = table.Column<Guid>(type: "uuid", nullable: false),
+                    SenderId = table.Column<string>(type: "text", nullable: false),
+                    Message = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    MessageType = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    FileUrl = table.Column<string>(type: "text", nullable: true),
+                    FileType = table.Column<string>(type: "text", nullable: true),
                     FileSize = table.Column<long>(type: "bigint", nullable: true),
-                    SentAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
-                    IsRead = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
-                    ReadAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
-                    DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    SentAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    IsRead = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    ReadAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -484,17 +556,45 @@ namespace Freelancing.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "MentorshipSessions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    MentorshipMatchId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedByUserId = table.Column<string>(type: "text", nullable: false),
+                    ScheduledStartUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Status = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    Title = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true),
+                    Notes = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    TimeZone = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    CreatedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MentorshipSessions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_MentorshipSessions_MentorshipMatches_MentorshipMatchId",
+                        column: x => x.MentorshipMatchId,
+                        principalTable: "MentorshipMatches",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "MentorshipGoalCompletions",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    MentorshipMatchId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    GoalId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CompletedByUserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    CompletedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
-                    CompletionType = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    IsCompletedByMentor = table.Column<bool>(type: "bit", nullable: false),
-                    IsCompletedByMentee = table.Column<bool>(type: "bit", nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    MentorshipMatchId = table.Column<Guid>(type: "uuid", nullable: false),
+                    GoalId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CompletedByUserId = table.Column<string>(type: "text", nullable: false),
+                    CompletionType = table.Column<string>(type: "text", nullable: false),
+                    CompletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    MenteeEvidenceId = table.Column<Guid>(type: "uuid", nullable: true),
+                    MentorNoteId = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsCompletedByMentor = table.Column<bool>(type: "boolean", nullable: false),
+                    IsCompletedByMentee = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -510,33 +610,17 @@ namespace Freelancing.Migrations
                         principalTable: "Goals",
                         principalColumn: "Id");
                     table.ForeignKey(
-                        name: "FK_MentorshipGoalCompletions_MentorshipMatches_MentorshipMatchId",
-                        column: x => x.MentorshipMatchId,
-                        principalTable: "MentorshipMatches",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "MentorshipSessions",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    MentorshipMatchId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CreatedByUserId = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ScheduledStartUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: true),
-                    Notes = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
-                    TimeZone = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_MentorshipSessions", x => x.Id);
+                        name: "FK_MentorshipGoalCompletions_MenteeSessionEvidences_MenteeEvid~",
+                        column: x => x.MenteeEvidenceId,
+                        principalTable: "MenteeSessionEvidences",
+                        principalColumn: "Id");
                     table.ForeignKey(
-                        name: "FK_MentorshipSessions_MentorshipMatches_MentorshipMatchId",
+                        name: "FK_MentorshipGoalCompletions_MentorSessionNotes_MentorNoteId",
+                        column: x => x.MentorNoteId,
+                        principalTable: "MentorSessionNotes",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_MentorshipGoalCompletions_MentorshipMatches_MentorshipMatch~",
                         column: x => x.MentorshipMatchId,
                         principalTable: "MentorshipMatches",
                         principalColumn: "Id",
@@ -547,14 +631,14 @@ namespace Freelancing.Migrations
                 name: "MentorshipChatFiles",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    MessageId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OriginalFileName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    StoredFileName = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    FilePath = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    ContentType = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    MessageId = table.Column<Guid>(type: "uuid", nullable: false),
+                    OriginalFileName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    StoredFileName = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    FilePath = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    ContentType = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     FileSize = table.Column<long>(type: "bigint", nullable: false),
-                    UploadedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()")
+                    UploadedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()")
                 },
                 constraints: table =>
                 {
@@ -571,16 +655,16 @@ namespace Freelancing.Migrations
                 name: "Biddings",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    ProjectId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Budget = table.Column<int>(type: "int", nullable: false),
-                    Delivery = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Proposal = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    IsAccepted = table.Column<bool>(type: "bit", nullable: false),
-                    BiddingAcceptedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    PreviousWorksPaths = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    RepositoryLinks = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    ProjectId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Budget = table.Column<int>(type: "integer", nullable: false),
+                    Delivery = table.Column<string>(type: "text", nullable: false),
+                    Proposal = table.Column<string>(type: "text", nullable: false),
+                    IsAccepted = table.Column<bool>(type: "boolean", nullable: false),
+                    BiddingAcceptedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    PreviousWorksPaths = table.Column<string>(type: "text", nullable: true),
+                    RepositoryLinks = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -596,13 +680,13 @@ namespace Freelancing.Migrations
                 name: "FreelancerFeedbacks",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    AcceptBidId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    FreelancerId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Rating = table.Column<int>(type: "int", nullable: false),
-                    WouldRecommend = table.Column<bool>(type: "bit", nullable: false),
-                    Comments = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()")
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    AcceptBidId = table.Column<Guid>(type: "uuid", nullable: false),
+                    FreelancerId = table.Column<string>(type: "text", nullable: false),
+                    Rating = table.Column<int>(type: "integer", nullable: false),
+                    WouldRecommend = table.Column<bool>(type: "boolean", nullable: false),
+                    Comments = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()")
                 },
                 constraints: table =>
                 {
@@ -624,17 +708,17 @@ namespace Freelancing.Migrations
                 name: "Projects",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    ProjectName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ProjectDescription = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Budget = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Category = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ImagePaths = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    AcceptedBidId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    Deadline = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    ProjectName = table.Column<string>(type: "text", nullable: false),
+                    ProjectDescription = table.Column<string>(type: "text", nullable: false),
+                    Budget = table.Column<string>(type: "text", nullable: false),
+                    Category = table.Column<string>(type: "text", nullable: false),
+                    ImagePaths = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    AcceptedBidId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Deadline = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -655,15 +739,15 @@ namespace Freelancing.Migrations
                 name: "ChatRooms",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    User1Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    User2Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    RoomType = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ProjectId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    MentorshipMatchId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LastActivityAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    User1Id = table.Column<string>(type: "text", nullable: false),
+                    User2Id = table.Column<string>(type: "text", nullable: false),
+                    RoomType = table.Column<string>(type: "text", nullable: false),
+                    ProjectId = table.Column<Guid>(type: "uuid", nullable: true),
+                    MentorshipMatchId = table.Column<Guid>(type: "uuid", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastActivityAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -696,35 +780,35 @@ namespace Freelancing.Migrations
                 name: "Contracts",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ProjectId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    BiddingId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ContractTitle = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ContractContent = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ContractTemplateUsed = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Status = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LastModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    TerminatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ClientSignedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ClientSignatureType = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ClientSignatureData = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ClientIPAddress = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ClientUserAgent = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    FreelancerSignedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    FreelancerSignatureType = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    FreelancerSignatureData = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    FreelancerIPAddress = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    FreelancerUserAgent = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    PaymentTerms = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    DeliverableRequirements = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    RevisionPolicy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ClientMarkedCompleteAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    FreelancerMarkedCompleteAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CompletedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Timeline = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    DocumentPath = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    DocumentHash = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ProjectId = table.Column<Guid>(type: "uuid", nullable: false),
+                    BiddingId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ContractTitle = table.Column<string>(type: "text", nullable: false),
+                    ContractContent = table.Column<string>(type: "text", nullable: false),
+                    ContractTemplateUsed = table.Column<string>(type: "text", nullable: true),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastModifiedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    TerminatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ClientSignedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ClientSignatureType = table.Column<string>(type: "text", nullable: true),
+                    ClientSignatureData = table.Column<string>(type: "text", nullable: true),
+                    ClientIPAddress = table.Column<string>(type: "text", nullable: true),
+                    ClientUserAgent = table.Column<string>(type: "text", nullable: true),
+                    FreelancerSignedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    FreelancerSignatureType = table.Column<string>(type: "text", nullable: true),
+                    FreelancerSignatureData = table.Column<string>(type: "text", nullable: true),
+                    FreelancerIPAddress = table.Column<string>(type: "text", nullable: true),
+                    FreelancerUserAgent = table.Column<string>(type: "text", nullable: true),
+                    PaymentTerms = table.Column<string>(type: "text", nullable: true),
+                    DeliverableRequirements = table.Column<string>(type: "text", nullable: true),
+                    RevisionPolicy = table.Column<string>(type: "text", nullable: true),
+                    ClientMarkedCompleteAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    FreelancerMarkedCompleteAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CompletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Timeline = table.Column<string>(type: "text", nullable: true),
+                    DocumentPath = table.Column<string>(type: "text", nullable: true),
+                    DocumentHash = table.Column<string>(type: "text", nullable: true),
                     DocumentSize = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
@@ -747,9 +831,9 @@ namespace Freelancing.Migrations
                 name: "ProjectSkills",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ProjectId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserSkillId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ProjectId = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserSkillId = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -771,19 +855,19 @@ namespace Freelancing.Migrations
                 name: "ChatMessages",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ChatRoomId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    SenderId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Message = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: false),
-                    MessageType = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    FileUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    FileType = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ChatRoomId = table.Column<Guid>(type: "uuid", nullable: false),
+                    SenderId = table.Column<string>(type: "text", nullable: false),
+                    Message = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    MessageType = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    FileUrl = table.Column<string>(type: "text", nullable: true),
+                    FileType = table.Column<string>(type: "text", nullable: true),
                     FileSize = table.Column<long>(type: "bigint", nullable: true),
-                    SentAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    IsRead = table.Column<bool>(type: "bit", nullable: false),
-                    ReadAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    SentAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    IsRead = table.Column<bool>(type: "boolean", nullable: false),
+                    ReadAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -805,16 +889,16 @@ namespace Freelancing.Migrations
                 name: "ContractAuditLogs",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ContractId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Action = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Details = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Timestamp = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    IPAddress = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UserAgent = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    PreviousStatus = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    NewStatus = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ContractId = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    Action = table.Column<string>(type: "text", nullable: false),
+                    Details = table.Column<string>(type: "text", nullable: true),
+                    Timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    IPAddress = table.Column<string>(type: "text", nullable: true),
+                    UserAgent = table.Column<string>(type: "text", nullable: true),
+                    PreviousStatus = table.Column<string>(type: "text", nullable: true),
+                    NewStatus = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -836,15 +920,15 @@ namespace Freelancing.Migrations
                 name: "ContractRevisions",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ContractId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    RevisionNumber = table.Column<int>(type: "int", nullable: false),
-                    RevisionContent = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    RevisionNotes = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedByUserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    PreviousHash = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CurrentHash = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ContractId = table.Column<Guid>(type: "uuid", nullable: false),
+                    RevisionNumber = table.Column<int>(type: "integer", nullable: false),
+                    RevisionContent = table.Column<string>(type: "text", nullable: false),
+                    RevisionNotes = table.Column<string>(type: "text", nullable: true),
+                    CreatedByUserId = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    PreviousHash = table.Column<string>(type: "text", nullable: true),
+                    CurrentHash = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -866,31 +950,31 @@ namespace Freelancing.Migrations
                 name: "ContractTerminations",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ContractId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TerminationReason = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    TerminationDetails = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    RequestedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
-                    RequestedByUserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    RequestedByUserRole = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    CompletedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    FinalPayment = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    ClientSignedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ClientSignatureType = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ClientSignatureData = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ClientIPAddress = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ClientUserAgent = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    FreelancerSignedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    FreelancerSignatureType = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    FreelancerSignatureData = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    FreelancerIPAddress = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    FreelancerUserAgent = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    TerminationTerms = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    SettlementDetails = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    SettlementNotes = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    DocumentPath = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    DocumentHash = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ContractId = table.Column<Guid>(type: "uuid", nullable: false),
+                    TerminationReason = table.Column<string>(type: "text", nullable: false),
+                    TerminationDetails = table.Column<string>(type: "text", nullable: false),
+                    RequestedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    RequestedByUserId = table.Column<string>(type: "text", nullable: false),
+                    RequestedByUserRole = table.Column<string>(type: "text", nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    CompletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    FinalPayment = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
+                    ClientSignedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ClientSignatureType = table.Column<string>(type: "text", nullable: true),
+                    ClientSignatureData = table.Column<string>(type: "text", nullable: true),
+                    ClientIPAddress = table.Column<string>(type: "text", nullable: true),
+                    ClientUserAgent = table.Column<string>(type: "text", nullable: true),
+                    FreelancerSignedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    FreelancerSignatureType = table.Column<string>(type: "text", nullable: true),
+                    FreelancerSignatureData = table.Column<string>(type: "text", nullable: true),
+                    FreelancerIPAddress = table.Column<string>(type: "text", nullable: true),
+                    FreelancerUserAgent = table.Column<string>(type: "text", nullable: true),
+                    TerminationTerms = table.Column<string>(type: "text", nullable: true),
+                    SettlementDetails = table.Column<string>(type: "text", nullable: true),
+                    SettlementNotes = table.Column<string>(type: "text", nullable: true),
+                    DocumentPath = table.Column<string>(type: "text", nullable: true),
+                    DocumentHash = table.Column<string>(type: "text", nullable: true),
                     DocumentSize = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
@@ -908,19 +992,19 @@ namespace Freelancing.Migrations
                 name: "Deliverables",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ContractId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    SubmittedByUserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    SubmittedFilesPaths = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    RepositoryLinks = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    SubmittedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
-                    ReviewedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ReviewComments = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ReviewedByUserId = table.Column<string>(type: "nvarchar(450)", nullable: true),
-                    Version = table.Column<int>(type: "int", nullable: false),
-                    PreviousVersionId = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ContractId = table.Column<Guid>(type: "uuid", nullable: false),
+                    SubmittedByUserId = table.Column<string>(type: "text", nullable: false),
+                    Title = table.Column<string>(type: "text", nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    SubmittedFilesPaths = table.Column<string>(type: "text", nullable: true),
+                    RepositoryLinks = table.Column<string>(type: "text", nullable: true),
+                    SubmittedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    ReviewedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ReviewComments = table.Column<string>(type: "text", nullable: true),
+                    ReviewedByUserId = table.Column<string>(type: "text", nullable: true),
+                    Version = table.Column<int>(type: "integer", nullable: false),
+                    PreviousVersionId = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -952,14 +1036,14 @@ namespace Freelancing.Migrations
                 name: "ChatFiles",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    MessageId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OriginalFileName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    StoredFileName = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    FilePath = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    ContentType = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    MessageId = table.Column<Guid>(type: "uuid", nullable: false),
+                    OriginalFileName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    StoredFileName = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    FilePath = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    ContentType = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     FileSize = table.Column<long>(type: "bigint", nullable: false),
-                    UploadedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    UploadedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -976,14 +1060,14 @@ namespace Freelancing.Migrations
                 name: "ContractTerminationAuditLogs",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ContractTerminationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Action = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Details = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Timestamp = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    IPAddress = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UserAgent = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ContractTerminationId = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    Action = table.Column<string>(type: "text", nullable: false),
+                    Details = table.Column<string>(type: "text", nullable: true),
+                    Timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    IPAddress = table.Column<string>(type: "text", nullable: true),
+                    UserAgent = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -994,7 +1078,7 @@ namespace Freelancing.Migrations
                         principalTable: "AspNetUsers",
                         principalColumn: "Id");
                     table.ForeignKey(
-                        name: "FK_ContractTerminationAuditLogs_ContractTerminations_ContractTerminationId",
+                        name: "FK_ContractTerminationAuditLogs_ContractTerminations_ContractT~",
                         column: x => x.ContractTerminationId,
                         principalTable: "ContractTerminations",
                         principalColumn: "Id",
@@ -1010,8 +1094,7 @@ namespace Freelancing.Migrations
                 name: "RoleNameIndex",
                 table: "AspNetRoles",
                 column: "NormalizedName",
-                unique: true,
-                filter: "[NormalizedName] IS NOT NULL");
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetUserClaims_UserId",
@@ -1037,22 +1120,19 @@ namespace Freelancing.Migrations
                 name: "IX_AspNetUsers_Email",
                 table: "AspNetUsers",
                 column: "Email",
-                unique: true,
-                filter: "[Email] IS NOT NULL");
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetUsers_UserName",
                 table: "AspNetUsers",
                 column: "UserName",
-                unique: true,
-                filter: "[UserName] IS NOT NULL");
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "UserNameIndex",
                 table: "AspNetUsers",
                 column: "NormalizedUserName",
-                unique: true,
-                filter: "[NormalizedUserName] IS NOT NULL");
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Biddings_ProjectId",
@@ -1274,6 +1354,27 @@ namespace Freelancing.Migrations
                 column: "UserAccountId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_MenteeSessionEvidences_GoalId",
+                table: "MenteeSessionEvidences",
+                column: "GoalId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MenteeSessionEvidences_MentorshipMatchId_GoalId_UserId",
+                table: "MenteeSessionEvidences",
+                columns: new[] { "MentorshipMatchId", "GoalId", "UserId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MenteeSessionEvidences_SubmittedAt",
+                table: "MenteeSessionEvidences",
+                column: "SubmittedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MenteeSessionEvidences_UserId",
+                table: "MenteeSessionEvidences",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_MentorReviews_CreatedAt",
                 table: "MentorReviews",
                 column: "CreatedAt");
@@ -1293,6 +1394,27 @@ namespace Freelancing.Migrations
                 table: "MentorReviews",
                 column: "MentorshipMatchId",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MentorSessionNotes_GoalId",
+                table: "MentorSessionNotes",
+                column: "GoalId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MentorSessionNotes_MentorId",
+                table: "MentorSessionNotes",
+                column: "MentorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MentorSessionNotes_MentorshipMatchId_GoalId_MentorId",
+                table: "MentorSessionNotes",
+                columns: new[] { "MentorshipMatchId", "GoalId", "MentorId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MentorSessionNotes_SubmittedAt",
+                table: "MentorSessionNotes",
+                column: "SubmittedAt");
 
             migrationBuilder.CreateIndex(
                 name: "IX_MentorshipChatFiles_MessageId",
@@ -1333,6 +1455,16 @@ namespace Freelancing.Migrations
                 name: "IX_MentorshipGoalCompletions_GoalId",
                 table: "MentorshipGoalCompletions",
                 column: "GoalId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MentorshipGoalCompletions_MenteeEvidenceId",
+                table: "MentorshipGoalCompletions",
+                column: "MenteeEvidenceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MentorshipGoalCompletions_MentorNoteId",
+                table: "MentorshipGoalCompletions",
+                column: "MentorNoteId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_MentorshipGoalCompletions_MentorshipMatchId_GoalId",
@@ -1530,7 +1662,10 @@ namespace Freelancing.Migrations
                 name: "MentorshipChatMessages");
 
             migrationBuilder.DropTable(
-                name: "Goals");
+                name: "MenteeSessionEvidences");
+
+            migrationBuilder.DropTable(
+                name: "MentorSessionNotes");
 
             migrationBuilder.DropTable(
                 name: "UserSkills");
@@ -1540,6 +1675,9 @@ namespace Freelancing.Migrations
 
             migrationBuilder.DropTable(
                 name: "Contracts");
+
+            migrationBuilder.DropTable(
+                name: "Goals");
 
             migrationBuilder.DropTable(
                 name: "MentorshipMatches");
