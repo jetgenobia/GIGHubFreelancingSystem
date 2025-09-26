@@ -64,7 +64,7 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser
 RUN chown -R appuser:appuser /app
 USER appuser
 
-# Expose port (Railway will set PORT environment variable)
+# Expose port
 EXPOSE 8080 8081
 
 # Set environment variables
