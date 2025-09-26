@@ -29,7 +29,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("BiddingAcceptedDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("Budget")
                         .HasColumnType("integer");
@@ -101,7 +101,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("character varying(500)");
 
                     b.Property<DateTime>("UploadedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
@@ -120,7 +120,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<long?>("FileSize")
                         .HasColumnType("bigint");
@@ -148,14 +148,14 @@ namespace Freelancing.Migrations
                         .HasColumnType("character varying(20)");
 
                     b.Property<DateTime?>("ReadAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("SenderId")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<DateTime>("SentAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
@@ -177,13 +177,13 @@ namespace Freelancing.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("LastActivityAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid?>("MentorshipMatchId")
                         .HasColumnType("uuid");
@@ -231,7 +231,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("ClientMarkedCompleteAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("ClientSignatureData")
                         .HasColumnType("text");
@@ -240,13 +240,13 @@ namespace Freelancing.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("ClientSignedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("ClientUserAgent")
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("ContractContent")
                         .IsRequired()
@@ -260,7 +260,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("DeliverableRequirements")
                         .HasColumnType("text");
@@ -278,7 +278,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("FreelancerMarkedCompleteAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("FreelancerSignatureData")
                         .HasColumnType("text");
@@ -287,13 +287,13 @@ namespace Freelancing.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("FreelancerSignedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("FreelancerUserAgent")
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("LastModifiedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("PaymentTerms")
                         .HasColumnType("text");
@@ -309,7 +309,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("TerminatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Timeline")
                         .HasColumnType("text");
@@ -354,7 +354,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("Timestamp")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UserAgent")
                         .HasColumnType("text");
@@ -384,7 +384,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedByUserId")
                         .IsRequired()
@@ -429,7 +429,7 @@ namespace Freelancing.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("Description")
@@ -440,7 +440,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("LastModifiedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -484,13 +484,13 @@ namespace Freelancing.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("ClientSignedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("ClientUserAgent")
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("ContractId")
                         .HasColumnType("uuid");
@@ -518,14 +518,14 @@ namespace Freelancing.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("FreelancerSignedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("FreelancerUserAgent")
                         .HasColumnType("text");
 
                     b.Property<DateTime>("RequestedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("RequestedByUserId")
@@ -590,7 +590,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("Timestamp")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UserAgent")
                         .HasColumnType("text");
@@ -629,7 +629,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("ReviewedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("ReviewedByUserId")
                         .HasColumnType("text");
@@ -640,7 +640,7 @@ namespace Freelancing.Migrations
 
                     b.Property<DateTime>("SubmittedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("SubmittedByUserId")
@@ -689,7 +689,7 @@ namespace Freelancing.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("FreelancerId")
@@ -724,13 +724,13 @@ namespace Freelancing.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("GoalDescription")
                         .IsRequired()
@@ -761,7 +761,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("TargetDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
@@ -775,7 +775,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
@@ -803,7 +803,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("real");
 
                     b.Property<DateTime?>("IdDocumentExpiryDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("IdDocumentType")
                         .HasColumnType("text");
@@ -815,7 +815,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("RejectedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("RejectionReason")
                         .HasColumnType("text");
@@ -825,7 +825,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
@@ -835,7 +835,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("VerifiedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
@@ -865,7 +865,7 @@ namespace Freelancing.Migrations
 
                     b.Property<DateTime>("SubmittedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("UserId")
@@ -907,7 +907,7 @@ namespace Freelancing.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("MenteeId")
@@ -978,7 +978,7 @@ namespace Freelancing.Migrations
 
                     b.Property<DateTime>("SubmittedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("TaskDescription")
@@ -1035,7 +1035,7 @@ namespace Freelancing.Migrations
 
                     b.Property<DateTime>("UploadedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasDefaultValueSql("GETUTCDATE()");
 
                     b.HasKey("Id");
@@ -1052,7 +1052,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<long?>("FileSize")
                         .HasColumnType("bigint");
@@ -1087,7 +1087,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("character varying(20)");
 
                     b.Property<DateTime?>("ReadAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("SenderId")
                         .IsRequired()
@@ -1095,7 +1095,7 @@ namespace Freelancing.Migrations
 
                     b.Property<DateTime>("SentAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasDefaultValueSql("GETUTCDATE()");
 
                     b.HasKey("Id");
@@ -1119,7 +1119,7 @@ namespace Freelancing.Migrations
 
                     b.Property<DateTime>("CompletedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("CompletedByUserId")
@@ -1172,13 +1172,13 @@ namespace Freelancing.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("DeclinedDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("EndDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("MatchedDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("MenteeId")
                         .IsRequired()
@@ -1199,7 +1199,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("character varying(1000)");
 
                     b.Property<DateTime?>("StartDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -1231,7 +1231,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedByUserId")
                         .IsRequired()
@@ -1245,7 +1245,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("character varying(2000)");
 
                     b.Property<DateTime>("ScheduledStartUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -1261,7 +1261,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("character varying(150)");
 
                     b.Property<DateTime?>("UpdatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
@@ -1278,7 +1278,7 @@ namespace Freelancing.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("EncryptedMessage")
@@ -1307,7 +1307,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("character varying(500)");
 
                     b.Property<DateTime?>("ReadAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("RelatedUrl")
                         .HasColumnType("text");
@@ -1378,7 +1378,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -1423,10 +1423,10 @@ namespace Freelancing.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("Deadline")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("ImagePaths")
                         .HasColumnType("text");
@@ -1494,7 +1494,7 @@ namespace Freelancing.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("DeletionReason")
                         .HasColumnType("text");
@@ -1634,7 +1634,7 @@ namespace Freelancing.Migrations
 
                     b.Property<DateTime>("RecordedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<bool>("WasSuccessful")
