@@ -28,6 +28,13 @@ namespace Freelancing.Services
         {
             if (_isInitialized) return;
 
+            var isRailway = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("RAILWAY_ENVIRONMENT"));
+            if (isRailway)
+            {
+                _logger.LogInformation("Skipping Flask ML API initialization in Railway environment");
+                return;
+            }
+
             try
             {
                 var response = await _httpClient.GetAsync($"{_apiUrl}/health");
