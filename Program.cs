@@ -255,14 +255,29 @@ static void ConfigureServices(WebApplicationBuilder builder)
 
     // Database configuration
     var rawConnectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
-                         ?? Environment.GetEnvironmentVariable("CONNECTION_STRING")
-                         ?? configuration.GetConnectionString("Freelancing");
-
-    // Clean the connection string
-    var connectionString = rawConnectionString?.Trim();
+                          ?? Environment.GetEnvironmentVariable("CONNECTION_STRING")
+                          ?? configuration.GetConnectionString("Freelancing");
 
     Console.WriteLine($"Raw connection string: '{rawConnectionString}'");
-    Console.WriteLine($"Cleaned connection string: '{connectionString}'");
+
+    // Convert PostgreSQL URL format to key-value format
+    string connectionString;
+    if (rawConnectionString?.StartsWith("postgresql://") == true)
+    {
+        // Parse the URL format: postgresql://user:pass@host:port/database
+        var uri = new Uri(rawConnectionString);
+        var userInfo = uri.UserInfo.Split(':');
+        var username = userInfo[0];
+        var password = userInfo.Length > 1 ? userInfo[1] : "";
+
+        connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.LocalPath.TrimStart('/')};Username={username};Password={password};";
+        Console.WriteLine($"Converted connection string: '{connectionString}'");
+    }
+    else
+    {
+        connectionString = rawConnectionString?.Trim() ?? "";
+        Console.WriteLine($"Using as-is connection string: '{connectionString}'");
+    }
 
     // Test if we can parse it
     try
@@ -273,16 +288,6 @@ static void ConfigureServices(WebApplicationBuilder builder)
     catch (Exception ex)
     {
         Console.WriteLine($"Parse error: {ex.Message}");
-
-        // ADD THIS DEBUG CODE
-        Console.WriteLine("=== DEBUG: First 20 characters ===");
-        for (int i = 0; i < Math.Min(20, connectionString.Length); i++)
-        {
-            char c = connectionString[i];
-            Console.WriteLine($"Char {i}: '{c}' (ASCII: {(int)c})");
-        }
-        Console.WriteLine("=== END CHARACTER DEBUG ===");
-
         throw;
     }
 
