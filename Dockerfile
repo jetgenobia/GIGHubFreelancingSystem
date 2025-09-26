@@ -61,16 +61,16 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser
 RUN chown -R appuser:appuser /app
 USER appuser
 
-# Railway will set the PORT environment variable
-EXPOSE $PORT
+# Expose port 8080 (Railway's default)
+EXPOSE 8080
 
 # Set environment variables for Railway
-ENV ASPNETCORE_URLS=http://+:$PORT
+ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV RAILWAY_ENVIRONMENT=true
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:$PORT/health || exit 1
+    CMD curl -f http://localhost:8080/health || exit 1
 
 # Start the application
 ENTRYPOINT ["dotnet", "Freelancing.dll"]
