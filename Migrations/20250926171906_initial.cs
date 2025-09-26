@@ -414,6 +414,40 @@ namespace Freelancing.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "MenteeSessionEvidences",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    MentorshipMatchId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    GoalId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    WhatWasDone = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: false),
+                    AdditionalNotes = table.Column<string>(type: "nvarchar(max)", maxLength: 5000, nullable: true),
+                    EvidenceFilePaths = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    SubmittedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MenteeSessionEvidences", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_MenteeSessionEvidences_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_MenteeSessionEvidences_Goals_GoalId",
+                        column: x => x.GoalId,
+                        principalTable: "Goals",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_MenteeSessionEvidences_MentorshipMatches_MentorshipMatchId",
+                        column: x => x.MentorshipMatchId,
+                        principalTable: "MentorshipMatches",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "MentorReviews",
                 columns: table => new
                 {
@@ -443,6 +477,43 @@ namespace Freelancing.Migrations
                         principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_MentorReviews_MentorshipMatches_MentorshipMatchId",
+                        column: x => x.MentorshipMatchId,
+                        principalTable: "MentorshipMatches",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "MentorSessionNotes",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    MentorshipMatchId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    GoalId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    MentorId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Notes = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: false),
+                    Feedback = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    ProgressRating = table.Column<int>(type: "int", nullable: true),
+                    IsTaskAssigned = table.Column<bool>(type: "bit", nullable: false),
+                    TaskTitle = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    TaskDescription = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    SubmittedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MentorSessionNotes", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_MentorSessionNotes_AspNetUsers_MentorId",
+                        column: x => x.MentorId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_MentorSessionNotes_Goals_GoalId",
+                        column: x => x.GoalId,
+                        principalTable: "Goals",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_MentorSessionNotes_MentorshipMatches_MentorshipMatchId",
                         column: x => x.MentorshipMatchId,
                         principalTable: "MentorshipMatches",
                         principalColumn: "Id",
@@ -484,40 +555,6 @@ namespace Freelancing.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "MentorshipGoalCompletions",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    MentorshipMatchId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    GoalId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CompletedByUserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    CompletedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
-                    CompletionType = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    IsCompletedByMentor = table.Column<bool>(type: "bit", nullable: false),
-                    IsCompletedByMentee = table.Column<bool>(type: "bit", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_MentorshipGoalCompletions", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_MentorshipGoalCompletions_AspNetUsers_CompletedByUserId",
-                        column: x => x.CompletedByUserId,
-                        principalTable: "AspNetUsers",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_MentorshipGoalCompletions_Goals_GoalId",
-                        column: x => x.GoalId,
-                        principalTable: "Goals",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_MentorshipGoalCompletions_MentorshipMatches_MentorshipMatchId",
-                        column: x => x.MentorshipMatchId,
-                        principalTable: "MentorshipMatches",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "MentorshipSessions",
                 columns: table => new
                 {
@@ -537,6 +574,52 @@ namespace Freelancing.Migrations
                     table.PrimaryKey("PK_MentorshipSessions", x => x.Id);
                     table.ForeignKey(
                         name: "FK_MentorshipSessions_MentorshipMatches_MentorshipMatchId",
+                        column: x => x.MentorshipMatchId,
+                        principalTable: "MentorshipMatches",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "MentorshipGoalCompletions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    MentorshipMatchId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    GoalId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CompletedByUserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    CompletionType = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CompletedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    MenteeEvidenceId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    MentorNoteId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    IsCompletedByMentor = table.Column<bool>(type: "bit", nullable: false),
+                    IsCompletedByMentee = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MentorshipGoalCompletions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_MentorshipGoalCompletions_AspNetUsers_CompletedByUserId",
+                        column: x => x.CompletedByUserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_MentorshipGoalCompletions_Goals_GoalId",
+                        column: x => x.GoalId,
+                        principalTable: "Goals",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_MentorshipGoalCompletions_MenteeSessionEvidences_MenteeEvidenceId",
+                        column: x => x.MenteeEvidenceId,
+                        principalTable: "MenteeSessionEvidences",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_MentorshipGoalCompletions_MentorSessionNotes_MentorNoteId",
+                        column: x => x.MentorNoteId,
+                        principalTable: "MentorSessionNotes",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_MentorshipGoalCompletions_MentorshipMatches_MentorshipMatchId",
                         column: x => x.MentorshipMatchId,
                         principalTable: "MentorshipMatches",
                         principalColumn: "Id",
@@ -1274,6 +1357,27 @@ namespace Freelancing.Migrations
                 column: "UserAccountId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_MenteeSessionEvidences_GoalId",
+                table: "MenteeSessionEvidences",
+                column: "GoalId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MenteeSessionEvidences_MentorshipMatchId_GoalId_UserId",
+                table: "MenteeSessionEvidences",
+                columns: new[] { "MentorshipMatchId", "GoalId", "UserId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MenteeSessionEvidences_SubmittedAt",
+                table: "MenteeSessionEvidences",
+                column: "SubmittedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MenteeSessionEvidences_UserId",
+                table: "MenteeSessionEvidences",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_MentorReviews_CreatedAt",
                 table: "MentorReviews",
                 column: "CreatedAt");
@@ -1293,6 +1397,27 @@ namespace Freelancing.Migrations
                 table: "MentorReviews",
                 column: "MentorshipMatchId",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MentorSessionNotes_GoalId",
+                table: "MentorSessionNotes",
+                column: "GoalId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MentorSessionNotes_MentorId",
+                table: "MentorSessionNotes",
+                column: "MentorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MentorSessionNotes_MentorshipMatchId_GoalId_MentorId",
+                table: "MentorSessionNotes",
+                columns: new[] { "MentorshipMatchId", "GoalId", "MentorId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MentorSessionNotes_SubmittedAt",
+                table: "MentorSessionNotes",
+                column: "SubmittedAt");
 
             migrationBuilder.CreateIndex(
                 name: "IX_MentorshipChatFiles_MessageId",
@@ -1333,6 +1458,16 @@ namespace Freelancing.Migrations
                 name: "IX_MentorshipGoalCompletions_GoalId",
                 table: "MentorshipGoalCompletions",
                 column: "GoalId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MentorshipGoalCompletions_MenteeEvidenceId",
+                table: "MentorshipGoalCompletions",
+                column: "MenteeEvidenceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MentorshipGoalCompletions_MentorNoteId",
+                table: "MentorshipGoalCompletions",
+                column: "MentorNoteId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_MentorshipGoalCompletions_MentorshipMatchId_GoalId",
@@ -1530,7 +1665,10 @@ namespace Freelancing.Migrations
                 name: "MentorshipChatMessages");
 
             migrationBuilder.DropTable(
-                name: "Goals");
+                name: "MenteeSessionEvidences");
+
+            migrationBuilder.DropTable(
+                name: "MentorSessionNotes");
 
             migrationBuilder.DropTable(
                 name: "UserSkills");
@@ -1540,6 +1678,9 @@ namespace Freelancing.Migrations
 
             migrationBuilder.DropTable(
                 name: "Contracts");
+
+            migrationBuilder.DropTable(
+                name: "Goals");
 
             migrationBuilder.DropTable(
                 name: "MentorshipMatches");

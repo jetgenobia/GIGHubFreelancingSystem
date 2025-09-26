@@ -7,10 +7,15 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
+# Initialize model variable
+model = None
+
 # Load the model
 try:
     model = joblib.load('smart_hiring_model.pkl')
     print("Random Forest model loaded successfully")
+    print(f"Model type: {type(model)}")
+    print(f"Model is not None: {model is not None}")
 except Exception as e:
     print(f"Error loading model: {e}")
     model = None
@@ -61,10 +66,13 @@ def predict():
 
 @app.route('/health', methods=['GET'])
 def health():
+    print(f"Health check - model is not None: {model is not None}")
+    print(f"Health check - model type: {type(model)}")
     return jsonify({
         'status': 'healthy',
         'model_loaded': model is not None,
-        'features_count': 17  # Updated count
+        'features_count': 17,
+        'debug_model_type': str(type(model)) if model is not None else 'None'
     })
 
 if __name__ == '__main__':

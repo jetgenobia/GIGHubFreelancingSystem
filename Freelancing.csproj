@@ -10,11 +10,6 @@
   <ItemGroup>
     <Content Remove="Views\Client\ClientLogin.cshtml" />
     <Content Remove="Views\Client\ClientRegister.cshtml" />
-    <Content Remove="wwwroot\models\smart_hiring_model.pkl" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="wwwroot\models\smart_hiring_model.pkl" />
   </ItemGroup>
 
   <ItemGroup>

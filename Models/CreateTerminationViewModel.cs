@@ -19,7 +19,7 @@ namespace Freelancing.Models
         public string TerminationReason { get; set; } = string.Empty;
         
         [Required(ErrorMessage = "Please provide detailed explanation for termination")]
-        [StringLength(2000, ErrorMessage = "Details must be between 50 and 2000 characters", MinimumLength = 50)]
+        [StringLength(2000, ErrorMessage = "Details must be between 50 and 2000 characters")]
         public string TerminationDetails { get; set; } = string.Empty;
         
         [Required(ErrorMessage = "Please specify the final payment amount")]
