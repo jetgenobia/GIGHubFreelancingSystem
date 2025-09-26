@@ -254,35 +254,32 @@ static void ConfigureServices(WebApplicationBuilder builder)
     });
 
     // Database configuration
-    Console.WriteLine("=== DEBUG: Environment Variables ===");
-    Console.WriteLine($"CONNECTION_STRING: '{Environment.GetEnvironmentVariable("CONNECTION_STRING")}'");
-    Console.WriteLine($"DATABASE_URL: '{Environment.GetEnvironmentVariable("DATABASE_URL")}'");
-    Console.WriteLine($"Config Freelancing: '{configuration.GetConnectionString("Freelancing")}'");
+    var rawConnectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
+                         ?? Environment.GetEnvironmentVariable("CONNECTION_STRING")
+                         ?? configuration.GetConnectionString("Freelancing");
 
-    // Try multiple sources
-    var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
-                          ?? Environment.GetEnvironmentVariable("CONNECTION_STRING")
-                          ?? configuration.GetConnectionString("Freelancing");
+    // Clean the connection string
+    var connectionString = rawConnectionString?.Trim();
 
-    Console.WriteLine($"Final connection string: '{connectionString}'");
-    Console.WriteLine("=== END DEBUG ===");
+    Console.WriteLine($"Raw connection string: '{rawConnectionString}'");
+    Console.WriteLine($"Cleaned connection string: '{connectionString}'");
+
+    // Test if we can parse it
+    try
+    {
+        var connBuilder = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
+        Console.WriteLine($"Parsed successfully: Host={connBuilder.Host}, Database={connBuilder.Database}");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Parse error: {ex.Message}");
+        throw;
+    }
 
     if (string.IsNullOrEmpty(connectionString))
     {
         throw new InvalidOperationException("Database connection string not configured. Check environment variables.");
     }
-
-    services.AddDbContext<ApplicationDbContext>(options =>
-    {
-        options.UseNpgsql(connectionString, npgsqlOptions =>
-        {
-            npgsqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
-            npgsqlOptions.EnableRetryOnFailure(
-                maxRetryCount: 3,
-                maxRetryDelay: TimeSpan.FromSeconds(30),
-                errorCodesToAdd: null);
-        });
-    });
 
     // Identity configuration
     ConfigureIdentity(services, environment);
