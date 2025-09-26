@@ -12,7 +12,7 @@
         public string Budget { get; set; }
         public string Category { get; set; }
         public string? ImagePaths { get; set; } // JSON array of image paths
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow.ToLocalTime();
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public string Status { get; set; } = "Open"; // Open, Active, Completed, Cancelled
         public Guid? AcceptedBidId { get; set; }
         public Bidding? AcceptedBid { get; set; }

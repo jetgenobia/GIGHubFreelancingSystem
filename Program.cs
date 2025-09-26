@@ -76,81 +76,12 @@ static void ConfigureServices(WebApplicationBuilder builder)
     var configuration = builder.Configuration;
     var environment = builder.Environment;
 
-    // Database connection string handling
-    var rawConnectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
-                             ?? Environment.GetEnvironmentVariable("CONNECTION_STRING")
-                             ?? configuration.GetConnectionString("Freelancing");
-
-    Log.Information("Raw connection string source: {Source}",
-        Environment.GetEnvironmentVariable("DATABASE_URL") != null ? "DATABASE_URL" :
-        Environment.GetEnvironmentVariable("CONNECTION_STRING") != null ? "CONNECTION_STRING" : "appsettings.json");
-
-    string connectionString;
-    if (rawConnectionString?.StartsWith("postgresql://") == true)
-    {
-        // Parse Railway PostgreSQL URL format
-        var uri = new Uri(rawConnectionString);
-        var userInfo = uri.UserInfo.Split(':');
-        var username = userInfo[0];
-        var password = userInfo.Length > 1 ? userInfo[1] : "";
-
-        connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.LocalPath.TrimStart('/')};Username={username};Password={password};";
-        Log.Information("Converted PostgreSQL URL to connection string");
-    }
-    else
-    {
-        connectionString = rawConnectionString?.Trim() ?? "";
-        Log.Information("Using connection string as-is");
-    }
-
-    if (string.IsNullOrEmpty(connectionString))
-    {
-        throw new InvalidOperationException("Database connection string not configured. Check environment variables DATABASE_URL or CONNECTION_STRING.");
-    }
-
-    // Log connection details (without password) for debugging
-    try
-    {
-        var connBuilder = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
-        Log.Information("Database connection: Host={Host}, Port={Port}, Database={Database}, Username={Username}",
-            connBuilder.Host, connBuilder.Port, connBuilder.Database, connBuilder.Username);
-    }
-    catch (Exception ex)
-    {
-        Log.Error(ex, "Failed to parse connection string");
-        throw;
-    }
-
-    // Register DbContext with enhanced configuration
-    services.AddDbContext<ApplicationDbContext>(options =>
-    {
-        options.UseNpgsql(connectionString, npgsqlOptions =>
-        {
-            npgsqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
-            npgsqlOptions.EnableRetryOnFailure(
-                maxRetryCount: 5,
-                maxRetryDelay: TimeSpan.FromSeconds(30),
-                errorCodesToAdd: null);
-            npgsqlOptions.CommandTimeout(60); // 60 seconds timeout
-        });
-
-        if (environment.IsDevelopment())
-        {
-            options.EnableSensitiveDataLogging();
-            options.EnableDetailedErrors();
-        }
-    });
-
-    // Configure PostgreSQL to handle DateTime properly
-    AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
-
-    // Load environment variables again (for consistency)
     if (File.Exists(".env"))
     {
         DotNetEnv.Env.Load();
     }
 
-    // Add environment variable mapping for Email configuration
+    // Add environment variable mapping for Email configuration (NEW)
     builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
     {
         ["Email:SmtpServer"] = Environment.GetEnvironmentVariable("SMTP_SERVER"),
@@ -159,20 +90,32 @@ static void ConfigureServices(WebApplicationBuilder builder)
         ["Email:SmtpPassword"] = Environment.GetEnvironmentVariable("SMTP_PASSWORD"),
         ["Email:FromEmail"] = Environment.GetEnvironmentVariable("FROM_EMAIL"),
         ["Email:FromName"] = "GigHub",
+        ["GoogleCloud:VisionApiKey"] = Environment.GetEnvironmentVariable("GOOGLE_VISION_API_KEY"),
         ["Email:EnableSsl"] = "true"
     });
 
     // Add controllers and views
     services.AddControllersWithViews();
+    /*services.AddControllersWithViews(options =>
+    {
+        *//*// Only require HTTPS in production when HTTPS is not disabled
+        var disableHttpsRequirement = Environment.GetEnvironmentVariable("DISABLE_HTTPS_REQUIREMENT") == "true";
+
+        if (!environment.IsDevelopment() && !disableHttpsRequirement)
+        {
+            options.Filters.Add(new Microsoft.AspNetCore.Mvc.RequireHttpsAttribute());
+        }*//*
+    });*/
+
     services.AddRazorPages();
 
-    // Rate limiting configuration
     services.AddRateLimiter(options =>
     {
-        // Global rate limiter
+        // Global rate limiter (general protection)
         options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(
             context =>
             {
+                // Use IP address for partitioning
                 var clientIp = context.Request.Headers["X-Forwarded-For"].FirstOrDefault()
                               ?? context.Connection.RemoteIpAddress?.ToString()
                               ?? "unknown";
@@ -182,12 +125,12 @@ static void ConfigureServices(WebApplicationBuilder builder)
                     factory: partition => new FixedWindowRateLimiterOptions
                     {
                         AutoReplenishment = true,
-                        PermitLimit = 200,
+                        PermitLimit = 200, // 200 requests per minute per IP
                         Window = TimeSpan.FromMinutes(1)
                     });
             });
 
-        // Authentication endpoints
+        // Authentication endpoints (stricter limits)
         options.AddPolicy("AuthPolicy", context =>
         {
             var clientIp = context.Request.Headers["X-Forwarded-For"].FirstOrDefault()
@@ -199,12 +142,12 @@ static void ConfigureServices(WebApplicationBuilder builder)
                 factory: partition => new FixedWindowRateLimiterOptions
                 {
                     AutoReplenishment = true,
-                    PermitLimit = 10,
+                    PermitLimit = 10, // Only 10 login attempts per minute
                     Window = TimeSpan.FromMinutes(1)
                 });
         });
 
-        // API endpoints
+        // API endpoints (moderate limits)
         options.AddPolicy("ApiPolicy", context =>
         {
             var clientIp = context.Request.Headers["X-Forwarded-For"].FirstOrDefault()
@@ -218,11 +161,11 @@ static void ConfigureServices(WebApplicationBuilder builder)
                     AutoReplenishment = true,
                     PermitLimit = 100,
                     Window = TimeSpan.FromMinutes(1),
-                    SegmentsPerWindow = 6
+                    SegmentsPerWindow = 6 // 6 segments of 10 seconds each
                 });
         });
 
-        // File upload endpoints
+        // File upload endpoints (very strict)
         options.AddPolicy("UploadPolicy", context =>
         {
             var clientIp = context.Request.Headers["X-Forwarded-For"].FirstOrDefault()
@@ -234,7 +177,7 @@ static void ConfigureServices(WebApplicationBuilder builder)
                 factory: partition => new FixedWindowRateLimiterOptions
                 {
                     AutoReplenishment = true,
-                    PermitLimit = 5,
+                    PermitLimit = 5, // Only 5 uploads per minute
                     Window = TimeSpan.FromMinutes(1)
                 });
         });
@@ -249,12 +192,14 @@ static void ConfigureServices(WebApplicationBuilder builder)
             logger.LogWarning("Rate limit exceeded for IP: {ClientIp}, Path: {Path}",
                 clientIp, context.HttpContext.Request.Path);
 
+            // For HTML requests, set session data and redirect back
             if (context.HttpContext.Request.Headers.Accept.ToString().Contains("text/html"))
             {
                 context.HttpContext.Session.SetString("RateLimitExceeded", "true");
                 context.HttpContext.Session.SetString("RateLimitMessage", "Too many requests. Please wait before trying again.");
                 context.HttpContext.Session.SetInt32("RateLimitRetryAfter", 60);
 
+                // Redirect back to the same URL
                 var referer = context.HttpContext.Request.Headers.Referer.FirstOrDefault();
                 if (!string.IsNullOrEmpty(referer) && Uri.TryCreate(referer, UriKind.Absolute, out var refererUri))
                 {
@@ -267,6 +212,7 @@ static void ConfigureServices(WebApplicationBuilder builder)
                 return;
             }
 
+            // For API calls, return JSON
             context.HttpContext.Response.StatusCode = 429;
             context.HttpContext.Response.ContentType = "application/json";
             var response = new
@@ -305,6 +251,34 @@ static void ConfigureServices(WebApplicationBuilder builder)
         if (!environment.IsDevelopment())
         {
             options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        }
+    });
+
+    // Database configuration
+    var connectionString = GetRailwayConnectionString()
+                      ?? Environment.GetEnvironmentVariable("CONNECTION_STRING")
+                      ?? configuration.GetConnectionString("Freelancing");
+
+    if (string.IsNullOrEmpty(connectionString))
+    {
+        throw new InvalidOperationException("Database connection string not configured");
+    }
+
+    services.AddDbContext<ApplicationDbContext>(options =>
+    {
+        options.UseNpgsql(connectionString, npgsqlOptions =>
+        {
+            npgsqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+            npgsqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 3,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorCodesToAdd: null);
+        });
+
+        if (environment.IsDevelopment())
+        {
+            options.EnableSensitiveDataLogging();
+            options.EnableDetailedErrors();
         }
     });
 
@@ -467,25 +441,18 @@ static async Task ConfigurePipelineAsync(WebApplication app)
 
     if (string.IsNullOrEmpty(masterKey))
     {
-        Log.Warning("Encryption master key not configured - some features may not work");
-        // Don't throw in production, just log the warning
-        if (environment.IsDevelopment())
-        {
-            throw new InvalidOperationException("Encryption master key not configured");
-        }
+        throw new InvalidOperationException("Encryption master key not configured");
     }
 
     // Security middleware
     if (!environment.IsDevelopment() && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER")))
     {
         // Skip HTTPS redirection when running in Docker
-        Log.Information("Skipping HTTPS redirection for containerized deployment");
     }
     else
     {
         app.UseHttpsRedirection();
     }
-
     // Security headers middleware
     app.Use(async (context, next) =>
     {
@@ -545,8 +512,46 @@ static async Task ConfigurePipelineAsync(WebApplication app)
         name: "default",
         pattern: "{controller=Home}/{action=Index}/{id?}");
 
-    // Database initialization with better error handling
-    await InitializeDatabaseAsync(app.Services);
+    // Seed data
+    using (var scope = app.Services.CreateScope())
+    {
+        try
+        {
+            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            // Ensure database and tables are created (PostgreSQL compatible)
+            Log.Information("Ensuring database and tables exist...");
+            await context.Database.EnsureCreatedAsync();
+
+            Log.Information("Database and tables created successfully");
+
+            // Seed roles
+            Log.Information("Seeding roles...");
+            var roleSeeder = scope.ServiceProvider.GetRequiredService<IRoleSeederService>();
+            await roleSeeder.SeedRolesAsync();
+
+            // Seed admin user
+            Log.Information("Seeding admin user...");
+            var adminSeeder = scope.ServiceProvider.GetRequiredService<AdminSeederService>();
+            await adminSeeder.SeedAsync();
+
+            Log.Information("Seeding goals data...");
+            await Freelancing.SeedGoals.SeedGoalsData(context);
+
+            Log.Information("Seeding user skills data...");
+            await Freelancing.SeedUserSkills.SeedUserSkillsData(context);
+
+            Log.Information("Seeding contract templates...");
+            await Freelancing.SeedContractTemplates.SeedAsync(context);
+
+            Log.Information("Database seeding completed successfully");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "An error occurred while seeding the database");
+            throw;
+        }
+    }
 
     // Initialize Random Forest service
     await InitializeRandomForestServiceAsync(app.Services);
@@ -557,63 +562,6 @@ static async Task ConfigurePipelineAsync(WebApplication app)
         var pdfService = app.Services.GetService<IPdfGenerationService>();
         pdfService?.Dispose();
     });
-}
-
-static async Task InitializeDatabaseAsync(IServiceProvider services)
-{
-    using var scope = services.CreateScope();
-    var maxRetries = 5;
-    var delay = TimeSpan.FromSeconds(5);
-
-    for (int attempt = 1; attempt <= maxRetries; attempt++)
-    {
-        try
-        {
-            Log.Information("Database initialization attempt {Attempt}/{MaxRetries}", attempt, maxRetries);
-
-            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-            // Test connection
-            Log.Information("Testing database connection...");
-            await context.Database.CanConnectAsync();
-            Log.Information("Database connection successful");
-
-            // Run migrations
-            Log.Information("Running database migrations...");
-            await context.Database.MigrateAsync();
-            Log.Information("Database migrations completed");
-
-            // Seed data
-            Log.Information("Seeding database...");
-
-            var roleSeeder = scope.ServiceProvider.GetRequiredService<IRoleSeederService>();
-            await roleSeeder.SeedRolesAsync();
-
-            var adminSeeder = scope.ServiceProvider.GetRequiredService<AdminSeederService>();
-            await adminSeeder.SeedAsync();
-
-            await Freelancing.SeedGoals.SeedGoalsData(context);
-            await Freelancing.SeedUserSkills.SeedUserSkillsData(context);
-            await Freelancing.SeedContractTemplates.SeedAsync(context);
-
-            Log.Information("Database initialization completed successfully");
-            return;
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Database initialization attempt {Attempt} failed: {Error}", attempt, ex.Message);
-
-            if (attempt == maxRetries)
-            {
-                Log.Fatal("Database initialization failed after {MaxRetries} attempts", maxRetries);
-                throw;
-            }
-
-            Log.Information("Waiting {Delay} seconds before retry...", delay.TotalSeconds);
-            await Task.Delay(delay);
-            delay = TimeSpan.FromSeconds(Math.Min(delay.TotalSeconds * 2, 30)); // Exponential backoff, max 30 seconds
-        }
-    }
 }
 
 static async Task InitializeRandomForestServiceAsync(IServiceProvider services)
@@ -642,4 +590,34 @@ static async Task InitializeRandomForestServiceAsync(IServiceProvider services)
     {
         Log.Error(ex, "Random Forest initialization failed - will initialize on first use");
     }
+}
+
+static string? GetRailwayConnectionString()
+{
+    // Railway provides DATABASE_URL in format: postgresql://user:password@host:port/database
+    var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+    if (!string.IsNullOrEmpty(databaseUrl))
+    {
+        // Parse Railway's DATABASE_URL format
+        var uri = new Uri(databaseUrl);
+        var userInfo = uri.UserInfo.Split(':');
+        var dbUsername = userInfo[0];
+        var dbPassword = userInfo.Length > 1 ? userInfo[1] : "";
+
+        return $"Host={uri.Host};Port={uri.Port};Database={uri.LocalPath.TrimStart('/')};Username={dbUsername};Password={dbPassword};SSL Mode=Require;Trust Server Certificate=true;";
+    }
+
+    // Fallback to individual PostgreSQL environment variables
+    var host = Environment.GetEnvironmentVariable("PGHOST");
+    var port = Environment.GetEnvironmentVariable("PGPORT");
+    var database = Environment.GetEnvironmentVariable("PGDATABASE");
+    var pgUsername = Environment.GetEnvironmentVariable("PGUSER");
+    var pgPassword = Environment.GetEnvironmentVariable("PGPASSWORD");
+
+    if (!string.IsNullOrEmpty(host) && !string.IsNullOrEmpty(database) && !string.IsNullOrEmpty(pgUsername))
+    {
+        return $"Host={host};Port={port ?? "5432"};Database={database};Username={pgUsername};Password={pgPassword};SSL Mode=Require;Trust Server Certificate=true;";
+    }
+
+    return null;
 }

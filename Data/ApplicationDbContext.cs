@@ -213,7 +213,7 @@ namespace Freelancing.Data
             // Configure default values
             modelBuilder.Entity<MentorshipChatMessage>()
                 .Property(mcm => mcm.SentAt)
-                .HasDefaultValueSql("GETUTCDATE()");
+                .HasDefaultValueSql("NOW()");
 
             modelBuilder.Entity<MentorshipChatMessage>()
                 .Property(mcm => mcm.IsRead)
@@ -225,7 +225,7 @@ namespace Freelancing.Data
 
             modelBuilder.Entity<MentorshipChatFile>()
                 .Property(mcf => mcf.UploadedAt)
-                .HasDefaultValueSql("GETUTCDATE()");
+                .HasDefaultValueSql("NOW()");
 
             modelBuilder.Entity<MenteeSessionEvidence>()
                 .HasOne(mse => mse.MentorshipMatch)
@@ -255,7 +255,7 @@ namespace Freelancing.Data
 
             modelBuilder.Entity<MenteeSessionEvidence>()
                 .Property(mse => mse.SubmittedAt)
-                .HasDefaultValueSql("GETUTCDATE()");
+                .HasDefaultValueSql("NOW()");
 
             // MentorSessionNote relationships and configurations
             modelBuilder.Entity<MentorSessionNote>()
@@ -286,7 +286,7 @@ namespace Freelancing.Data
 
             modelBuilder.Entity<MentorSessionNote>()
                 .Property(msn => msn.SubmittedAt)
-                .HasDefaultValueSql("GETUTCDATE()");
+                .HasDefaultValueSql("NOW()");
 
             // MentorshipGoalCompletion relationships and configurations
             modelBuilder.Entity<MentorshipGoalCompletion>()
@@ -313,7 +313,7 @@ namespace Freelancing.Data
 
             modelBuilder.Entity<Notification>()
                 .Property(n => n.CreatedAt)
-                .HasDefaultValueSql("GETUTCDATE()");
+                .HasDefaultValueSql("NOW()");
 
             modelBuilder.Entity<Notification>()
                 .Property(n => n.IsRead)
@@ -356,7 +356,7 @@ namespace Freelancing.Data
 
             modelBuilder.Entity<MentorshipGoalCompletion>()
                 .Property(mgc => mgc.CompletedAt)
-                .HasDefaultValueSql("GETUTCDATE()");
+                .HasDefaultValueSql("NOW()");
 
             // MentorReview relationships and configurations
             modelBuilder.Entity<MentorReview>()
@@ -393,7 +393,7 @@ namespace Freelancing.Data
 
             modelBuilder.Entity<MentorReview>()
                 .Property(mr => mr.CreatedAt)
-                .HasDefaultValueSql("GETUTCDATE()");
+                .HasDefaultValueSql("NOW()");
 
             // Contract relationships and configurations
             modelBuilder.Entity<Contract>()
@@ -463,7 +463,7 @@ namespace Freelancing.Data
 
             modelBuilder.Entity<ContractTemplate>()
                 .Property(ct => ct.CreatedAt)
-                .HasDefaultValueSql("GETUTCDATE()");
+                .HasDefaultValueSql("NOW()");
 
             // ContractTermination relationships and configurations
             modelBuilder.Entity<ContractTermination>()
@@ -508,7 +508,7 @@ namespace Freelancing.Data
 
             modelBuilder.Entity<ContractTermination>()
                 .Property(ct => ct.RequestedAt)
-                .HasDefaultValueSql("GETUTCDATE()");
+                .HasDefaultValueSql("NOW()");
 
             // Deliverable relationships and configurations
             modelBuilder.Entity<Deliverable>()
@@ -550,7 +550,7 @@ namespace Freelancing.Data
 
             modelBuilder.Entity<Deliverable>()
                 .Property(d => d.SubmittedAt)
-                .HasDefaultValueSql("GETUTCDATE()");
+                .HasDefaultValueSql("NOW()");
 
             // ChatRoom relationships and configurations
             modelBuilder.Entity<ChatRoom>()
@@ -650,7 +650,7 @@ namespace Freelancing.Data
 
             modelBuilder.Entity<FreelancerFeedback>()
                 .Property(ff => ff.CreatedAt)
-                .HasDefaultValueSql("GETUTCDATE()");
+                .HasDefaultValueSql("NOW()");
 
             // HiringOutcome relationships and configurations
             modelBuilder.Entity<HiringOutcome>()
@@ -664,7 +664,7 @@ namespace Freelancing.Data
 
             modelBuilder.Entity<HiringOutcome>()
                 .Property(ho => ho.RecordedAt)
-                .HasDefaultValueSql("GETUTCDATE()");
+                .HasDefaultValueSql("NOW()");
 
             // Portfolio relationships and configurations
             modelBuilder.Entity<Portfolio>()

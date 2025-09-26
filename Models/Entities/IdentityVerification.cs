@@ -37,8 +37,8 @@ namespace Freelancing.Models.Entities
         public string? EncryptedFaceImage { get; set; }
         
         // Metadata
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow.ToLocalTime();
-        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow.ToLocalTime();
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public string? CreatedBy { get; set; }
         public string? UpdatedBy { get; set; }
     }

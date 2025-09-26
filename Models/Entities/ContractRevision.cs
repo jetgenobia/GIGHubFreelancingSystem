@@ -12,7 +12,7 @@ namespace Freelancing.Models.Entities
         
         public string CreatedByUserId { get; set; }
         public UserAccount CreatedByUser { get; set; }
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow.ToLocalTime();
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         
         public string? PreviousHash { get; set; } // Hash of previous revision for integrity
         public string CurrentHash { get; set; } // Hash of current revision

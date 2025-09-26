@@ -9,7 +9,7 @@ namespace Freelancing.Models.Entities
         // Termination Request Details
         public string TerminationReason { get; set; } = string.Empty;
         public string TerminationDetails { get; set; } = string.Empty;
-        public DateTime RequestedAt { get; set; } = DateTime.UtcNow.ToLocalTime();
+        public DateTime RequestedAt { get; set; } = DateTime.UtcNow;
         public string RequestedByUserId { get; set; }
         public string RequestedByUserRole { get; set; } = string.Empty; // "Client" or "Freelancer"
         

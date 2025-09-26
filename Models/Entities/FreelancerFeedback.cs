@@ -26,6 +26,6 @@ namespace Freelancing.Models.Entities
         public string? Comments { get; set; }
 
         [Required]
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

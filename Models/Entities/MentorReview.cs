@@ -35,7 +35,7 @@ namespace Freelancing.Models.Entities
         public string? AreasForImprovement { get; set; }
 
         [Required]
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
 
     }

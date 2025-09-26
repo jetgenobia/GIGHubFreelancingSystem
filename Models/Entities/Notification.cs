@@ -23,7 +23,7 @@ namespace Freelancing.Models.Entities
 
         public string? IconSvg { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public bool IsRead { get; set; } = false;
 

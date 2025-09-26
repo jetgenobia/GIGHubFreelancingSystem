@@ -17,7 +17,7 @@ namespace Freelancing.Models.Entities
         public string? RepositoryLinks { get; set; } // JSON array of repository/drive links
         
         // Timestamps
-        public DateTime SubmittedAt { get; set; } = DateTime.UtcNow.ToLocalTime();
+        public DateTime SubmittedAt { get; set; } = DateTime.UtcNow;
         public DateTime? ReviewedAt { get; set; }
         
         // Review Information

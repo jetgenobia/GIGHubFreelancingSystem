@@ -10,7 +10,7 @@ namespace Freelancing.Models.Entities
         public UserAccount User { get; set; } = null!;
         public string Action { get; set; } = string.Empty; // "Requested", "Signed", "Cancelled", "Viewed", etc.
         public string? Details { get; set; }
-        public DateTime Timestamp { get; set; } = DateTime.UtcNow.ToLocalTime();
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
         public string? IPAddress { get; set; }
         public string? UserAgent { get; set; }
     }

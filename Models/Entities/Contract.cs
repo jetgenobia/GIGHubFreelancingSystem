@@ -15,7 +15,7 @@ namespace Freelancing.Models.Entities
         
         // Contract Status and Dates
         public string Status { get; set; } = "Draft"; // Draft, AwaitingFreelancer, AwaitingClient, Active, Completed, Cancelled, Terminated
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow.ToLocalTime();
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? LastModifiedAt { get; set; }
         public DateTime? TerminatedAt { get; set; }
         

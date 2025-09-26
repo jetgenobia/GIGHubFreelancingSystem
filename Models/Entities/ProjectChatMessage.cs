@@ -52,7 +52,7 @@ namespace Freelancing.Models.Entities
         public Guid? ProjectId { get; set; } // For project-related chats
         public Guid? MentorshipMatchId { get; set; } // For mentorship chats
         
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow.ToLocalTime();
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? LastActivityAt { get; set; }
         public bool IsActive { get; set; } = true;
         
