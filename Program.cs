@@ -76,6 +76,9 @@ static void ConfigureServices(WebApplicationBuilder builder)
     var configuration = builder.Configuration;
     var environment = builder.Environment;
 
+    var isRailway = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("RAILWAY_ENVIRONMENT"));
+    var isDocker = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"));
+
     if (File.Exists(".env"))
     {
         DotNetEnv.Env.Load();
@@ -96,16 +99,6 @@ static void ConfigureServices(WebApplicationBuilder builder)
 
     // Add controllers and views
     services.AddControllersWithViews();
-    /*services.AddControllersWithViews(options =>
-    {
-        *//*// Only require HTTPS in production when HTTPS is not disabled
-        var disableHttpsRequirement = Environment.GetEnvironmentVariable("DISABLE_HTTPS_REQUIREMENT") == "true";
-
-        if (!environment.IsDevelopment() && !disableHttpsRequirement)
-        {
-            options.Filters.Add(new Microsoft.AspNetCore.Mvc.RequireHttpsAttribute());
-        }*//*
-    });*/
 
     services.AddRazorPages();
 
@@ -420,6 +413,7 @@ static void ConfigureSignalR(IServiceCollection services, IConfiguration configu
 static async Task ConfigurePipelineAsync(WebApplication app)
 {
     var environment = app.Environment;
+    var isRailway = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("RAILWAY_ENVIRONMENT"));
 
     // Configure forwarded headers first
     app.UseForwardedHeaders();
@@ -428,7 +422,10 @@ static async Task ConfigurePipelineAsync(WebApplication app)
     if (!environment.IsDevelopment())
     {
         app.UseExceptionHandler("/Home/Error");
-        app.UseHsts();
+        if (!isRailway)
+        {
+            app.UseHsts();
+        }
     }
     else
     {
@@ -445,11 +442,7 @@ static async Task ConfigurePipelineAsync(WebApplication app)
     }
 
     // Security middleware
-    if (!environment.IsDevelopment() && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER")))
-    {
-        // Skip HTTPS redirection when running in Docker
-    }
-    else
+    if (!environment.IsDevelopment() && !isRailway)
     {
         app.UseHttpsRedirection();
     }
