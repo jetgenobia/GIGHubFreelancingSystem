@@ -76,6 +76,45 @@ static void ConfigureServices(WebApplicationBuilder builder)
     var configuration = builder.Configuration;
     var environment = builder.Environment;
 
+    var rawConnectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
+                             ?? Environment.GetEnvironmentVariable("CONNECTION_STRING")
+                             ?? configuration.GetConnectionString("Freelancing");
+
+    string connectionString;
+    if (rawConnectionString?.StartsWith("postgresql://") == true)
+    {
+        // Parse the URL format: postgresql://user:pass@host:port/database
+        var uri = new Uri(rawConnectionString);
+        var userInfo = uri.UserInfo.Split(':');
+        var username = userInfo[0];
+        var password = userInfo.Length > 1 ? userInfo[1] : "";
+
+        connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.LocalPath.TrimStart('/')};Username={username};Password={password};";
+    }
+    else
+    {
+        connectionString = rawConnectionString?.Trim() ?? "";
+    }
+
+    if (string.IsNullOrEmpty(connectionString))
+    {
+        throw new InvalidOperationException("Database connection string not configured. Check environment variables.");
+    }
+
+    // Register DbContext
+    services.AddDbContext<ApplicationDbContext>(options =>
+    {
+        options.UseNpgsql(connectionString, npgsqlOptions =>
+        {
+            npgsqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+            npgsqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 3,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorCodesToAdd: null);
+        });
+    });
+
+
     if (File.Exists(".env"))
     {
         DotNetEnv.Env.Load();
@@ -252,44 +291,6 @@ static void ConfigureServices(WebApplicationBuilder builder)
             options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
         }
     });
-
-    // Database configuration
-    var rawConnectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
-                          ?? Environment.GetEnvironmentVariable("CONNECTION_STRING")
-                          ?? configuration.GetConnectionString("Freelancing");
-
-    Console.WriteLine($"Raw connection string: '{rawConnectionString}'");
-
-    // Convert PostgreSQL URL format to key-value format
-    string connectionString;
-    if (rawConnectionString?.StartsWith("postgresql://") == true)
-    {
-        // Parse the URL format: postgresql://user:pass@host:port/database
-        var uri = new Uri(rawConnectionString);
-        var userInfo = uri.UserInfo.Split(':');
-        var username = userInfo[0];
-        var password = userInfo.Length > 1 ? userInfo[1] : "";
-
-        connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.LocalPath.TrimStart('/')};Username={username};Password={password};";
-        Console.WriteLine($"Converted connection string: '{connectionString}'");
-    }
-    else
-    {
-        connectionString = rawConnectionString?.Trim() ?? "";
-        Console.WriteLine($"Using as-is connection string: '{connectionString}'");
-    }
-
-    // Test if we can parse it
-    try
-    {
-        var connBuilder = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
-        Console.WriteLine($"Parsed successfully: Host={connBuilder.Host}, Database={connBuilder.Database}");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Parse error: {ex.Message}");
-        throw;
-    }
 
     // Identity configuration
     ConfigureIdentity(services, environment);
