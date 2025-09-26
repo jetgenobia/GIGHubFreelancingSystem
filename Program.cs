@@ -273,12 +273,17 @@ static void ConfigureServices(WebApplicationBuilder builder)
     catch (Exception ex)
     {
         Console.WriteLine($"Parse error: {ex.Message}");
-        throw;
-    }
 
-    if (string.IsNullOrEmpty(connectionString))
-    {
-        throw new InvalidOperationException("Database connection string not configured. Check environment variables.");
+        // ADD THIS DEBUG CODE
+        Console.WriteLine("=== DEBUG: First 20 characters ===");
+        for (int i = 0; i < Math.Min(20, connectionString.Length); i++)
+        {
+            char c = connectionString[i];
+            Console.WriteLine($"Char {i}: '{c}' (ASCII: {(int)c})");
+        }
+        Console.WriteLine("=== END CHARACTER DEBUG ===");
+
+        throw;
     }
 
     // Identity configuration
