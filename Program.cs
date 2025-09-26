@@ -141,6 +141,9 @@ static void ConfigureServices(WebApplicationBuilder builder)
         }
     });
 
+    // Configure PostgreSQL to handle DateTime properly
+    AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
     // Load environment variables again (for consistency)
     if (File.Exists(".env"))
     {
