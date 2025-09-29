@@ -306,7 +306,7 @@ namespace Freelancing.Controllers
                 // Log download
                 await _contractService.LogContractActionAsync(id, userId, "Downloaded", "Contract PDF downloaded", GetClientIpAddress(), Request.Headers["User-Agent"]);
 
-                var fileName = $"Contract_{contract.Project.ProjectName}_{DateTime.Now:yyyyMMdd}.pdf";
+                var fileName = $"Contract_{contract.Project.ProjectName}_{DateTime.UtcNow:yyyyMMdd}.pdf";
                 return File(pdfData, "application/pdf", fileName);
             }
             catch (InvalidOperationException ex)
@@ -421,7 +421,7 @@ namespace Freelancing.Controllers
                 }
 
                 var isClient = contract.Project.UserId == userId;
-                var now = DateTime.UtcNow.ToLocalTime();
+                var now = DateTime.UtcNow;
 
                 // Mark completion based on user role
                 if (isClient)

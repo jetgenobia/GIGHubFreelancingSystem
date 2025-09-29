@@ -1207,7 +1207,7 @@ namespace Freelancing.Controllers
 
                 // Perform soft delete
                 userAccount.IsDeleted = true;
-                userAccount.DeletedAt = DateTime.UtcNow.ToLocalTime();
+                userAccount.DeletedAt = DateTime.UtcNow;
                 userAccount.DeletionReason = "User requested account deletion";
 
                 // Update the user account

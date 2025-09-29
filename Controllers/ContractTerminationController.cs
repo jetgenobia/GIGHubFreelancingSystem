@@ -320,7 +320,7 @@ namespace Freelancing.Controllers
                 if (contract != null)
                 {
                     contract.Status = "Terminated";
-                    contract.TerminatedAt = DateTime.UtcNow.ToLocalTime();
+                    contract.TerminatedAt = DateTime.UtcNow;
 
                     // Update project status back to "Open" when contract is terminated
                     if (contract.Project != null)

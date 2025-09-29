@@ -735,7 +735,7 @@ namespace Freelancing.Controllers
             foreach (var message in unreadMessages)
             {
                 message.IsRead = true;
-                message.ReadAt = DateTime.UtcNow.ToLocalTime();
+                message.ReadAt = DateTime.UtcNow;
             }
 
             await _context.SaveChangesAsync();

@@ -42,7 +42,7 @@ namespace Freelancing.Services
                 TerminationDetails = details,
                 FinalPayment = finalPayment,
                 SettlementNotes = settlementNotes,
-                RequestedAt = DateTime.UtcNow.ToLocalTime(),
+                RequestedAt = DateTime.UtcNow,
                 RequestedByUserId = userId,
                 RequestedByUserRole = userRole,
                 Status = "Pending"
@@ -127,7 +127,7 @@ namespace Freelancing.Services
                 if (termination.ClientSignedAt.HasValue)
                     throw new InvalidOperationException("Client has already signed this termination");
 
-                termination.ClientSignedAt = DateTime.UtcNow.ToLocalTime();
+                termination.ClientSignedAt = DateTime.UtcNow;
                 termination.ClientSignatureType = signatureType;
                 termination.ClientSignatureData = signatureData;
                 termination.ClientIPAddress = ipAddress;
@@ -140,7 +140,7 @@ namespace Freelancing.Services
                 if (termination.FreelancerSignedAt.HasValue)
                     throw new InvalidOperationException("Freelancer has already signed this termination");
 
-                termination.FreelancerSignedAt = DateTime.UtcNow.ToLocalTime();
+                termination.FreelancerSignedAt = DateTime.UtcNow;
                 termination.FreelancerSignatureType = signatureType;
                 termination.FreelancerSignatureData = signatureData;
                 termination.FreelancerIPAddress = ipAddress;
@@ -151,7 +151,7 @@ namespace Freelancing.Services
 
             if (termination.Status == "Signed")
             {
-                termination.CompletedAt = DateTime.UtcNow.ToLocalTime();
+                termination.CompletedAt = DateTime.UtcNow;
             }
 
             await _context.SaveChangesAsync();
@@ -239,7 +239,7 @@ namespace Freelancing.Services
                 UserId = userId,
                 Action = action,
                 Details = details,
-                Timestamp = DateTime.UtcNow.ToLocalTime(),
+                Timestamp = DateTime.UtcNow,
                 IPAddress = ipAddress,
                 UserAgent = userAgent
             };
@@ -270,7 +270,7 @@ namespace Freelancing.Services
                 throw new InvalidOperationException("Termination must be fully signed before contract can be terminated");
 
             termination.Status = "Completed";
-            termination.CompletedAt = DateTime.UtcNow.ToLocalTime();
+            termination.CompletedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
             await LogTerminationActionAsync(terminationId, userId, "Executed", "Termination executed - contract terminated");
@@ -290,7 +290,7 @@ namespace Freelancing.Services
                 throw new InvalidOperationException("Associated contract not found for termination");
 
             contract.Status = "Terminated";
-            contract.LastModifiedAt = DateTime.UtcNow.ToLocalTime();
+            contract.LastModifiedAt = DateTime.UtcNow;
 
             if (contract.Project != null)
             {
@@ -298,7 +298,7 @@ namespace Freelancing.Services
             }
 
             termination.Status = "Completed";
-            termination.CompletedAt = DateTime.UtcNow.ToLocalTime();
+            termination.CompletedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
             await LogTerminationActionAsync(terminationId, userId, "ContractTerminated", "Contract successfully terminated");

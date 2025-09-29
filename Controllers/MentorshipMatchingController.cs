@@ -106,7 +106,7 @@ namespace Freelancing.Controllers
 
             if (existingMatch != null && existingMatch.Status == "Declined")
             {
-                var daysSinceDecline = (DateTime.UtcNow.ToLocalTime() - existingMatch.DeclinedDate.GetValueOrDefault()).TotalDays;
+                var daysSinceDecline = (DateTime.UtcNow - existingMatch.DeclinedDate.GetValueOrDefault()).TotalDays;
                 canReRequest = daysSinceDecline >= 7; // Allow re-request after 7 days
 
                 if (!canReRequest)
@@ -169,8 +169,8 @@ namespace Freelancing.Controllers
                     }
                     else
                     {
-                        var daysRemaining = Math.Ceiling(7 - (DateTime.UtcNow.ToLocalTime() - existingMatch.DeclinedDate.GetValueOrDefault()).TotalDays);
-                        var hoursRemaining = Math.Ceiling((nextRequestDate.Value - DateTime.UtcNow.ToLocalTime()).TotalHours);
+                        var daysRemaining = Math.Ceiling(7 - (DateTime.UtcNow - existingMatch.DeclinedDate.GetValueOrDefault()).TotalDays);
+                        var hoursRemaining = Math.Ceiling((nextRequestDate.Value - DateTime.UtcNow).TotalHours);
 
                         // More precise messaging based on time remaining
                         if (daysRemaining > 1)
@@ -235,7 +235,7 @@ namespace Freelancing.Controllers
                 // If declined, check if a week has passed
                 if (existingMatch.Status == "Declined")
                 {
-                    var daysSinceDecline = (DateTime.UtcNow.ToLocalTime() - existingMatch.DeclinedDate.GetValueOrDefault()).TotalDays;
+                    var daysSinceDecline = (DateTime.UtcNow - existingMatch.DeclinedDate.GetValueOrDefault()).TotalDays;
 
                     if (daysSinceDecline < 7)
                     {
@@ -247,7 +247,7 @@ namespace Freelancing.Controllers
 
                     // Update existing declined request to pending with new details
                     existingMatch.Status = "Pending";
-                    existingMatch.MatchedDate = DateTime.UtcNow.ToLocalTime(); // Update request date
+                    existingMatch.MatchedDate = DateTime.UtcNow; // Update request date
                     existingMatch.Notes = model.Notes; // Update with new message
                     existingMatch.DeclinedDate = null; // Clear declined date
 
@@ -296,7 +296,7 @@ namespace Freelancing.Controllers
                 MenteeId = userId,
                 MentorMentorshipId = mentorMentorship?.Id ?? Guid.Empty,
                 MenteeMentorshipId = menteeMentorship.Id,
-                MatchedDate = DateTime.UtcNow.ToLocalTime(),
+                MatchedDate = DateTime.UtcNow,
                 Status = "Pending",
                 Notes = model.Notes
             };
@@ -420,7 +420,7 @@ namespace Freelancing.Controllers
                 .ToList();
 
             dashboardModel.UpcomingSessions = menteeSessionsAll
-                .Where(s => s.Status == "Confirmed" && s.StartUtc > DateTime.UtcNow.ToLocalTime())
+                .Where(s => s.Status == "Confirmed" && s.StartUtc > DateTime.UtcNow)
                 .OrderBy(s => s.StartUtc)
                 .ToList();
 
@@ -552,7 +552,7 @@ namespace Freelancing.Controllers
                 .ToList();
 
             dashboardModel.UpcomingSessions = mentorSessionsAll
-                .Where(s => s.Status == "Confirmed" && s.StartUtc > DateTime.UtcNow.ToLocalTime())
+                .Where(s => s.Status == "Confirmed" && s.StartUtc > DateTime.UtcNow)
                 .OrderBy(s => s.StartUtc)
                 .ToList();
 
@@ -619,7 +619,7 @@ namespace Freelancing.Controllers
             if (response.ToLower() == "accept")
             {
                 mentorshipMatch.Status = "Active";
-                mentorshipMatch.StartDate = DateTime.UtcNow.ToLocalTime();
+                mentorshipMatch.StartDate = DateTime.UtcNow;
                 // Clear any previous declined date since this is now accepted
                 mentorshipMatch.DeclinedDate = null;
 
@@ -638,7 +638,7 @@ namespace Freelancing.Controllers
             else if (response.ToLower() == "decline")
             {
                 mentorshipMatch.Status = "Declined";
-                mentorshipMatch.DeclinedDate = DateTime.UtcNow.ToLocalTime(); // Set the declined date for re-request functionality
+                mentorshipMatch.DeclinedDate = DateTime.UtcNow; // Set the declined date for re-request functionality
 
                 // Create notification for the mentee about the declined request
                 await _notificationService.CreateNotificationAsync(
@@ -687,7 +687,7 @@ namespace Freelancing.Controllers
 
             // Update the mentorship status to Completed and set the end date
             mentorshipMatch.Status = "Completed";
-            mentorshipMatch.EndDate = DateTime.UtcNow.ToLocalTime();
+            mentorshipMatch.EndDate = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 

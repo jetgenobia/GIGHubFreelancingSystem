@@ -554,7 +554,7 @@ namespace Freelancing.Services
     </table>" : "")}
 
     <div class='footer'>
-        Generated on {DateTime.Now:MMMM dd, yyyy 'at' h:mm tt}
+        Generated on {DateTime.UtcNow:MMMM dd, yyyy 'at' h:mm tt}
     </div>
 </body>
 </html>";
@@ -696,7 +696,7 @@ namespace Freelancing.Services
     </table>" : "")}
 
     <div class='footer'>
-        Generated on {DateTime.Now:MMMM dd, yyyy 'at' h:mm tt}
+        Generated on {DateTime.UtcNow:MMMM dd, yyyy 'at' h:mm tt}
     </div>
 </body>
 </html>";
@@ -775,7 +775,7 @@ namespace Freelancing.Services
     </div>
 
     <div class='footer'>
-        Generated on {DateTime.Now:MMMM dd, yyyy 'at' h:mm tt}
+        Generated on {DateTime.UtcNow:MMMM dd, yyyy 'at' h:mm tt}
     </div>
 </body>
 </html>";
@@ -870,7 +870,7 @@ namespace Freelancing.Services
     </table>" : "")}
 
     <div class='footer'>
-        Generated on {DateTime.Now:MMMM dd, yyyy 'at' h:mm tt}
+        Generated on {DateTime.UtcNow:MMMM dd, yyyy 'at' h:mm tt}
     </div>
 </body>
 </html>";

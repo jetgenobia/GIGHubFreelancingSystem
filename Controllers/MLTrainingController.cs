@@ -25,7 +25,7 @@ namespace Freelancing.Controllers
         {
             try
             {
-                var fileName = $"smart_hiring_training_data_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+                var fileName = $"smart_hiring_training_data_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
                 var filePath = Path.Combine(Path.GetTempPath(), fileName);
 
                 await _featureService.ExportTrainingDataToCsvAsync(filePath);

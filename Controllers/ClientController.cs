@@ -401,7 +401,7 @@ namespace Freelancing.Controllers
                             Budget = viewModel.Budget,
                             Category = viewModel.Category,
                             ImagePaths = imagePaths.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(imagePaths) : null,
-                            CreatedAt = DateTime.UtcNow.ToLocalTime()
+                            CreatedAt = DateTime.UtcNow
                         };
                         await dbContext.Projects.AddAsync(project);
                         await dbContext.SaveChangesAsync();
@@ -767,7 +767,7 @@ namespace Freelancing.Controllers
                 bid.IsAccepted = (bid.Id == bidId);
                 if (bid.Id == bidId)
                 {
-                    bid.BiddingAcceptedDate = DateTime.UtcNow.ToLocalTime();
+                    bid.BiddingAcceptedDate = DateTime.UtcNow;
                 }
             }
 
@@ -1126,7 +1126,7 @@ namespace Freelancing.Controllers
 
                 // Perform soft delete
                 userAccount.IsDeleted = true;
-                userAccount.DeletedAt = DateTime.UtcNow.ToLocalTime();
+                userAccount.DeletedAt = DateTime.UtcNow;
                 userAccount.DeletionReason = "User requested account deletion";
 
                 // Update the user account

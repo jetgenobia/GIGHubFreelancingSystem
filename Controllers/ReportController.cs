@@ -34,7 +34,7 @@ namespace Freelancing.Controllers
                     userId, startDate?.ToString("yyyy-MM-dd") ?? "N/A", endDate?.ToString("yyyy-MM-dd") ?? "N/A");
 
                 var pdfBytes = await _reportService.GenerateFreelancerPerformanceReportAsync(userId, startDate, endDate);
-                var fileName = $"FreelancerPerformanceReport_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+                var fileName = $"FreelancerPerformanceReport_{DateTime.UtcNow:yyyyMMdd_HHmmss}.pdf";
 
                 _logger.LogInformation("Successfully generated freelancer performance report for user {UserId}", userId);
                 return File(pdfBytes, "application/pdf", fileName);
@@ -63,7 +63,7 @@ namespace Freelancing.Controllers
                     userId, startDate?.ToString("yyyy-MM-dd") ?? "N/A", endDate?.ToString("yyyy-MM-dd") ?? "N/A");
 
                 var pdfBytes = await _reportService.GenerateClientProjectReportAsync(userId, startDate, endDate);
-                var fileName = $"ClientProjectReport_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+                var fileName = $"ClientProjectReport_{DateTime.UtcNow:yyyyMMdd_HHmmss}.pdf";
 
                 _logger.LogInformation("Successfully generated client project report for user {UserId}", userId);
                 return File(pdfBytes, "application/pdf", fileName);
@@ -87,7 +87,7 @@ namespace Freelancing.Controllers
                     startDate?.ToString("yyyy-MM-dd") ?? "N/A", endDate?.ToString("yyyy-MM-dd") ?? "N/A", userId ?? "Unknown");
 
                 var pdfBytes = await _reportService.GenerateAdminSystemReportAsync(startDate, endDate);
-                var fileName = $"SystemAnalyticsReport_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+                var fileName = $"SystemAnalyticsReport_{DateTime.UtcNow:yyyyMMdd_HHmmss}.pdf";
 
                 _logger.LogInformation("Successfully generated system analytics report by admin {UserId}", userId ?? "Unknown");
                 return File(pdfBytes, "application/pdf", fileName);
@@ -116,7 +116,7 @@ namespace Freelancing.Controllers
                     userId, startDate?.ToString("yyyy-MM-dd") ?? "N/A", endDate?.ToString("yyyy-MM-dd") ?? "N/A");
 
                 var pdfBytes = await _reportService.GenerateFinancialReportAsync(userId, startDate, endDate);
-                var fileName = $"FinancialReport_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+                var fileName = $"FinancialReport_{DateTime.UtcNow:yyyyMMdd_HHmmss}.pdf";
 
                 _logger.LogInformation("Successfully generated financial report for user {UserId}", userId);
                 return File(pdfBytes, "application/pdf", fileName);

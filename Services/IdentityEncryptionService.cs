@@ -189,7 +189,7 @@ namespace Freelancing.Services
                 var masterKey = _configuration["Encryption:MasterKey"] ?? 
                     throw new InvalidOperationException("Master key not configured");
                 
-                var input = $"{masterKey}:IdentityVerification:{userId}:{DateTime.UtcNow.ToLocalTime():yyyy-MM}";
+                var input = $"{masterKey}:IdentityVerification:{userId}:{DateTime.UtcNow:yyyy-MM}";
                 
                 using (var sha256 = SHA256.Create())
                 {

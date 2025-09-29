@@ -437,8 +437,8 @@ namespace Freelancing.Services
                     Id = Guid.NewGuid(),
                     UserAccountId = userId,
                     Status = "PENDING",
-                    CreatedAt = DateTime.UtcNow.ToLocalTime(),
-                    UpdatedAt = DateTime.UtcNow.ToLocalTime(),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
                     CreatedBy = userId,
                     UpdatedBy = userId
                 };
@@ -456,7 +456,7 @@ namespace Freelancing.Services
                     : null;
 
                 verification.IdDocumentExpiryDate = model.IdDocumentHasNoExpiration
-                    ? DateTime.UtcNow.ToLocalTime().AddYears(100)
+                    ? DateTime.UtcNow.AddYears(100)
                     : model.IdDocumentExpiryDate;
                 verification.IdDocumentVerified = result.IdDocumentVerified;
                 verification.IdDocumentConfidence = result.IdDocumentConfidence;
@@ -482,7 +482,7 @@ namespace Freelancing.Services
                         : null;
 
                     verification.IdDocumentExpiryDate = model.IdDocumentHasNoExpiration
-                        ? DateTime.UtcNow.ToLocalTime().AddYears(100)
+                        ? DateTime.UtcNow.AddYears(100)
                         : model.IdDocumentExpiryDate;
                     verification.IdDocumentVerified = result.IdDocumentVerified;
                     verification.IdDocumentConfidence = result.IdDocumentConfidence;
@@ -501,7 +501,7 @@ namespace Freelancing.Services
                     ? _encryptionService.EncryptIdentityData(result.ExtractedIdNumber, userId)
                     : null;
                 verification.IdDocumentExpiryDate = model.IdDocumentHasNoExpiration
-                    ? DateTime.UtcNow.ToLocalTime().AddYears(100)
+                    ? DateTime.UtcNow.AddYears(100)
                     : model.IdDocumentExpiryDate;
                 verification.IdDocumentVerified = result.IdDocumentVerified;
                 verification.IdDocumentConfidence = result.IdDocumentConfidence;
@@ -531,7 +531,7 @@ namespace Freelancing.Services
                 verification.RejectionReason = null;
             }
 
-            verification.UpdatedAt = DateTime.UtcNow.ToLocalTime();
+            verification.UpdatedAt = DateTime.UtcNow;
             verification.UpdatedBy = userId;
 
             await _context.SaveChangesAsync();
@@ -603,15 +603,15 @@ namespace Freelancing.Services
                 return false;
 
             verification.Status = status;
-            verification.UpdatedAt = DateTime.UtcNow.ToLocalTime();
+            verification.UpdatedAt = DateTime.UtcNow;
 
             if (status == "APPROVED")
             {
-                verification.VerifiedAt = DateTime.UtcNow.ToLocalTime();
+                verification.VerifiedAt = DateTime.UtcNow;
             }
             else if (status == "REJECTED")
             {
-                verification.RejectedAt = DateTime.UtcNow.ToLocalTime();
+                verification.RejectedAt = DateTime.UtcNow;
                 verification.RejectionReason = reason;
             }
 

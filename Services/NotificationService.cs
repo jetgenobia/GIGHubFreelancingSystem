@@ -30,7 +30,7 @@ namespace Freelancing.Services
                 Type = type,
                 IconSvg = iconSvg,
                 RelatedUrl = relatedUrl,
-                CreatedAt = DateTime.Now,
+                CreatedAt = DateTime.UtcNow,
                 IsRead = false,
                 IsEncrypted = encryptContent,
                 EncryptionMethod = encryptContent ? "AES-256" : null
@@ -92,7 +92,7 @@ namespace Freelancing.Services
             if (notification != null)
             {
                 notification.IsRead = true;
-                notification.ReadAt = DateTime.Now;
+                notification.ReadAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
 
                 // Update notification count in real-time
@@ -110,7 +110,7 @@ namespace Freelancing.Services
             foreach (var notification in unreadNotifications)
             {
                 notification.IsRead = true;
-                notification.ReadAt = DateTime.Now;
+                notification.ReadAt = DateTime.UtcNow;
             }
 
             await _context.SaveChangesAsync();

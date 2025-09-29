@@ -688,7 +688,7 @@ namespace Freelancing.Controllers
                 var fileBytes = await System.IO.File.ReadAllBytesAsync(tempFilePath);
                 System.IO.File.Delete(tempFilePath);
 
-                return File(fileBytes, "text/csv", $"smart_hiring_training_data_{DateTime.Now:yyyyMMdd}.csv");
+                return File(fileBytes, "text/csv", $"smart_hiring_training_data_{DateTime.UtcNow:yyyyMMdd}.csv");
             }
             catch (Exception ex)
             {
@@ -732,7 +732,7 @@ namespace Freelancing.Controllers
                 }
 
                 // Validate deadline is in the future
-                if (deadline <= DateTime.Now)
+                if (deadline <= DateTime.UtcNow)
                 {
                     TempData["ErrorMessage"] = "Deadline must be set in the future.";
                     return RedirectToAction(nameof(Details), new { id = projectId });

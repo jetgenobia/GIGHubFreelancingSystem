@@ -155,7 +155,7 @@ namespace Freelancing.Controllers
                     IsCustomGoal = goal.IsCustom,
                     Priority = goal.Priority,
                     TargetDate = goal.TargetDate,
-                    IsOverdue = goal.TargetDate.HasValue && goal.TargetDate.Value < DateTime.Now && !isFullyCompleted,
+                    IsOverdue = goal.TargetDate.HasValue && goal.TargetDate.Value < DateTime.UtcNow && !isFullyCompleted,
                     Category = goal.Category,
                     SuccessCriteria = !string.IsNullOrEmpty(goal.SuccessCriteria) ?
                      goal.SuccessCriteria.Split('|', StringSplitOptions.RemoveEmptyEntries).ToList() :
@@ -816,7 +816,7 @@ namespace Freelancing.Controllers
                 evidenceEntity.WhatWasDone = model.WhatWasDone;
                 evidenceEntity.AdditionalNotes = model.AdditionalNotes;
                 evidenceEntity.EvidenceFilePaths = finalFileNames.Any() ? System.Text.Json.JsonSerializer.Serialize(finalFileNames) : null;
-                evidenceEntity.SubmittedAt = DateTime.UtcNow.ToLocalTime();
+                evidenceEntity.SubmittedAt = DateTime.UtcNow;
 
                 _context.MenteeSessionEvidences.Update(evidenceEntity);
             }
@@ -830,7 +830,7 @@ namespace Freelancing.Controllers
                     WhatWasDone = model.WhatWasDone,
                     AdditionalNotes = model.AdditionalNotes,
                     EvidenceFilePaths = finalFileNames.Any() ? System.Text.Json.JsonSerializer.Serialize(finalFileNames) : null,
-                    SubmittedAt = DateTime.UtcNow.ToLocalTime()
+                    SubmittedAt = DateTime.UtcNow
                 };
                 _context.MenteeSessionEvidences.Add(evidenceEntity);
             }
@@ -864,7 +864,7 @@ namespace Freelancing.Controllers
                     existing.WhatWasDone = model.WhatWasDone;
                     existing.AdditionalNotes = model.AdditionalNotes;
                     existing.EvidenceFilePaths = merged.Any() ? System.Text.Json.JsonSerializer.Serialize(merged) : null;
-                    existing.SubmittedAt = DateTime.UtcNow.ToLocalTime();
+                    existing.SubmittedAt = DateTime.UtcNow;
 
                     _context.MenteeSessionEvidences.Update(existing);
                     await _context.SaveChangesAsync();
@@ -1052,7 +1052,7 @@ namespace Freelancing.Controllers
                 existingNote.IsTaskAssigned = model.IsTaskAssigned;
                 existingNote.TaskTitle = model.IsTaskAssigned ? model.TaskTitle : null;
                 existingNote.TaskDescription = model.IsTaskAssigned ? model.TaskDescription : null;
-                existingNote.SubmittedAt = DateTime.UtcNow.ToLocalTime();
+                existingNote.SubmittedAt = DateTime.UtcNow;
 
                 _context.MentorSessionNotes.Update(existingNote);
                 await _context.SaveChangesAsync();
@@ -1073,7 +1073,7 @@ namespace Freelancing.Controllers
                     IsTaskAssigned = model.IsTaskAssigned,
                     TaskTitle = model.IsTaskAssigned ? model.TaskTitle : null,
                     TaskDescription = model.IsTaskAssigned ? model.TaskDescription : null,
-                    SubmittedAt = DateTime.UtcNow.ToLocalTime()
+                    SubmittedAt = DateTime.UtcNow
                 };
 
                 _context.MentorSessionNotes.Add(note);
@@ -1320,7 +1320,7 @@ namespace Freelancing.Controllers
                 return RedirectToAction("Goals", new { matchId });
             }
 
-            var now = DateTime.UtcNow.ToLocalTime();
+            var now = DateTime.UtcNow;
 
             // Create mentor completion record
             var mentorCompletion = new MentorshipGoalCompletion
@@ -1510,7 +1510,7 @@ namespace Freelancing.Controllers
                 existingReview.Comments = model.Comments;
                 existingReview.Strengths = model.Strengths;
                 existingReview.AreasForImprovement = model.AreasForImprovement;
-                existingReview.CreatedAt = DateTime.UtcNow.ToLocalTime(); // Update timestamp
+                existingReview.CreatedAt = DateTime.UtcNow; // Update timestamp
 
                 _context.MentorReviews.Update(existingReview);
                 await _context.SaveChangesAsync();
@@ -1530,7 +1530,7 @@ namespace Freelancing.Controllers
                     Comments = model.Comments,
                     Strengths = model.Strengths,
                     AreasForImprovement = model.AreasForImprovement,
-                    CreatedAt = DateTime.UtcNow.ToLocalTime()
+                    CreatedAt = DateTime.UtcNow
                 };
 
                 _context.MentorReviews.Add(review);

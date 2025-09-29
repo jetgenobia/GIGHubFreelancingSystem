@@ -96,7 +96,7 @@ namespace Freelancing.Services
                 .Replace("<p><strong>Project Schedule:</strong></p><ul><li>Project timeline will be specified in the contract details</li></ul>", timelineSection);
 
             contract.ContractContent = updatedContent;
-            contract.LastModifiedAt = DateTime.UtcNow.ToLocalTime();
+            contract.LastModifiedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
         }
@@ -202,7 +202,7 @@ namespace Freelancing.Services
             await CreateContractRevisionAsync(contractId, contract.ContractContent, "Contract content updated", userId);
 
             contract.ContractContent = newContent;
-            contract.LastModifiedAt = DateTime.UtcNow.ToLocalTime();
+            contract.LastModifiedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
             await LogContractActionAsync(contractId, userId, "Modified", "Contract content updated");
@@ -245,7 +245,7 @@ namespace Freelancing.Services
                 {"{{AGREED_AMOUNT}}", bidding.Budget.ToString()},
                 {"{{DELIVERY_TIMELINE}}", bidding.Delivery},
                 {"{{PROJECT_CATEGORY}}", project.Category},
-                {"{{CONTRACT_DATE}}", DateTime.Now.ToString("MMMM dd, yyyy")},
+                {"{{CONTRACT_DATE}}", DateTime.UtcNow.ToString("MMMM dd, yyyy")},
                 {"{{PROPOSAL_DETAILS}}", bidding.Proposal}
             };
 
@@ -288,7 +288,7 @@ namespace Freelancing.Services
             if (!isClient && !isFreelancer)
                 throw new UnauthorizedAccessException("User not authorized to sign this contract");
 
-            var now = DateTime.UtcNow.ToLocalTime();
+            var now = DateTime.UtcNow;
 
             if (isClient)
             {
@@ -388,7 +388,7 @@ namespace Freelancing.Services
             if (!Directory.Exists(uploadsDir))
                 Directory.CreateDirectory(uploadsDir);
 
-            var fileName = $"contract_{contractId}_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+            var fileName = $"contract_{contractId}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.pdf";
             var filePath = Path.Combine(uploadsDir, fileName);
 
             await File.WriteAllBytesAsync(filePath, pdfData);
@@ -438,7 +438,7 @@ namespace Freelancing.Services
 
             var oldStatus = contract.Status;
             contract.Status = newStatus;
-            contract.LastModifiedAt = DateTime.UtcNow.ToLocalTime();
+            contract.LastModifiedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 

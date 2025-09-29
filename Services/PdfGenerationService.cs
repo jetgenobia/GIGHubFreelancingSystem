@@ -261,7 +261,7 @@ namespace Freelancing.Services
                 // Fallback to basic structure if no contract content is available
                 html.AppendLine("<div class='contract-header mb-6'>");
                 html.AppendLine($"<h1 class='text-center font-bold mb-2'>{contract.ContractTitle}</h1>");
-                html.AppendLine($"<p>This {contract.ContractTitle} (\"Agreement\") is entered into on <strong>{DateTime.Now:MMMM dd, yyyy}</strong> by and between:</p>");
+                html.AppendLine($"<p>This {contract.ContractTitle} (\"Agreement\") is entered into on <strong>{DateTime.UtcNow:MMMM dd, yyyy}</strong> by and between:</p>");
                 html.AppendLine("</div>");
                 
                 // Parties Section
@@ -389,7 +389,7 @@ namespace Freelancing.Services
                 html.AppendLine("<div class='document-footer'>");
                 html.AppendLine($"Document Hash: {contract.DocumentHash}<br>");
                 html.AppendLine($"Contract ID: {contract.Id}<br>");
-                html.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                html.AppendLine($"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}");
                 html.AppendLine("</div>");
             }
             

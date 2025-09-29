@@ -46,7 +46,7 @@ namespace Freelancing.Services
             string? timeZone)
         {
             // Validate start is not in the past (local time semantics)
-            if (startUtc < DateTime.Now)
+            if (startUtc < DateTime.UtcNow)
             {
                 return (false, "Start date and time must be now or later", null);
             }
@@ -167,7 +167,7 @@ namespace Freelancing.Services
 
         public async Task<(bool ok, string? error)> RescheduleAsync(Guid sessionId, string userId, DateTime newStartUtc, string? notes)
         {
-            if (newStartUtc < DateTime.Now) return (false, "Start date and time must be now or later");
+            if (newStartUtc < DateTime.UtcNow) return (false, "Start date and time must be now or later");
 
             var session = await _context.Set<MentorshipSession>()
                 .Include(s => s.MentorshipMatch)
