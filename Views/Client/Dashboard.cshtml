@@ -4,6 +4,7 @@
 }
 
 @model Freelancing.Models.ClientDashboard
+@using Freelancing.Helpers
 
 <div class="p-4 sm:ml-64">
     <div class="pt-2 mt-20">
@@ -112,7 +113,10 @@
                                                 <p class="me-1 text-sm font-medium text-gray-900 truncate">
                                                     @project.ProjectName
                                                 </p>
-                                                <p class="text-xs text-gray-500">Created: @project.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt")</p>
+                                                @{
+                                                    var phTime = TimeHelpers.ToPhilippineTime(@project.CreatedAt);
+                                                }
+                                                <p class="text-xs text-gray-500">Created: @phTime.ToString("MMM dd, yyyy 'at' h:mm tt")</p>
                                             </div>
                                             <div class="inline-flex items-center text-base font-semibold text-gray-900">
                                                 <a class="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-3 py-2 me-2 mb-2"
@@ -156,7 +160,10 @@
                                                 <p class="me-1 text-sm font-medium text-gray-900 truncate">
                                                     @project.ProjectName
                                                 </p>
-                                                <p class="text-xs text-gray-500">Created: @project.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt")</p>
+                                                @{
+                                                    var phTime = TimeHelpers.ToPhilippineTime(@project.CreatedAt);
+                                                }
+                                                <p class="text-xs text-gray-500">Created: @phTime.ToString("MMM dd, yyyy 'at' h:mm tt")</p>
                                             </div>
                                             <div class="inline-flex items-center text-base font-semibold text-gray-900">
                                                 <a class="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-3 py-2 me-2 mb-2"
