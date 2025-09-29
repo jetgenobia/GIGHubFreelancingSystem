@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Resend;
 using Serilog;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.RateLimiting;
@@ -42,13 +43,9 @@ try
 
     builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
     {
-        ["Email:SmtpServer"] = Environment.GetEnvironmentVariable("SMTP_SERVER"),
-        ["Email:SmtpPort"] = "587",
-        ["Email:SmtpUsername"] = Environment.GetEnvironmentVariable("SMTP_USERNAME"),
-        ["Email:SmtpPassword"] = Environment.GetEnvironmentVariable("SMTP_PASSWORD"),
+        ["Email:ResendApiKey"] = Environment.GetEnvironmentVariable("RESEND_API_KEY"),
         ["Email:FromEmail"] = Environment.GetEnvironmentVariable("FROM_EMAIL"),
-        ["Email:FromName"] = "GigHub",
-        ["Email:EnableSsl"] = "true"
+        ["Email:FromName"] = "GigHub"
     });
 
     // Configure services
@@ -87,14 +84,10 @@ static void ConfigureServices(WebApplicationBuilder builder)
     // Add environment variable mapping for Email configuration (NEW)
     builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
     {
-        ["Email:SmtpServer"] = Environment.GetEnvironmentVariable("SMTP_SERVER"),
-        ["Email:SmtpPort"] = "587",
-        ["Email:SmtpUsername"] = Environment.GetEnvironmentVariable("SMTP_USERNAME"),
-        ["Email:SmtpPassword"] = Environment.GetEnvironmentVariable("SMTP_PASSWORD"),
+        ["Email:ResendApiKey"] = Environment.GetEnvironmentVariable("RESEND_API_KEY"),
         ["Email:FromEmail"] = Environment.GetEnvironmentVariable("FROM_EMAIL"),
         ["Email:FromName"] = "GigHub",
-        ["GoogleCloud:VisionApiKey"] = Environment.GetEnvironmentVariable("GOOGLE_VISION_API_KEY"),
-        ["Email:EnableSsl"] = "true"
+        ["GoogleCloud:VisionApiKey"] = Environment.GetEnvironmentVariable("GOOGLE_VISION_API_KEY")
     });
 
     // Add controllers and views
@@ -359,6 +352,30 @@ static void ConfigureIdentity(IServiceCollection services, IWebHostEnvironment e
 
 static void RegisterApplicationServices(IServiceCollection services)
 {
+    var resendApiKey = Environment.GetEnvironmentVariable("RESEND_API_KEY");
+
+    if (string.IsNullOrWhiteSpace(resendApiKey))
+    {
+        Log.Warning("Resend API key is not configured. Email functionality will not work.");
+    }
+    else
+    {
+        // Configure Resend options
+        services.AddOptions<ResendClientOptions>()
+            .Configure(options =>
+            {
+                options.ApiToken = resendApiKey;
+            });
+
+        // Register HttpClient for ResendClient
+        services.AddHttpClient<ResendClient>();
+
+        // Register Resend service
+        services.AddScoped<IResend, ResendClient>();
+
+        // Register Email service
+        services.AddScoped<IEmailService, EmailService>();
+    }
     // Email service
     services.AddScoped<IEmailService, EmailService>();
 
