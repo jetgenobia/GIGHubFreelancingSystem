@@ -114,10 +114,10 @@ namespace Freelancing.Services
         {
             try
             {
-                // Use the REST API approach to set object ACL
+                // Use the REST API to set object ACL (this is the correct approach)
                 using var httpClient = new HttpClient();
 
-                // Get access token from the credential with proper auth URI
+                // Get access token
                 var accessToken = await _credential.UnderlyingCredential.GetAccessTokenForRequestAsync("https://oauth2.googleapis.com/token");
 
                 // Set authorization header
