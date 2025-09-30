@@ -57,8 +57,8 @@ namespace Freelancing.Services
 
                 await _storageClient.UploadObjectAsync(_bucketName, objectName, file.ContentType, stream);
 
-                // Generate signed URL that expires in 10 years (for permanent files like project images)
-                var signedUrl = await GenerateSignedUrlAsync(objectName, TimeSpan.FromDays(365 * 10));
+                // CHANGE: Maximum 7 days for signed URLs
+                var signedUrl = await GenerateSignedUrlAsync(objectName, TimeSpan.FromDays(7));
 
                 _logger.LogInformation("File uploaded successfully: {FileName} to signed URL", fileName);
 
@@ -86,7 +86,8 @@ namespace Freelancing.Services
 
                 await _storageClient.UploadObjectAsync(_bucketName, objectName, contentType, stream);
 
-                var signedUrl = await GenerateSignedUrlAsync(objectName, TimeSpan.FromDays(365 * 10));
+                // CHANGE: Maximum 7 days for signed URLs
+                var signedUrl = await GenerateSignedUrlAsync(objectName, TimeSpan.FromDays(7));
 
                 _logger.LogInformation("File uploaded successfully: {FileName} to signed URL", uniqueFileName);
 
