@@ -55,12 +55,16 @@ namespace Freelancing.Services
 
                 var objectName = string.IsNullOrEmpty(folderPath) ? fileName : $"{folderPath}/{fileName}";
 
+                // Upload the object
                 await _storageClient.UploadObjectAsync(_bucketName, objectName, file.ContentType, stream);
 
-                // Return direct public URL instead of signed URL
+                // Make the object publicly readable using a different approach
+                await MakeObjectPublicAsync(objectName);
+
+                // Return direct public URL
                 var publicUrl = $"https://storage.googleapis.com/{_bucketName}/{objectName}";
 
-                _logger.LogInformation("File uploaded successfully: {FileName} to {Url}", fileName, publicUrl);
+                _logger.LogInformation("File uploaded successfully: {FileName} at {PublicUrl}", fileName, publicUrl);
 
                 return publicUrl;
             }
@@ -84,12 +88,16 @@ namespace Freelancing.Services
 
                 var objectName = string.IsNullOrEmpty(folderPath) ? uniqueFileName : $"{folderPath}/{uniqueFileName}";
 
+                // Upload the object
                 await _storageClient.UploadObjectAsync(_bucketName, objectName, contentType, stream);
 
-                // Return direct public URL instead of signed URL
+                // Make the object publicly readable
+                await MakeObjectPublicAsync(objectName);
+
+                // Return direct public URL
                 var publicUrl = $"https://storage.googleapis.com/{_bucketName}/{objectName}";
 
-                _logger.LogInformation("File uploaded successfully: {FileName} to {Url}", uniqueFileName, publicUrl);
+                _logger.LogInformation("File uploaded successfully: {FileName} at {PublicUrl}", uniqueFileName, publicUrl);
 
                 return publicUrl;
             }
@@ -97,6 +105,49 @@ namespace Freelancing.Services
             {
                 _logger.LogError(ex, "Error uploading file bytes {FileName} to Google Cloud Storage", fileName);
                 throw;
+            }
+        }
+
+        private async Task MakeObjectPublicAsync(string objectName)
+        {
+            try
+            {
+                using var httpClient = new HttpClient();
+
+                // Get access token
+                var accessToken = await _credential.UnderlyingCredential.GetAccessTokenForRequestAsync();
+
+                // Set authorization header
+                httpClient.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+                // Create ACL request
+                var aclData = new
+                {
+                    entity = "allUsers",
+                    role = "READER"
+                };
+
+                var json = JsonSerializer.Serialize(aclData);
+                var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+                // Make request to Google Cloud Storage API
+                var url = $"https://storage.googleapis.com/storage/v1/b/{_bucketName}/o/{Uri.EscapeDataString(objectName)}/acl";
+                var response = await httpClient.PostAsync(url, content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("Successfully made object {ObjectName} public", objectName);
+                }
+                else
+                {
+                    _logger.LogWarning("Failed to make object {ObjectName} public. Status: {StatusCode}",
+                        objectName, response.StatusCode);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not set public ACL for {ObjectName}, object uploaded but may not be publicly accessible", objectName);
             }
         }
 
