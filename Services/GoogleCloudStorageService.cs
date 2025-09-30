@@ -11,7 +11,7 @@ namespace Freelancing.Services
         private readonly StorageClient _storageClient;
         private readonly string _bucketName;
         private readonly ILogger<GoogleCloudStorageService> _logger;
-        private readonly GoogleCredential _credential; // ADD THIS
+        private readonly GoogleCredential _credential;
 
         public GoogleCloudStorageService(IConfiguration configuration, ILogger<GoogleCloudStorageService> logger)
         {
@@ -26,12 +26,12 @@ namespace Freelancing.Services
 
                 if (!string.IsNullOrEmpty(credentialsJson))
                 {
-                    _credential = GoogleCredential.FromJson(credentialsJson); // STORE CREDENTIAL
+                    _credential = GoogleCredential.FromJson(credentialsJson);
                     _storageClient = StorageClient.Create(_credential);
                 }
                 else
                 {
-                    _credential = GoogleCredential.GetApplicationDefault(); // STORE CREDENTIAL
+                    _credential = GoogleCredential.GetApplicationDefault();
                     _storageClient = StorageClient.Create(_credential);
                 }
             }
@@ -57,7 +57,7 @@ namespace Freelancing.Services
 
                 await _storageClient.UploadObjectAsync(_bucketName, objectName, file.ContentType, stream);
 
-                // CHANGE: Maximum 7 days for signed URLs
+                // Generate signed URL that expires in 7 days
                 var signedUrl = await GenerateSignedUrlAsync(objectName, TimeSpan.FromDays(7));
 
                 _logger.LogInformation("File uploaded successfully: {FileName} to signed URL", fileName);
@@ -86,7 +86,6 @@ namespace Freelancing.Services
 
                 await _storageClient.UploadObjectAsync(_bucketName, objectName, contentType, stream);
 
-                // CHANGE: Maximum 7 days for signed URLs
                 var signedUrl = await GenerateSignedUrlAsync(objectName, TimeSpan.FromDays(7));
 
                 _logger.LogInformation("File uploaded successfully: {FileName} to signed URL", uniqueFileName);
@@ -100,15 +99,37 @@ namespace Freelancing.Services
             }
         }
 
-        // ADD THIS NEW METHOD
         public async Task<string> GenerateSignedUrlAsync(string objectName, TimeSpan expiration)
         {
             try
             {
-                var serviceAccountCredential = (ServiceAccountCredential)_credential.UnderlyingCredential;
+                // FIX: Proper credential handling for signed URLs
+                var credentialsJson = Environment.GetEnvironmentVariable("GOOGLE_CLOUD_CREDENTIALS");
+                if (string.IsNullOrEmpty(credentialsJson))
+                {
+                    throw new InvalidOperationException("Google Cloud credentials not found");
+                }
+
+                // Parse the JSON to extract the service account information
+                var credentialData = JsonSerializer.Deserialize<Dictionary<string, object>>(credentialsJson);
+                var clientEmail = credentialData["client_email"].ToString();
+                var privateKey = credentialData["private_key"].ToString();
+
+                // Create service account credential directly from the JSON
+                var serviceAccountCredential = new ServiceAccountCredential(
+                    new ServiceAccountCredential.Initializer(clientEmail)
+                    {
+                        Scopes = new[] { "https://www.googleapis.com/auth/cloud-platform" }
+                    }.FromPrivateKey(privateKey));
+
                 var urlSigner = UrlSigner.FromServiceAccountCredential(serviceAccountCredential);
 
-                var signedUrl = await urlSigner.SignAsync(_bucketName, objectName, expiration, HttpMethod.Get);
+                var signedUrl = await urlSigner.SignAsync(
+                    _bucketName,
+                    objectName,
+                    expiration,
+                    HttpMethod.Get);
+
                 return signedUrl.ToString();
             }
             catch (Exception ex)
