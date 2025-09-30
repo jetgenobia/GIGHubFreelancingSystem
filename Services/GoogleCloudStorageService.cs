@@ -324,5 +324,33 @@ namespace Freelancing.Services
 
             return urlOrPath.TrimStart('/');
         }
+
+        public async Task SetBucketCorsAsync()
+        {
+            try
+            {
+                var bucket = await _storageClient.GetBucketAsync(_bucketName);
+
+                bucket.Cors = new List<Bucket.CorsData>
+        {
+            new Bucket.CorsData
+            {
+                Origin = new List<string> { "*" },
+                Method = new List<string> { "GET", "HEAD" },
+                ResponseHeader = new List<string> { "Content-Type", "Access-Control-Allow-Origin" },
+                MaxAgeSeconds = 3600
+            }
+        };
+
+                await _storageClient.UpdateBucketAsync(bucket);
+
+                _logger.LogInformation("CORS configuration set successfully for bucket {BucketName}", _bucketName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error setting CORS configuration for bucket {BucketName}", _bucketName);
+                throw;
+            }
+        }
     }
 }

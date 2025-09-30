@@ -16,21 +16,37 @@ namespace Freelancing.Controllers
         private readonly IIdentityVerificationService _verificationService;
         private readonly INotificationService _notificationService;
         private readonly ILogger<Admin> _logger;
+        private readonly IGoogleCloudStorageService _googleCloudStorageService;
 
         public Admin(
             ApplicationDbContext context,
             IIdentityEncryptionService encryptionService,
             IIdentityVerificationService verificationService,
             INotificationService notificationService,
+            IGoogleCloudStorageService googleCloudStorageService,
             ILogger<Admin> logger)
         {
             _context = context;
             _encryptionService = encryptionService;
             _verificationService = verificationService;
             _notificationService = notificationService;
+            _googleCloudStorageService = googleCloudStorageService;
             _logger = logger;
         }
 
+        [HttpPost("admin/setup-cors")]
+        public async Task<IActionResult> SetupCors()
+        {
+            try
+            {
+                await _googleCloudStorageService.SetBucketCorsAsync();
+                return Ok("CORS configured successfully!");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error: {ex.Message}");
+            }
+        }
         public IActionResult Reports()
         {
             return View();

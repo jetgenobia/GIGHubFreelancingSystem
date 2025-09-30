@@ -9,5 +9,6 @@ namespace Freelancing.Services
         Task<bool> FileExistsAsync(string fileName);
         Task<IEnumerable<string>> ListFilesAsync(string folderPath = "");
         Task<string> GenerateSignedUrlAsync(string objectName, TimeSpan expiration); // ADD THIS
+        Task SetBucketCorsAsync();
     }
 }
