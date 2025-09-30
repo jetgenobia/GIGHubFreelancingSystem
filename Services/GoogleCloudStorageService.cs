@@ -1,5 +1,6 @@
 ﻿using Google;
 using Google.Apis.Auth.OAuth2;
+using Google.Apis.Storage.v1.Data;
 using Google.Cloud.Storage.V1;
 using System.Text.Json;
 
@@ -10,6 +11,7 @@ namespace Freelancing.Services
         private readonly StorageClient _storageClient;
         private readonly string _bucketName;
         private readonly ILogger<GoogleCloudStorageService> _logger;
+        private readonly GoogleCredential _credential; // ADD THIS
 
         public GoogleCloudStorageService(IConfiguration configuration, ILogger<GoogleCloudStorageService> logger)
         {
@@ -20,19 +22,17 @@ namespace Freelancing.Services
 
             try
             {
-                // Try to get credentials from environment variable (JSON string)
                 var credentialsJson = Environment.GetEnvironmentVariable("GOOGLE_CLOUD_CREDENTIALS");
 
                 if (!string.IsNullOrEmpty(credentialsJson))
                 {
-                    // Parse credentials from JSON string (for Railway deployment)
-                    var credential = GoogleCredential.FromJson(credentialsJson);
-                    _storageClient = StorageClient.Create(credential);
+                    _credential = GoogleCredential.FromJson(credentialsJson); // STORE CREDENTIAL
+                    _storageClient = StorageClient.Create(_credential);
                 }
                 else
                 {
-                    // Use default credentials (for local development with gcloud CLI)
-                    _storageClient = StorageClient.Create();
+                    _credential = GoogleCredential.GetApplicationDefault(); // STORE CREDENTIAL
+                    _storageClient = StorageClient.Create(_credential);
                 }
             }
             catch (Exception ex)
@@ -57,12 +57,12 @@ namespace Freelancing.Services
 
                 await _storageClient.UploadObjectAsync(_bucketName, objectName, file.ContentType, stream);
 
-                // Return the public URL
-                var publicUrl = $"https://storage.googleapis.com/{_bucketName}/{objectName}";
+                // Generate signed URL that expires in 10 years (for permanent files like project images)
+                var signedUrl = await GenerateSignedUrlAsync(objectName, TimeSpan.FromDays(365 * 10));
 
-                _logger.LogInformation("File uploaded successfully: {FileName} to {Url}", fileName, publicUrl);
+                _logger.LogInformation("File uploaded successfully: {FileName} to signed URL", fileName);
 
-                return publicUrl;
+                return signedUrl;
             }
             catch (Exception ex)
             {
@@ -86,15 +86,33 @@ namespace Freelancing.Services
 
                 await _storageClient.UploadObjectAsync(_bucketName, objectName, contentType, stream);
 
-                var publicUrl = $"https://storage.googleapis.com/{_bucketName}/{objectName}";
+                var signedUrl = await GenerateSignedUrlAsync(objectName, TimeSpan.FromDays(365 * 10));
 
-                _logger.LogInformation("File uploaded successfully: {FileName} to {Url}", uniqueFileName, publicUrl);
+                _logger.LogInformation("File uploaded successfully: {FileName} to signed URL", uniqueFileName);
 
-                return publicUrl;
+                return signedUrl;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error uploading file bytes {FileName} to Google Cloud Storage", fileName);
+                throw;
+            }
+        }
+
+        // ADD THIS NEW METHOD
+        public async Task<string> GenerateSignedUrlAsync(string objectName, TimeSpan expiration)
+        {
+            try
+            {
+                var serviceAccountCredential = (ServiceAccountCredential)_credential.UnderlyingCredential;
+                var urlSigner = UrlSigner.FromServiceAccountCredential(serviceAccountCredential);
+
+                var signedUrl = await urlSigner.SignAsync(_bucketName, objectName, expiration, HttpMethod.Get);
+                return signedUrl.ToString();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating signed URL for {ObjectName}", objectName);
                 throw;
             }
         }
@@ -106,7 +124,6 @@ namespace Freelancing.Services
 
             try
             {
-                // Extract object name from URL if it's a full URL
                 var objectName = ExtractObjectNameFromUrl(filePath);
 
                 await _storageClient.DeleteObjectAsync(_bucketName, objectName);
@@ -192,7 +209,6 @@ namespace Freelancing.Services
             var extension = Path.GetExtension(originalFileName);
             var nameWithoutExtension = Path.GetFileNameWithoutExtension(originalFileName);
 
-            // Sanitize filename
             var sanitizedName = SanitizeFileName(nameWithoutExtension);
 
             return $"{sanitizedName}_{timestamp}_{guid}{extension}";
@@ -206,16 +222,26 @@ namespace Freelancing.Services
 
         private string ExtractObjectNameFromUrl(string urlOrPath)
         {
-            // If it's a full URL, extract the object name
-            if (urlOrPath.StartsWith("https://storage.googleapis.com/"))
+            // Handle signed URLs - extract object name from path
+            if (urlOrPath.Contains("storage.googleapis.com") || urlOrPath.Contains("storage.cloud.google.com"))
             {
-                var uri = new Uri(urlOrPath);
-                var pathSegments = uri.AbsolutePath.TrimStart('/').Split('/');
-                // Skip bucket name (first segment) and return the rest
-                return string.Join("/", pathSegments.Skip(1));
+                try
+                {
+                    var uri = new Uri(urlOrPath);
+                    var pathSegments = uri.AbsolutePath.TrimStart('/').Split('/');
+
+                    // For signed URLs, the format is usually /bucket-name/object-name
+                    if (pathSegments.Length >= 2)
+                    {
+                        return string.Join("/", pathSegments.Skip(1));
+                    }
+                }
+                catch
+                {
+                    // If URL parsing fails, treat as object name
+                }
             }
 
-            // If it's already an object name/path, return as is
             return urlOrPath.TrimStart('/');
         }
     }

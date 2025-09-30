@@ -1,5 +1,3 @@
-using Google.Cloud.Storage.V1;
-
 namespace Freelancing.Services
 {
     public interface IGoogleCloudStorageService
@@ -10,5 +8,6 @@ namespace Freelancing.Services
         Task<Stream> DownloadFileAsync(string fileName);
         Task<bool> FileExistsAsync(string fileName);
         Task<IEnumerable<string>> ListFilesAsync(string folderPath = "");
+        Task<string> GenerateSignedUrlAsync(string objectName, TimeSpan expiration); // ADD THIS
     }
 }
