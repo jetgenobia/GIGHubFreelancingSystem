@@ -34,7 +34,7 @@ namespace Freelancing.Controllers
             _logger = logger;
         }
 
-        [HttpPost("admin/setup-cors")]
+        [HttpGet("admin/setup-cors")]
         public async Task<IActionResult> SetupCors()
         {
             try
