@@ -26,12 +26,14 @@ namespace Freelancing.Services
 
                 if (!string.IsNullOrEmpty(credentialsJson))
                 {
-                    _credential = GoogleCredential.FromJson(credentialsJson);
+                    _credential = GoogleCredential.FromJson(credentialsJson)
+                        .CreateScoped(new[] { "https://www.googleapis.com/auth/cloud-platform" });
                     _storageClient = StorageClient.Create(_credential);
                 }
                 else
                 {
-                    _credential = GoogleCredential.GetApplicationDefault();
+                    _credential = GoogleCredential.GetApplicationDefault()
+                        .CreateScoped(new[] { "https://www.googleapis.com/auth/cloud-platform" });
                     _storageClient = StorageClient.Create(_credential);
                 }
             }
@@ -115,8 +117,8 @@ namespace Freelancing.Services
                 // Use the REST API approach to set object ACL
                 using var httpClient = new HttpClient();
 
-                // Get access token from the credential
-                var accessToken = await _credential.UnderlyingCredential.GetAccessTokenForRequestAsync();
+                // Get access token from the credential with proper auth URI
+                var accessToken = await _credential.UnderlyingCredential.GetAccessTokenForRequestAsync("https://oauth2.googleapis.com/token");
 
                 // Set authorization header
                 httpClient.DefaultRequestHeaders.Authorization =
