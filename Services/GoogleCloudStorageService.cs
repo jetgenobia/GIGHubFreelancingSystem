@@ -57,12 +57,12 @@ namespace Freelancing.Services
 
                 await _storageClient.UploadObjectAsync(_bucketName, objectName, file.ContentType, stream);
 
-                // Generate signed URL that expires in 7 days
-                var signedUrl = await GenerateSignedUrlAsync(objectName, TimeSpan.FromDays(7));
+                // Return direct public URL instead of signed URL
+                var publicUrl = $"https://storage.googleapis.com/{_bucketName}/{objectName}";
 
-                _logger.LogInformation("File uploaded successfully: {FileName} to signed URL", fileName);
+                _logger.LogInformation("File uploaded successfully: {FileName} to {Url}", fileName, publicUrl);
 
-                return signedUrl;
+                return publicUrl;
             }
             catch (Exception ex)
             {
@@ -86,11 +86,12 @@ namespace Freelancing.Services
 
                 await _storageClient.UploadObjectAsync(_bucketName, objectName, contentType, stream);
 
-                var signedUrl = await GenerateSignedUrlAsync(objectName, TimeSpan.FromDays(7));
+                // Return direct public URL instead of signed URL
+                var publicUrl = $"https://storage.googleapis.com/{_bucketName}/{objectName}";
 
-                _logger.LogInformation("File uploaded successfully: {FileName} to signed URL", uniqueFileName);
+                _logger.LogInformation("File uploaded successfully: {FileName} to {Url}", uniqueFileName, publicUrl);
 
-                return signedUrl;
+                return publicUrl;
             }
             catch (Exception ex)
             {
