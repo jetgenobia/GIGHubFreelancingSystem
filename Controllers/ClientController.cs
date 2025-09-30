@@ -51,6 +51,30 @@ namespace Freelancing.Controllers
 
             return uniqueFileName;
         }
+
+        private async Task<EditAccount> PopulateEditAccountViewModel(string userId, UserAccount? userAccount = null)
+        {
+            if (userAccount == null)
+                userAccount = await _userManager.FindByIdAsync(userId);
+
+            if (userAccount == null)
+                throw new InvalidOperationException("User account not found");
+
+            // Check identity verification status
+            var identityVerification = await dbContext.IdentityVerifications
+                .FirstOrDefaultAsync(iv => iv.UserAccountId == userId);
+            var isVerified = identityVerification?.Status == "APPROVED";
+
+            return new EditAccount
+            {
+                FirstName = userAccount.FirstName ?? string.Empty,
+                LastName = userAccount.LastName ?? string.Empty,
+                Email = userAccount.Email ?? string.Empty,
+                UserName = userAccount.UserName ?? string.Empty,
+                Bio = userAccount.Bio ?? string.Empty,
+                Photo = userAccount.Photo ?? string.Empty
+            };
+        }
         // Displays the client dashboard with project statistics and a list of projects.
         public async Task<IActionResult> Dashboard(string message = null)
         {
@@ -322,16 +346,8 @@ namespace Freelancing.Controllers
         {
             try
             {
-                // Debug: Log the incoming data
                 System.Diagnostics.Debug.WriteLine($"Post method called");
                 System.Diagnostics.Debug.WriteLine($"SelectedSkillIds count: {viewModel.SelectedSkillIds?.Count ?? 0}");
-                if (viewModel.SelectedSkillIds != null)
-                {
-                    foreach (var skillId in viewModel.SelectedSkillIds)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Skill ID: {skillId}");
-                    }
-                }
 
                 if (ModelState.IsValid)
                 {
@@ -340,7 +356,7 @@ namespace Freelancing.Controllers
                     {
                         List<string> imagePaths = new List<string>();
 
-                        // Handle multiple file uploads
+                        // Handle multiple file uploads using Google Cloud Storage
                         if (viewModel.ProjectImages != null && viewModel.ProjectImages.Any())
                         {
                             var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".svg" };
@@ -367,28 +383,23 @@ namespace Freelancing.Controllers
                                 }
                             }
 
-                            // Create project post uploads directory if it doesn't exist
-                            var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "projectpost");
-                            if (!Directory.Exists(uploadsDir))
-                            {
-                                Directory.CreateDirectory(uploadsDir);
-                            }
+                            // Upload files to Google Cloud Storage
+                            var googleCloudStorage = HttpContext.RequestServices.GetRequiredService<IGoogleCloudStorageService>();
 
-                            // Process each file
                             foreach (var file in viewModel.ProjectImages)
                             {
                                 if (file != null && file.Length > 0)
                                 {
-                                    var fileName = GenerateUniqueFileName(file.FileName, uploadsDir);
-                                    var filePath = Path.Combine(uploadsDir, fileName);
-
-                                    // Save file
-                                    using (var stream = new FileStream(filePath, FileMode.Create))
+                                    try
                                     {
-                                        await file.CopyToAsync(stream);
+                                        var publicUrl = await googleCloudStorage.UploadFileAsync(file, "projectpost");
+                                        imagePaths.Add(publicUrl);
                                     }
-
-                                    imagePaths.Add($"/uploads/projectpost/{fileName}");
+                                    catch (Exception ex)
+                                    {
+                                        ModelState.AddModelError("ProjectImages", $"Failed to upload {file.FileName}: {ex.Message}");
+                                        return View(viewModel);
+                                    }
                                 }
                             }
                         }
@@ -418,17 +429,10 @@ namespace Freelancing.Controllers
                             await dbContext.ProjectSkills.AddRangeAsync(projectSkills);
                             await dbContext.SaveChangesAsync();
 
-                            // Log for debugging
                             System.Diagnostics.Debug.WriteLine($"Added {projectSkills.Count} skills to project {project.Id}");
-                        }
-                        else
-                        {
-                            // Log for debugging
-                            System.Diagnostics.Debug.WriteLine("No skills selected or SelectedSkillIds is null/empty");
                         }
 
                         ModelState.Clear();
-
                         return RedirectToAction("Dashboard", "Client", new { message = "Project posted successfully!" });
                     }
                     else
@@ -440,9 +444,7 @@ namespace Freelancing.Controllers
             }
             catch (Exception ex)
             {
-                // Log the exception (to file, console, or a logging service)
                 System.Diagnostics.Debug.WriteLine($"Exception in Post: {ex}");
-                // Optionally, show a friendly error message
                 ModelState.AddModelError("", "An unexpected error occurred. Please try again later.");
                 return View(viewModel);
             }
@@ -493,17 +495,11 @@ namespace Freelancing.Controllers
                     allImagePaths.AddRange(ExistingImagePaths);
                 }
 
-                // Handle new images if uploaded
+                // Handle new images if uploaded using Google Cloud Storage
                 if (ProjectImages != null && ProjectImages.Any())
                 {
                     var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".svg" };
-
-                    // Create project post uploads directory if it doesn't exist
-                    var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "projectpost");
-                    if (!Directory.Exists(uploadsDir))
-                    {
-                        Directory.CreateDirectory(uploadsDir);
-                    }
+                    var googleCloudStorage = HttpContext.RequestServices.GetRequiredService<IGoogleCloudStorageService>();
 
                     foreach (var file in ProjectImages)
                     {
@@ -524,15 +520,16 @@ namespace Freelancing.Controllers
                                 return View(project);
                             }
 
-                            var fileName = GenerateUniqueFileName(file.FileName, uploadsDir);
-                            var filePath = Path.Combine(uploadsDir, fileName);
-
-                            using (var stream = new FileStream(filePath, FileMode.Create))
+                            try
                             {
-                                await file.CopyToAsync(stream);
+                                var publicUrl = await googleCloudStorage.UploadFileAsync(file, "projectpost");
+                                allImagePaths.Add(publicUrl);
                             }
-
-                            allImagePaths.Add($"/uploads/projectpost/{fileName}");
+                            catch (Exception ex)
+                            {
+                                ModelState.AddModelError("ProjectImages", $"Failed to upload {file.FileName}: {ex.Message}");
+                                return View(project);
+                            }
                         }
                     }
                 }
@@ -564,6 +561,29 @@ namespace Freelancing.Controllers
             }
             else if (action == "delete")
             {
+                // Delete project images from Google Cloud Storage before deleting project
+                if (!string.IsNullOrEmpty(project.ImagePaths))
+                {
+                    try
+                    {
+                        var googleCloudStorage = HttpContext.RequestServices.GetRequiredService<IGoogleCloudStorageService>();
+                        var imagePaths = System.Text.Json.JsonSerializer.Deserialize<List<string>>(project.ImagePaths);
+
+                        if (imagePaths != null)
+                        {
+                            foreach (var imagePath in imagePaths)
+                            {
+                                await googleCloudStorage.DeleteFileAsync(imagePath);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log the error but don't fail the deletion
+                        System.Diagnostics.Debug.WriteLine($"Error deleting project images: {ex.Message}");
+                    }
+                }
+
                 dbContext.Projects.Remove(project);
                 await dbContext.SaveChangesAsync();
 
@@ -966,10 +986,9 @@ namespace Freelancing.Controllers
                 hasChanges = true;
             }
 
-            // Handle photo upload
+            // Handle photo upload using Google Cloud Storage
             if (PhotoFile != null && PhotoFile.Length > 0)
             {
-                // Validate the uploaded file type and size
                 var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
                 var fileExtension = Path.GetExtension(PhotoFile.FileName).ToLowerInvariant();
 
@@ -985,43 +1004,30 @@ namespace Freelancing.Controllers
                     return View(viewModel);
                 }
 
-                // Generate a unique file name while preserving original name
-                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "profiles");
-
-                if (!Directory.Exists(uploadsFolder))
+                try
                 {
-                    Directory.CreateDirectory(uploadsFolder);
-                }
+                    var googleCloudStorage = HttpContext.RequestServices.GetRequiredService<IGoogleCloudStorageService>();
 
-                var fileName = GenerateUniqueFileName(PhotoFile.FileName, uploadsFolder);
-                var filePath = Path.Combine(uploadsFolder, fileName);
-
-                // Delete old photo if exists
-                if (!string.IsNullOrEmpty(userAccount.Photo))
-                {
-                    var oldPhotoPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", userAccount.Photo.TrimStart('/'));
-                    if (System.IO.File.Exists(oldPhotoPath))
+                    // Delete old photo if exists
+                    if (!string.IsNullOrEmpty(userAccount.Photo))
                     {
-                        try
-                        {
-                            System.IO.File.Delete(oldPhotoPath);
-                        }
-                        catch
-                        {
-                        }
+                        await googleCloudStorage.DeleteFileAsync(userAccount.Photo);
                     }
-                }
 
-                // Save the uploaded photo
-                using (var stream = new FileStream(filePath, FileMode.Create))
+                    // Upload new photo
+                    var publicUrl = await googleCloudStorage.UploadFileAsync(PhotoFile, "profiles");
+                    userAccount.Photo = publicUrl;
+                    viewModel.Photo = userAccount.Photo;
+                    hasChanges = true;
+                    photoChanged = true;
+                }
+                catch (Exception ex)
                 {
-                    await PhotoFile.CopyToAsync(stream);
+                    ModelState.AddModelError("PhotoFile", $"Failed to upload photo: {ex.Message}");
+                    // FIX: Use userId2 instead of userId
+                    var reloadedViewModel = await PopulateEditAccountViewModel(userId2, userAccount);
+                    return View(reloadedViewModel);
                 }
-
-                userAccount.Photo = $"/uploads/profiles/{fileName}";
-                viewModel.Photo = userAccount.Photo;
-                hasChanges = true;
-                photoChanged = true;
             }
 
             // Only save if there were actual changes
@@ -1039,7 +1045,7 @@ namespace Freelancing.Controllers
                         }
                         return View(viewModel);
                     }
-                    
+
                     // Explicitly update the normalized email to ensure it's updated
                     userAccount.NormalizedEmail = viewModel.Email.ToUpperInvariant();
                 }
@@ -1055,7 +1061,7 @@ namespace Freelancing.Controllers
                         }
                         return View(viewModel);
                     }
-                    
+
                     // Explicitly update the normalized username to ensure it's updated
                     userAccount.NormalizedUserName = viewModel.UserName.ToUpperInvariant();
                 }
@@ -1066,7 +1072,7 @@ namespace Freelancing.Controllers
 
                 // Force a complete refresh from the database to get the updated normalized fields
                 await dbContext.Entry(userAccount).ReloadAsync();
-                
+
                 // Also update the local object properties to ensure consistency
                 userAccount.Email = viewModel.Email;
                 userAccount.UserName = viewModel.UserName;

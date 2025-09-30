@@ -379,6 +379,8 @@ static void RegisterApplicationServices(IServiceCollection services)
     // Email service
     services.AddScoped<IEmailService, EmailService>();
 
+    services.AddScoped<IGoogleCloudStorageService, GoogleCloudStorageService>();
+
     // Role seeder service
     services.AddScoped<IRoleSeederService, RoleSeederService>();
     services.AddScoped<AdminSeederService>();
