@@ -55,16 +55,16 @@ namespace Freelancing.Services
 
                 var objectName = string.IsNullOrEmpty(folderPath) ? fileName : $"{folderPath}/{fileName}";
 
-                // Upload the object
+                // Upload the object first
                 await _storageClient.UploadObjectAsync(_bucketName, objectName, file.ContentType, stream);
 
-                // Make the object publicly readable using a different approach
+                // Then make it public
                 await MakeObjectPublicAsync(objectName);
 
                 // Return direct public URL
                 var publicUrl = $"https://storage.googleapis.com/{_bucketName}/{objectName}";
 
-                _logger.LogInformation("File uploaded successfully: {FileName} at {PublicUrl}", fileName, publicUrl);
+                _logger.LogInformation("File uploaded successfully as public: {FileName} at {PublicUrl}", fileName, publicUrl);
 
                 return publicUrl;
             }
@@ -88,16 +88,16 @@ namespace Freelancing.Services
 
                 var objectName = string.IsNullOrEmpty(folderPath) ? uniqueFileName : $"{folderPath}/{uniqueFileName}";
 
-                // Upload the object
+                // Upload the object first
                 await _storageClient.UploadObjectAsync(_bucketName, objectName, contentType, stream);
 
-                // Make the object publicly readable
+                // Then make it public
                 await MakeObjectPublicAsync(objectName);
 
                 // Return direct public URL
                 var publicUrl = $"https://storage.googleapis.com/{_bucketName}/{objectName}";
 
-                _logger.LogInformation("File uploaded successfully: {FileName} at {PublicUrl}", uniqueFileName, publicUrl);
+                _logger.LogInformation("File uploaded successfully as public: {FileName} at {PublicUrl}", uniqueFileName, publicUrl);
 
                 return publicUrl;
             }
@@ -112,27 +112,30 @@ namespace Freelancing.Services
         {
             try
             {
+                // Use the REST API approach to set object ACL
                 using var httpClient = new HttpClient();
 
-                // Get access token
+                // Get access token from the credential
                 var accessToken = await _credential.UnderlyingCredential.GetAccessTokenForRequestAsync();
 
                 // Set authorization header
                 httpClient.DefaultRequestHeaders.Authorization =
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
 
-                // Create ACL request
-                var aclData = new
+                // Create the ACL payload
+                var aclPayload = new
                 {
                     entity = "allUsers",
                     role = "READER"
                 };
 
-                var json = JsonSerializer.Serialize(aclData);
+                var json = JsonSerializer.Serialize(aclPayload);
                 var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
-                // Make request to Google Cloud Storage API
-                var url = $"https://storage.googleapis.com/storage/v1/b/{_bucketName}/o/{Uri.EscapeDataString(objectName)}/acl";
+                // Make the API call to add public access
+                var encodedObjectName = Uri.EscapeDataString(objectName);
+                var url = $"https://storage.googleapis.com/storage/v1/b/{_bucketName}/o/{encodedObjectName}/acl";
+
                 var response = await httpClient.PostAsync(url, content);
 
                 if (response.IsSuccessStatusCode)
@@ -141,8 +144,9 @@ namespace Freelancing.Services
                 }
                 else
                 {
-                    _logger.LogWarning("Failed to make object {ObjectName} public. Status: {StatusCode}",
-                        objectName, response.StatusCode);
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("Failed to make object {ObjectName} public. Status: {StatusCode}, Error: {Error}",
+                        objectName, response.StatusCode, errorContent);
                 }
             }
             catch (Exception ex)
