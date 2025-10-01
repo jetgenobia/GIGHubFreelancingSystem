@@ -13,16 +13,16 @@ namespace Freelancing.Controllers
     {
         private readonly IIdentityVerificationService _verificationService;
         private readonly ILogger<IdentityVerificationController> _logger;
-        private readonly IGoogleCloudStorageService _googleCloudStorageService;
+        private readonly IIdentityEncryptionService _encryptionService;
 
         public IdentityVerificationController(
             IIdentityVerificationService verificationService,
             ILogger<IdentityVerificationController> logger,
-            IGoogleCloudStorageService googleCloudStorageService)
+            IIdentityEncryptionService encryptionService)
         {
             _verificationService = verificationService;
             _logger = logger;
-            _googleCloudStorageService = googleCloudStorageService;
+            _encryptionService = encryptionService;
         }
 
         public IActionResult Index()
@@ -48,34 +48,20 @@ namespace Freelancing.Controllers
                     model.IdDocumentExpiryDate = documentData.IdDocumentExpiryDate;
                     model.IdDocumentHasNoExpiration = documentData.IdDocumentHasNoExpiration;
 
-                    // Check if image data exists in session
+                    // Check if image data exists in session (now Base64 only)
                     if (!string.IsNullOrEmpty(documentData.IdDocumentImageData))
                     {
-                        // Check if it's a URL (starts with http) or Base64 data for backward compatibility
-                        if (documentData.IdDocumentImageData.StartsWith("http"))
-                        {
-                            ViewBag.StoredImageUrl = documentData.IdDocumentImageData; // Cloud storage URL
-                            ViewBag.HasStoredImage = true;
-                            ViewBag.IsCloudImage = true;
-                        }
-                        else
-                        {
-                            // Legacy Base64 support
-                            ViewBag.StoredImageData = documentData.IdDocumentImageData;
-                            ViewBag.StoredImageContentType = documentData.IdDocumentImageContentType;
-                            ViewBag.HasStoredImage = true;
-                            ViewBag.IsCloudImage = false;
-                        }
+                        ViewBag.StoredImageData = documentData.IdDocumentImageData;
+                        ViewBag.StoredImageContentType = documentData.IdDocumentImageContentType;
+                        ViewBag.HasStoredImage = true;
 
                         _logger.LogInformation(
-                            "Document GET: Restored session data for user. Has extracted ID: {HasExtractedId}, Image data type: {ImageType}",
-                            !string.IsNullOrEmpty(documentData.ExtractedIdNumber),
-                            documentData.IdDocumentImageData.StartsWith("http") ? "URL" : "Base64");
+                            "Document GET: Restored session data for user. Has extracted ID: {HasExtractedId}",
+                            !string.IsNullOrEmpty(documentData.ExtractedIdNumber));
                     }
                     else
                     {
                         ViewBag.HasStoredImage = false;
-                        ViewBag.IsCloudImage = false;
                         _logger.LogInformation("Document GET: No image data found in session");
                     }
 
@@ -88,14 +74,12 @@ namespace Freelancing.Controllers
                     _logger.LogError(ex, "Error deserializing document data from session in Document GET");
                     HttpContext.Session.Remove("DocumentData");
                     ViewBag.HasStoredImage = false;
-                    ViewBag.IsCloudImage = false;
                     ViewBag.HasExtractedData = false;
                 }
             }
             else
             {
                 ViewBag.HasStoredImage = false;
-                ViewBag.IsCloudImage = false;
                 ViewBag.HasExtractedData = false;
                 _logger.LogInformation("Document GET: No session data found, showing fresh form");
             }
@@ -125,19 +109,9 @@ namespace Freelancing.Controllers
                     // Always restore ViewBag data
                     if (!string.IsNullOrEmpty(existingDocumentData.IdDocumentImageData))
                     {
-                        if (existingDocumentData.IdDocumentImageData.StartsWith("http"))
-                        {
-                            ViewBag.StoredImageUrl = existingDocumentData.IdDocumentImageData;
-                            ViewBag.HasStoredImage = true;
-                            ViewBag.IsCloudImage = true;
-                        }
-                        else
-                        {
-                            ViewBag.StoredImageData = existingDocumentData.IdDocumentImageData;
-                            ViewBag.StoredImageContentType = existingDocumentData.IdDocumentImageContentType;
-                            ViewBag.HasStoredImage = true;
-                            ViewBag.IsCloudImage = false;
-                        }
+                        ViewBag.StoredImageData = existingDocumentData.IdDocumentImageData;
+                        ViewBag.StoredImageContentType = existingDocumentData.IdDocumentImageContentType;
+                        ViewBag.HasStoredImage = true;
                     }
 
                     ViewBag.ExtractedIdName = existingDocumentData.ExtractedIdName;
@@ -147,7 +121,6 @@ namespace Freelancing.Controllers
                 {
                     _logger.LogError(ex, "Error deserializing document data during model restoration");
                     ViewBag.HasStoredImage = false;
-                    ViewBag.IsCloudImage = false;
                     ViewBag.HasExtractedData = false;
                 }
             }
@@ -207,9 +180,6 @@ namespace Freelancing.Controllers
 
                         if (hasNewUpload)
                         {
-                            // Clean up old image if it exists and is a cloud URL
-                            await CleanupOldDocumentAsync(documentData.IdDocumentImageData);
-
                             // Validate file type and size
                             var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".pdf" };
                             var fileExtension = Path.GetExtension(model.IdDocumentImage.FileName).ToLowerInvariant();
@@ -228,17 +198,21 @@ namespace Freelancing.Controllers
 
                             try
                             {
-                                // Upload to Google Cloud Storage
-                                var publicUrl = await _googleCloudStorageService.UploadFileAsync(model.IdDocumentImage, "identity-verification");
-                                documentData.IdDocumentImageData = publicUrl; // Store URL instead of Base64
+                                // Convert uploaded file to Base64 for session storage
+                                using var memoryStream = new MemoryStream();
+                                await model.IdDocumentImage.CopyToAsync(memoryStream);
+                                var imageBytes = memoryStream.ToArray();
+                                var base64String = Convert.ToBase64String(imageBytes);
+
+                                documentData.IdDocumentImageData = $"data:{model.IdDocumentImage.ContentType};base64,{base64String}";
                                 documentData.IdDocumentImageContentType = model.IdDocumentImage.ContentType;
 
-                                _logger.LogInformation("Document uploaded to cloud storage for user {UserId}: {Url}", userId, publicUrl);
+                                _logger.LogInformation("Document converted to Base64 for user {UserId}", userId);
                             }
                             catch (Exception ex)
                             {
-                                _logger.LogError(ex, "Failed to upload identity document to cloud storage for user {UserId}", userId);
-                                ModelState.AddModelError("IdDocumentImage", "Failed to upload document. Please try again.");
+                                _logger.LogError(ex, "Failed to process identity document for user {UserId}", userId);
+                                ModelState.AddModelError("IdDocumentImage", "Failed to process document. Please try again.");
                                 return View(model);
                             }
 
@@ -315,17 +289,21 @@ namespace Freelancing.Controllers
 
                     try
                     {
-                        // Upload to Google Cloud Storage
-                        var publicUrl = await _googleCloudStorageService.UploadFileAsync(model.IdDocumentImage, "identity-verification");
-                        documentData.IdDocumentImageData = publicUrl; // Store URL instead of Base64
+                        // Convert uploaded file to Base64 for session storage
+                        using var memoryStream = new MemoryStream();
+                        await model.IdDocumentImage.CopyToAsync(memoryStream);
+                        var imageBytes = memoryStream.ToArray();
+                        var base64String = Convert.ToBase64String(imageBytes);
+
+                        documentData.IdDocumentImageData = $"data:{model.IdDocumentImage.ContentType};base64,{base64String}";
                         documentData.IdDocumentImageContentType = model.IdDocumentImage.ContentType;
 
-                        _logger.LogInformation("Document uploaded to cloud storage for new user {UserId}: {Url}", userId, publicUrl);
+                        _logger.LogInformation("Document converted to Base64 for new user {UserId}", userId);
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Failed to upload identity document to cloud storage for user {UserId}", userId);
-                        ModelState.AddModelError("IdDocumentImage", "Failed to upload document. Please try again.");
+                        _logger.LogError(ex, "Failed to process identity document for user {UserId}", userId);
+                        ModelState.AddModelError("IdDocumentImage", "Failed to process document. Please try again.");
                         return View(model);
                     }
 
@@ -415,10 +393,6 @@ namespace Freelancing.Controllers
                 model.LiveFaceImageData?.Length ?? 0);
             _logger.LogInformation("AgreeToTerms: {AgreeToTerms}", model.AgreeToTerms);
 
-            _logger.LogInformation("=== VERIFY POST ACTION HIT ===");
-            _logger.LogInformation("Request method: {Method}", Request.Method);
-            _logger.LogInformation("Content type: {ContentType}", Request.ContentType);
-
             if (!ModelState.IsValid)
             {
                 _logger.LogWarning("Model state is invalid");
@@ -495,7 +469,7 @@ namespace Freelancing.Controllers
                     documentData.IdDocumentVerified,
                     documentData.IdDocumentConfidence,
                     documentData.ExtractedIdName,
-                    documentData.IdDocumentImageData // Now contains URL or Base64 for backward compatibility
+                    documentData.IdDocumentImageData // Now contains Base64 data instead of URL
                 );
 
                 if (result.Success)
@@ -602,22 +576,6 @@ namespace Freelancing.Controllers
             }
         }
 
-        private async Task CleanupOldDocumentAsync(string oldImageData)
-        {
-            if (!string.IsNullOrEmpty(oldImageData) && oldImageData.StartsWith("http"))
-            {
-                try
-                {
-                    await _googleCloudStorageService.DeleteFileAsync(oldImageData);
-                    _logger.LogInformation("Successfully deleted old document from cloud storage: {Url}", oldImageData);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to delete old document from cloud storage: {Url}", oldImageData);
-                }
-            }
-        }
-
         private string GetCurrentUserId()
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -649,7 +607,7 @@ namespace Freelancing.Controllers
         public string IdDocumentMessage { get; set; }
 
         [JsonPropertyName("idDocumentImageData")]
-        public string? IdDocumentImageData { get; set; } // Now stores URL instead of Base64
+        public string? IdDocumentImageData { get; set; } // Now stores Base64 data instead of URL
 
         [JsonPropertyName("idDocumentImageContentType")]
         public string? IdDocumentImageContentType { get; set; }

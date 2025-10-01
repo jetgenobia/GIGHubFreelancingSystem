@@ -158,31 +158,14 @@
                                                                         <!-- Document Preview - Moved below upload instructions -->
                                                                         <div class="mt-4">
                                                                             <div class="relative inline-block">
-                                                                                @if ((ViewBag.HasStoredImage as bool?) == true)
+                                                                                @if (ViewBag.HasStoredImage == true)
                                                                                 {
-                                                                                    <!-- Show actual uploaded image -->
-                                                                                    <div id="existingImagePreview" class="w-40 h-24 rounded-lg border-2 border-gray-300 cursor-pointer hover:border-blue-400 transition-colors shadow-sm overflow-hidden"
-                                                                                         onclick="showDocumentPreview()">
-
-                                                                                        @if ((ViewBag.IsCloudImage as bool?) == true)
-                                                                                        {
-                                                                                            <!-- Cloud Storage URL -->
-                                                                                            <img src="@ViewBag.StoredImageUrl"
-                                                                                                 alt="Uploaded Document"
-                                                                                                 class="w-full h-full object-cover">
-                                                                                        }
-                                                                                        else
-                                                                                        {
-                                                                                            <!-- Base64 Data (Legacy) -->
-                                                                                            <img src="data:@ViewBag.StoredImageContentType;base64,@ViewBag.StoredImageData"
-                                                                                                 alt="Uploaded Document"
-                                                                                                 class="w-full h-full object-cover">
-                                                                                        }
-
-                                                                                        <!-- Verification Badge -->
-                                                                                        <div class="absolute top-0 right-0 bg-green-500 text-white text-xs px-2 py-1 rounded-full transform translate-x-1/2 -translate-y-1/2">
-                                                                                            ✓
-                                                                                        </div>
+                                                                                    <div class="mb-4">
+                                                                                        <h5>Current Document:</h5>
+                                                                                        <img src="@ViewBag.StoredImageData"
+                                                                                             alt="Stored ID Document"
+                                                                                             class="img-thumbnail"
+                                                                                             style="max-width: 300px; max-height: 200px;" />
                                                                                     </div>
                                                                                 }
                                                                                 else
