@@ -163,9 +163,21 @@
                                                                                     <!-- Show actual uploaded image -->
                                                                                     <div id="existingImagePreview" class="w-40 h-24 rounded-lg border-2 border-gray-300 cursor-pointer hover:border-blue-400 transition-colors shadow-sm overflow-hidden"
                                                                                          onclick="showDocumentPreview()">
-                                                                                        <img src="data:@ViewBag.StoredImageContentType;base64,@ViewBag.StoredImageData"
-                                                                                             alt="Uploaded Document"
-                                                                                             class="w-full h-full object-cover">
+
+                                                                                        @if ((ViewBag.IsCloudImage as bool?) == true)
+                                                                                        {
+                                                                                            <!-- Cloud Storage URL -->
+                                                                                            <img src="@ViewBag.StoredImageUrl"
+                                                                                                 alt="Uploaded Document"
+                                                                                                 class="w-full h-full object-cover">
+                                                                                        }
+                                                                                        else
+                                                                                        {
+                                                                                            <!-- Base64 Data (Legacy) -->
+                                                                                            <img src="data:@ViewBag.StoredImageContentType;base64,@ViewBag.StoredImageData"
+                                                                                                 alt="Uploaded Document"
+                                                                                                 class="w-full h-full object-cover">
+                                                                                        }
 
                                                                                         <!-- Verification Badge -->
                                                                                         <div class="absolute top-0 right-0 bg-green-500 text-white text-xs px-2 py-1 rounded-full transform translate-x-1/2 -translate-y-1/2">
@@ -466,17 +478,30 @@
         }
 
         // Function to show document preview modal
-        function showDocumentPreview() {
+                function showDocumentPreview() {
             console.log('Attempting to show document preview');
-            
-            // Check if stored image data is available from ViewBag
+
+            // Check if cloud image URL is available
+            var storedImageUrl = '@Html.Raw(ViewBag.StoredImageUrl)';
+            var isCloudImage = '@((ViewBag.IsCloudImage as bool?) == true)'.toLowerCase() === 'true';
+
+            if (isCloudImage && storedImageUrl && storedImageUrl !== '') {
+                try {
+                    showModalWithImageData(storedImageUrl, 'Previously Uploaded Document');
+                    return;
+                } catch (error) {
+                    console.error('Error using cloud image URL:', error);
+                }
+            }
+
+            // Check if stored image data is available from ViewBag (Legacy Base64)
             var storedImageData = '@Html.Raw(ViewBag.StoredImageData)';
             var storedImageContentType = '@Html.Raw(ViewBag.StoredImageContentType)';
 
             console.log('StoredImageData available:', !!storedImageData);
             console.log('StoredImageContentType:', storedImageContentType);
 
-            // Try ViewBag data first
+            // Try ViewBag data for Base64
             if (storedImageData && storedImageData !== '' && storedImageContentType && storedImageContentType !== '') {
                 try {
                     showModalWithImageData('data:' + storedImageContentType + ';base64,' + storedImageData, 'Previously Uploaded Document');
@@ -488,7 +513,7 @@
 
             // Fallback: Try to get image data from existing img element on the page
             var existingImg = document.querySelector('#existingImagePreview img');
-            if (existingImg && existingImg.src && existingImg.src.startsWith('data:')) {
+            if (existingImg && existingImg.src) {
                 try {
                     showModalWithImageData(existingImg.src, 'Previously Uploaded Document');
                     return;
