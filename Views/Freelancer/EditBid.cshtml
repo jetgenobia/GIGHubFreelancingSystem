@@ -307,10 +307,10 @@ document.addEventListener('DOMContentLoaded', function() {
         noFilesMessage.style.display = 'none';
         
         const fileItem = document.createElement('div');
-        fileItem.className = 'flex items-center justify-between p-2 bg-white rounded border border-gray-300';
+        fileItem.className = 'flex items-center justify-between p-2 bg-white rounded border border-gray-300 overflow-hidden';
         
         const fileInfo = document.createElement('div');
-        fileInfo.className = 'flex items-center space-x-2';
+        fileInfo.className = 'flex items-center space-x-2 min-w-0';
         
         const fileIcon = document.createElement('div');
         fileIcon.className = 'w-8 h-8 bg-blue-100 rounded flex items-center justify-center';
@@ -325,7 +325,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const removeBtn = document.createElement('button');
         removeBtn.type = 'button';
-        removeBtn.className = 'text-red-500 hover:text-red-700';
+        removeBtn.className = 'flex-shrink-0 ml-2 text-red-500 hover:text-red-700';
         removeBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
         removeBtn.onclick = function() {
             if (isExistingFile) {
