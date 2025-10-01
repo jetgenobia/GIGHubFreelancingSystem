@@ -15,14 +15,14 @@ namespace Freelancing.Controllers
     public class DeliverableController : Controller
     {
         private readonly ApplicationDbContext _context;
-        private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly INotificationService _notificationService;
+        private readonly IGoogleCloudStorageService _googleCloudStorageService;
 
-        public DeliverableController(ApplicationDbContext context, IWebHostEnvironment webHostEnvironment, INotificationService notificationService)
+        public DeliverableController(ApplicationDbContext context, INotificationService notificationService, IGoogleCloudStorageService googleCloudStorageService)
         {
             _context = context;
-            _webHostEnvironment = webHostEnvironment;
             _notificationService = notificationService;
+            _googleCloudStorageService = googleCloudStorageService;
         }
 
         public async Task<IActionResult> Index(Guid id, string? status = null)
@@ -142,41 +142,47 @@ namespace Freelancing.Controllers
                 if (contract.Bidding.UserId != currentUserId)
                     return Forbid("You can only submit deliverables for your own contracts.");
 
-                // Handle file uploads
+                // Handle file uploads using Google Cloud Storage
                 var uploadedFilePaths = new List<string>();
-                var uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "deliverables");
-
-                // Create directory if it doesn't exist
-                if (!Directory.Exists(uploadsFolder))
-                {
-                    Directory.CreateDirectory(uploadsFolder);
-                }
 
                 if (model.SubmittedFiles != null && model.SubmittedFiles.Count > 0)
                 {
+                    var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".svg", ".pdf", ".doc", ".docx", ".txt", ".zip", ".mp4", ".mov", ".avi" };
+                    const int maxFileSize = 10 * 1024 * 1024; // 10MB
+
                     foreach (var file in model.SubmittedFiles)
                     {
                         if (file.Length > 0)
                         {
-                            // Validate file size (10MB limit)
-                            if (file.Length > 10 * 1024 * 1024)
+                            // Validate file type
+                            var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                            if (!allowedExtensions.Contains(fileExtension))
+                            {
+                                ModelState.AddModelError("SubmittedFiles", $"File {file.FileName} is not a valid file type. Allowed types: {string.Join(", ", allowedExtensions)}");
+                                TempData["ErrorMessage"] = "One or more files have invalid file types.";
+                                return RedirectToAction("Index", new { id = model.ContractId });
+                            }
+
+                            // Validate file size
+                            if (file.Length > maxFileSize)
                             {
                                 ModelState.AddModelError("SubmittedFiles", $"File {file.FileName} is too large. Maximum size is 10MB.");
-                                continue;
+                                TempData["ErrorMessage"] = "One or more files exceed the maximum size limit.";
+                                return RedirectToAction("Index", new { id = model.ContractId });
                             }
 
-                            // Generate unique filename
-                            var fileName = GenerateUniqueFileName(file.FileName, uploadsFolder);
-                            var filePath = Path.Combine(uploadsFolder, fileName);
-
-                            // Save file
-                            using (var stream = new FileStream(filePath, FileMode.Create))
+                            try
                             {
-                                await file.CopyToAsync(stream);
+                                // Upload file to Google Cloud Storage
+                                var publicUrl = await _googleCloudStorageService.UploadFileAsync(file, "deliverables");
+                                uploadedFilePaths.Add(publicUrl);
                             }
-
-                            // Store relative path
-                            uploadedFilePaths.Add($"/uploads/deliverables/{fileName}");
+                            catch (Exception ex)
+                            {
+                                ModelState.AddModelError("SubmittedFiles", $"Failed to upload {file.FileName}: {ex.Message}");
+                                TempData["ErrorMessage"] = $"Failed to upload {file.FileName}. Please try again.";
+                                return RedirectToAction("Index", new { id = model.ContractId });
+                            }
                         }
                     }
                 }
@@ -223,23 +229,6 @@ namespace Freelancing.Controllers
                 TempData["ErrorMessage"] = "An error occurred while submitting the deliverable. Please try again.";
                 return RedirectToAction("Index", new { id = model.ContractId });
             }
-        }
-
-        private string GenerateUniqueFileName(string originalFileName, string uploadsFolder)
-        {
-            var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(originalFileName);
-            var fileExtension = Path.GetExtension(originalFileName);
-            var uniqueFileName = originalFileName;
-            var counter = 1;
-
-            // Keep trying until we find a unique filename
-            while (System.IO.File.Exists(Path.Combine(uploadsFolder, uniqueFileName)))
-            {
-                uniqueFileName = $"{fileNameWithoutExtension}_{counter}{fileExtension}";
-                counter++;
-            }
-
-            return uniqueFileName;
         }
 
         [HttpPost]

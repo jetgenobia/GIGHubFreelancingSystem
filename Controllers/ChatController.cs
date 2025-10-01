@@ -17,14 +17,16 @@ namespace Freelancing.Controllers
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _environment;
         private readonly IMessageEncryptionService _encryptionService;
+        private readonly IGoogleCloudStorageService _googleCloudStorageService;
         private const int MaxFileSize = 10 * 1024 * 1024; // 10MB
         private readonly string[] AllowedFileTypes = { ".pdf", ".doc", ".docx", ".txt", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".mp4", ".mov", ".avi", ".wmv", ".flv", ".webm" };
 
-        public ChatController(ApplicationDbContext context, IWebHostEnvironment environment, IMessageEncryptionService encryptionService)
+        public ChatController(ApplicationDbContext context, IWebHostEnvironment environment, IMessageEncryptionService encryptionService, IGoogleCloudStorageService googleCloudStorageService)
         {
             _context = context;
             _environment = environment;
             _encryptionService = encryptionService;
+            _googleCloudStorageService = googleCloudStorageService;
         }
 
         [HttpGet]
@@ -304,33 +306,24 @@ namespace Freelancing.Controllers
                     return Json(new { success = false, message = "File type not allowed" });
                 }
 
-                // Create uploads directory if it doesn't exist
-                var uploadsDir = Path.Combine(_environment.WebRootPath, "uploads", "chat");
-                if (!Directory.Exists(uploadsDir))
+                try
                 {
-                    Directory.CreateDirectory(uploadsDir);
+                    // Upload file to Google Cloud Storage
+                    var fileUrl = await _googleCloudStorageService.UploadFileAsync(file, "chat");
+
+                    return Json(new
+                    {
+                        success = true,
+                        fileName = file.FileName,
+                        fileUrl = fileUrl,
+                        fileSize = file.Length,
+                        fileType = file.ContentType
+                    });
                 }
-
-                // Generate unique filename
-                var fileName = $"{Guid.NewGuid()}_{Path.GetFileName(file.FileName)}";
-                var filePath = Path.Combine(uploadsDir, fileName);
-
-                // Save file
-                using (var stream = new FileStream(filePath, FileMode.Create))
+                catch (Exception ex)
                 {
-                    await file.CopyToAsync(stream);
+                    return Json(new { success = false, message = $"Upload failed: {ex.Message}" });
                 }
-
-                var fileUrl = $"/uploads/chat/{fileName}";
-
-                return Json(new
-                {
-                    success = true,
-                    fileName = file.FileName,
-                    fileUrl = fileUrl,
-                    fileSize = file.Length,
-                    fileType = file.ContentType
-                });
             }
             catch (Exception ex)
             {

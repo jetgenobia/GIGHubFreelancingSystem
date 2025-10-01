@@ -14,16 +14,16 @@ namespace Freelancing.Controllers
     public class MentorshipChatController : Controller
     {
         private readonly ApplicationDbContext _context;
-        private readonly IWebHostEnvironment _environment;
         private readonly IMessageEncryptionService _encryptionService;
+        private readonly IGoogleCloudStorageService _googleCloudStorageService; // ADD THIS
         private const int MaxFileSize = 10 * 1024 * 1024; // 10MB
         private readonly string[] AllowedFileTypes = { ".pdf", ".doc", ".docx", ".txt", ".jpg", ".jpeg", ".png", ".gif", ".mp4", ".mov", ".avi" };
 
-        public MentorshipChatController(ApplicationDbContext context, IWebHostEnvironment environment, IMessageEncryptionService encryptionService)
+        public MentorshipChatController(ApplicationDbContext context, IMessageEncryptionService encryptionService, IGoogleCloudStorageService googleCloudStorageService) // ADD PARAMETER
         {
             _context = context;
-            _environment = environment;
             _encryptionService = encryptionService;
+            _googleCloudStorageService = googleCloudStorageService; // ADD THIS
         }
 
         [HttpGet]
@@ -218,49 +218,40 @@ namespace Freelancing.Controllers
                     });
                 }
 
-                // Create upload directory if it doesn't exist
-                var uploadPath = Path.Combine(_environment.WebRootPath, "uploads", "mentorship-chat");
-                if (!Directory.Exists(uploadPath))
-                {
-                    Directory.CreateDirectory(uploadPath);
-                }
-
-                // Generate unique filename to prevent conflicts
-                var uniqueFileName = $"{Guid.NewGuid()}{extension}";
-                var filePath = Path.Combine(uploadPath, uniqueFileName);
-
-                // Save file to disk
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    await file.CopyToAsync(stream);
-                }
-
-                // Create file URL
-                var fileUrl = $"/uploads/mentorship-chat/{uniqueFileName}";
-
-                // Optional: Encrypt the original filename before storing
-                var encryptionKey = _encryptionService.GenerateRoomKey(matchId.ToString());
-                var encryptedFileName = file.FileName;
                 try
                 {
-                    encryptedFileName = _encryptionService.EncryptMessage(file.FileName, encryptionKey);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Failed to encrypt filename: {ex.Message}");
-                    // Continue with unencrypted filename
-                }
+                    // Upload to Google Cloud Storage
+                    var fileUrl = await _googleCloudStorageService.UploadFileAsync(file, "mentorship-chat");
 
-                Console.WriteLine($"File uploaded successfully: {file.FileName} -> {fileUrl}");
+                    // Optional: Encrypt the original filename before storing
+                    var encryptionKey = _encryptionService.GenerateRoomKey(matchId.ToString());
+                    var encryptedFileName = file.FileName;
+                    try
+                    {
+                        encryptedFileName = _encryptionService.EncryptMessage(file.FileName, encryptionKey);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Failed to encrypt filename: {ex.Message}");
+                        // Continue with unencrypted filename
+                    }
 
-                return Json(new
+                    Console.WriteLine($"File uploaded successfully to cloud storage: {file.FileName} -> {fileUrl}");
+
+                    return Json(new
+                    {
+                        success = true,
+                        fileName = file.FileName, // Return original filename for display
+                        fileUrl = fileUrl, // Now contains cloud storage URL
+                        fileSize = file.Length,
+                        fileType = file.ContentType ?? "application/octet-stream"
+                    });
+                }
+                catch (Exception uploadEx)
                 {
-                    success = true,
-                    fileName = file.FileName, // Return original filename for display
-                    fileUrl = fileUrl,
-                    fileSize = file.Length,
-                    fileType = file.ContentType ?? "application/octet-stream"
-                });
+                    Console.WriteLine($"Cloud storage upload error: {uploadEx.Message}");
+                    return Json(new { success = false, message = $"Upload failed: {uploadEx.Message}" });
+                }
             }
             catch (Exception ex)
             {

@@ -17,13 +17,15 @@ namespace Freelancing.Controllers
         private readonly IMentorshipSchedulingService _schedulingService;
         private readonly INotificationService _notificationService;
         private readonly ILogger<MentorshipManageController> _logger;
+        private readonly IGoogleCloudStorageService _googleCloudStorageService;
 
-        public MentorshipManageController(ApplicationDbContext context, IMentorshipSchedulingService schedulingService, INotificationService notificationService, ILogger<MentorshipManageController> logger)
+        public MentorshipManageController(ApplicationDbContext context, IMentorshipSchedulingService schedulingService, INotificationService notificationService, ILogger<MentorshipManageController> logger, IGoogleCloudStorageService googleCloudStorageService) // ADD PARAMETER
         {
             _context = context;
             _schedulingService = schedulingService;
             _notificationService = notificationService;
             _logger = logger;
+            _googleCloudStorageService = googleCloudStorageService;
         }
 
         [HttpGet]
@@ -730,11 +732,8 @@ namespace Freelancing.Controllers
                 finalFileNames.AddRange(model.RetainedEvidenceFilePaths);
             }
 
-            // Save newly uploaded files (persist file to disk with GUID prefix, but store filename only)
+            // Save newly uploaded files using Google Cloud Storage
             var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".pdf", ".doc", ".docx", ".txt" };
-            var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "mentorship-evidence");
-            if (!Directory.Exists(uploadsDir))
-                Directory.CreateDirectory(uploadsDir);
 
             if (model.EvidenceFiles != null && model.EvidenceFiles.Any())
             {
@@ -754,17 +753,19 @@ namespace Freelancing.Controllers
                         continue;
                     }
 
-                    // store on disk as GUID_originalName to avoid collisions
-                    var storedFileName = $"{Guid.NewGuid()}_{Path.GetFileName(file.FileName)}";
-                    var filePath = Path.Combine(uploadsDir, storedFileName);
-
-                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    try
                     {
-                        await file.CopyToAsync(stream);
-                    }
+                        // Upload to Google Cloud Storage
+                        var publicUrl = await _googleCloudStorageService.UploadFileAsync(file, "mentorship-evidence");
 
-                    // Store only the filename in DB
-                    finalFileNames.Add(storedFileName);
+                        // Store the cloud storage URL
+                        finalFileNames.Add(publicUrl);
+                    }
+                    catch (Exception ex)
+                    {
+                        ModelState.AddModelError("EvidenceFiles", $"Failed to upload {file.FileName}: {ex.Message}");
+                        continue;
+                    }
                 }
             }
 
@@ -792,25 +793,31 @@ namespace Freelancing.Controllers
 
             if (evidenceEntity != null)
             {
-                // Delete any server files that were not retained
+                // Delete any cloud storage files that were not retained
                 if (!string.IsNullOrEmpty(evidenceEntity.EvidenceFilePaths))
                 {
                     try
                     {
-                        var existingFileNames = System.Text.Json.JsonSerializer.Deserialize<List<string>>(evidenceEntity.EvidenceFilePaths) ?? new List<string>();
-                        var toDelete = existingFileNames.Except(model.RetainedEvidenceFilePaths ?? new List<string>()).ToList();
-                        foreach (var delFileName in toDelete)
+                        var existingFileUrls = System.Text.Json.JsonSerializer.Deserialize<List<string>>(evidenceEntity.EvidenceFilePaths) ?? new List<string>();
+                        var toDelete = existingFileUrls.Except(model.RetainedEvidenceFilePaths ?? new List<string>()).ToList();
+                        foreach (var fileUrl in toDelete)
                         {
                             try
                             {
-                                var physical = Path.Combine(uploadsDir, delFileName);
-                                if (System.IO.File.Exists(physical))
-                                    System.IO.File.Delete(physical);
+                                // Delete from Google Cloud Storage
+                                await _googleCloudStorageService.DeleteFileAsync(fileUrl);
                             }
-                            catch { /* swallow individual delete errors */ }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning(ex, "Failed to delete file from cloud storage: {FileUrl}", fileUrl);
+                                // Continue with other deletions even if one fails
+                            }
                         }
                     }
-                    catch { /* ignore deserialization issues */ }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Error processing file deletions for evidence entity");
+                    }
                 }
 
                 evidenceEntity.WhatWasDone = model.WhatWasDone;
@@ -854,12 +861,12 @@ namespace Freelancing.Controllers
                 if (existing != null)
                 {
                     // merge finalFileNames with existing stored file names (avoid losing files)
-                    var existingFileNames = new List<string>();
+                    var existingFileUrls = new List<string>();
                     if (!string.IsNullOrEmpty(existing.EvidenceFilePaths))
                     {
-                        try { existingFileNames = System.Text.Json.JsonSerializer.Deserialize<List<string>>(existing.EvidenceFilePaths) ?? new List<string>(); } catch { existingFileNames = new List<string>(); }
+                        try { existingFileUrls = System.Text.Json.JsonSerializer.Deserialize<List<string>>(existing.EvidenceFilePaths) ?? new List<string>(); } catch { existingFileUrls = new List<string>(); }
                     }
-                    var merged = existingFileNames.Union(finalFileNames).ToList();
+                    var merged = existingFileUrls.Union(finalFileNames).ToList();
 
                     existing.WhatWasDone = model.WhatWasDone;
                     existing.AdditionalNotes = model.AdditionalNotes;
