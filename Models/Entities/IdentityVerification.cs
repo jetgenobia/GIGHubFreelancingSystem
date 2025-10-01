@@ -35,10 +35,7 @@ namespace Freelancing.Models.Entities
         public string? EncryptedIdDocumentNumber { get; set; }
         public string? EncryptedIdDocumentImage { get; set; }
         public string? EncryptedFaceImage { get; set; }
-
-        public string? IdDocumentImageUrl { get; set; }
-        public string? FaceImageUrl { get; set; }
-
+        
         // Metadata
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

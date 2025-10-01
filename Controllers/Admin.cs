@@ -91,30 +91,16 @@ namespace Freelancing.Controllers
                 var verification = await _context.IdentityVerifications
                     .FirstOrDefaultAsync(v => v.Id == id);
 
-                if (verification == null)
+                if (verification == null || verification.EncryptedIdDocumentImage == null)
                     return NotFound();
 
-                // Check if using new cloud storage system (URL-based)
-                if (!string.IsNullOrEmpty(verification.IdDocumentImageUrl))
-                {
-                    // Redirect to the cloud storage URL
-                    return Redirect(verification.IdDocumentImageUrl);
-                }
-                // Legacy support: Check for encrypted images in database
-                else if (verification.EncryptedIdDocumentImage != null)
-                {
-                    // Decrypt bytes (expects decrypt method on your encryption service)
-                    var decrypted = _encryptionService.DecryptDocumentImage(verification.EncryptedIdDocumentImage, verification.UserAccountId);
-                    if (decrypted == null || decrypted.Length == 0)
-                        return NotFound();
+                // Decrypt bytes (expects decrypt method on your encryption service)
+                var decrypted = _encryptionService.DecryptDocumentImage(verification.EncryptedIdDocumentImage, verification.UserAccountId);
+                if (decrypted == null || decrypted.Length == 0)
+                    return NotFound();
 
-                    // If you store content-type, replace with that; default to jpeg
-                    return File(decrypted, "image/jpeg");
-                }
-                else
-                {
-                    return NotFound("No document image found");
-                }
+                // If you store content-type, replace with that; default to jpeg
+                return File(decrypted, "image/jpeg");
             }
             catch (Exception ex)
             {
@@ -123,6 +109,7 @@ namespace Freelancing.Controllers
             }
         }
 
+        // Accept both route segment and querystring forms.
         // GET: /Admin/ViewFace/{id}  OR /Admin/ViewFace?id={id}
         [HttpGet("Admin/ViewFace/{id:guid}")]
         [HttpGet("Admin/ViewFace")]
@@ -136,28 +123,14 @@ namespace Freelancing.Controllers
                 var verification = await _context.IdentityVerifications
                     .FirstOrDefaultAsync(v => v.Id == id);
 
-                if (verification == null)
+                if (verification == null || verification.EncryptedFaceImage == null)
                     return NotFound();
 
-                // Check if using new cloud storage system (URL-based)
-                if (!string.IsNullOrEmpty(verification.FaceImageUrl))
-                {
-                    // Redirect to the cloud storage URL
-                    return Redirect(verification.FaceImageUrl);
-                }
-                // Legacy support: Check for encrypted images in database
-                else if (verification.EncryptedFaceImage != null)
-                {
-                    var decrypted = _encryptionService.DecryptDocumentImage(verification.EncryptedFaceImage, verification.UserAccountId);
-                    if (decrypted == null || decrypted.Length == 0)
-                        return NotFound();
+                var decrypted = _encryptionService.DecryptDocumentImage(verification.EncryptedFaceImage, verification.UserAccountId);
+                if (decrypted == null || decrypted.Length == 0)
+                    return NotFound();
 
-                    return File(decrypted, "image/jpeg");
-                }
-                else
-                {
-                    return NotFound("No face image found");
-                }
+                return File(decrypted, "image/jpeg");
             }
             catch (Exception ex)
             {
