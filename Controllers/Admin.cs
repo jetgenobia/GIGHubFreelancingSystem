@@ -34,7 +34,7 @@ namespace Freelancing.Controllers
             _logger = logger;
         }
 
-        [HttpGet("admin/setup-cors")]
+        /*[HttpGet("admin/setup-cors")]
         public async Task<IActionResult> SetupCors()
         {
             try
@@ -46,7 +46,7 @@ namespace Freelancing.Controllers
             {
                 return BadRequest($"Error: {ex.Message}");
             }
-        }
+        }*/
         public IActionResult Reports()
         {
             return View();
