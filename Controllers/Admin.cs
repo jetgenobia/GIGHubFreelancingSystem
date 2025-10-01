@@ -67,6 +67,7 @@ namespace Freelancing.Controllers
                     Email = v.UserAccount != null ? v.UserAccount.Email : "",
                     Status = v.Status,
                     CreatedAt = v.CreatedAt,
+                    UpdatedAt = v.UpdatedAt,
                     IdDocumentVerified = v.IdDocumentVerified,
                     IdDocumentConfidence = v.IdDocumentConfidence,
                     FaceVerified = v.FaceVerified,
