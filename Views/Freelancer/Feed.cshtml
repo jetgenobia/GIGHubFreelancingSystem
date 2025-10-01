@@ -4,6 +4,7 @@
 }
 
 @model List<Freelancing.Models.Entities.Project>
+@using Freelancing.Helpers
 
 @{
     var matchCounts = ViewBag.MatchCounts as Dictionary<Guid, int> ?? new Dictionary<Guid, int>();
@@ -30,7 +31,10 @@
                                     }
                                     <div class="ms-3">
                                         <h5 class="text-md font-bold tracking-tight text-gray-900">@project.User.FirstName @project.User.LastName</h5>
-                                        <p class="text-xs text-gray-500">Posted: @project.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt")</p>
+                                        @{
+                                            var phTime = TimeHelpers.ToPhilippineTime(@project.CreatedAt);
+                                        }
+                                        <p class="text-xs text-gray-500">Posted: @phTime.ToString("MMM dd, yyyy 'at' h:mm tt")</p>
                                     </div>
                                 </div>
                                 <div>

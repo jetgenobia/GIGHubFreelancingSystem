@@ -4,6 +4,7 @@
 }
 
 @model List<Freelancing.Models.Entities.Project>
+@using Freelancing.Helpers
 
 <div class="p-4 sm:ml-64">
     <div class="pt-2 mt-20">
@@ -25,7 +26,10 @@
                                 }
                                 <div class="ms-3">
                                     <h5 class="text-md font-bold tracking-tight text-gray-900">@project.User.FirstName @project.User.LastName</h5>
-                                    <p class="text-xs text-gray-500">Posted: @project.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt")</p>
+                                    @{
+                                        var phTime = TimeHelpers.ToPhilippineTime(@project.CreatedAt);
+                                    }
+                                    <p class="text-xs text-gray-500">Posted: @phTime.ToString("MMM dd, yyyy 'at' h:mm tt")</p>
                                 </div>
                             </div>
                             <hr class="border-gray-300 mb-4">
