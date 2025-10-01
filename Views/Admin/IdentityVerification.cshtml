@@ -150,7 +150,7 @@
                                                 @{
                                                     var phTime = item.CreatedAt.HasValue ? TimeHelpers.ToPhilippineTime(item.CreatedAt.Value) : (DateTime?)null;
                                                 }
-                                                <td class="px-6 py-4">@(item.CreatedAt?.ToString("g") ?? "N/A")</td>
+                                                <td class="px-6 py-4">@(phTime?.ToString("g") ?? "N/A")</td>
                                                 <td class="px-6 py-4">
                                                     <div class="flex items-center">
                                                         <a class="text-xs text-blue-600 hover:underline" target="_blank" href="@Url.Action("ViewDocument", "Admin", new { id = item.Id })">View Id</a>
