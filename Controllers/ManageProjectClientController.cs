@@ -727,7 +727,7 @@ namespace Freelancing.Controllers
                 var contract = await contractService.GetContractByProjectIdAsync(projectId);
                 if (contract == null || contract.Status != "Active")
                 {
-                    TempData["ErrorMessage"] = "Cannot set deadline without an active contract.";
+                    TempData["ErrorMessage"] = "Cannot edit deadline without an active contract.";
                     return RedirectToAction(nameof(Details), new { id = projectId });
                 }
 
