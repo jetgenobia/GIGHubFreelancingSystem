@@ -46,9 +46,16 @@ namespace Freelancing.Services
             {
                 template = await GetContractTemplateAsync(project.Category);
             }
-            
+
             if (template == null)
-                throw new InvalidOperationException("No contract template found for this category");
+            {
+                // Create a default template if none exists
+                template = await CreateDefaultContractTemplateAsync(project.Category);
+                if (template == null)
+                {
+                    throw new InvalidOperationException($"No contract template found for category '{project.Category}' and unable to create default template");
+                }
+            }
 
             // Generate contract content
             var contractContent = await GenerateContractContentAsync(project, bidding, template);
@@ -71,6 +78,95 @@ namespace Freelancing.Services
             await LogContractActionAsync(contract.Id, project.UserId, "Created", "Contract created from accepted bidding");
 
             return contract;
+        }
+
+        private async Task<ContractTemplate> CreateDefaultContractTemplateAsync(string category)
+        {
+            var defaultTemplate = new ContractTemplate
+            {
+                Id = Guid.NewGuid(),
+                Name = $"Default {category} Contract Template",
+                Description = $"Default template for {category} projects",
+                Category = category,
+                TemplateContent = GetDefaultTemplateContent(),
+                IsActive = true,
+                // FIX: Use UTC DateTime for PostgreSQL
+                CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc)
+            };
+
+            _context.ContractTemplates.Add(defaultTemplate);
+            await _context.SaveChangesAsync();
+            return defaultTemplate;
+        }
+
+        private string GetDefaultTemplateContent()
+        {
+            return @"
+    <div style='font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;'>
+        <h1 style='text-align: center; color: #333;'>Freelance Service Agreement</h1>
+        
+        <div style='margin-bottom: 20px;'>
+            <h2>Project Information</h2>
+            <p><strong>Project Name:</strong> {{PROJECT_NAME}}</p>
+            <p><strong>Category:</strong> {{PROJECT_CATEGORY}}</p>
+            <p><strong>Description:</strong></p>
+            <p style='margin-left: 20px;'>{{PROJECT_DESCRIPTION}}</p>
+        </div>
+        
+        <div style='margin-bottom: 20px;'>
+            <h2>Parties</h2>
+            <p><strong>Client:</strong> {{CLIENT_NAME}} ({{CLIENT_EMAIL}})</p>
+            <p><strong>Freelancer:</strong> {{FREELANCER_NAME}} ({{FREELANCER_EMAIL}})</p>
+        </div>
+        
+        <div style='margin-bottom: 20px;'>
+            <h2>Project Details</h2>
+            <p><strong>Agreed Amount:</strong> ₱{{AGREED_AMOUNT}}</p>
+            <p><strong>Delivery Timeline:</strong> {{DELIVERY_TIMELINE}}</p>
+            <p><strong>Proposal Details:</strong></p>
+            <p style='margin-left: 20px;'>{{PROPOSAL_DETAILS}}</p>
+        </div>
+        
+        <div style='margin-bottom: 20px;'>
+            {{PAYMENT_TERMS_SECTION}}
+        </div>
+        
+        <div style='margin-bottom: 20px;'>
+            {{REVISION_POLICY_SECTION}}
+        </div>
+        
+        <div style='margin-bottom: 20px;'>
+            {{PROJECT_TIMELINE_SECTION}}
+        </div>
+        
+        <div style='margin-bottom: 20px;'>
+            <h2>Terms and Conditions</h2>
+            <ul>
+                <li>This agreement is binding upon signature by both parties.</li>
+                <li>Any changes to this contract must be agreed upon in writing.</li>
+                <li>The freelancer agrees to deliver work as specified in the project description.</li>
+                <li>The client agrees to provide timely feedback and payment as outlined.</li>
+                <li>This contract is governed by the laws of the Philippines.</li>
+            </ul>
+        </div>
+        
+        <div style='margin-top: 40px; text-align: center;'>
+            <p><strong>Contract Date:</strong> {{CONTRACT_DATE}}</p>
+        </div>
+        
+        <div style='margin-top: 40px; display: flex; justify-content: space-between;'>
+            <div style='text-align: center; width: 45%;'>
+                <p>_________________________</p>
+                <p><strong>Client Signature</strong></p>
+                <p>{{CLIENT_NAME}}</p>
+            </div>
+            <div style='text-align: center; width: 45%;'>
+                <p>_________________________</p>
+                <p><strong>Freelancer Signature</strong></p>
+                <p>{{FREELANCER_NAME}}</p>
+            </div>
+        </div>
+    </div>";
         }
 
         public async Task UpdateContractContentWithTermsAsync(Guid contractId, string paymentTermsJson, string revisionPolicyJson, string timelineJson)
@@ -96,7 +192,7 @@ namespace Freelancing.Services
                 .Replace("<p><strong>Project Schedule:</strong></p><ul><li>Project timeline will be specified in the contract details</li></ul>", timelineSection);
 
             contract.ContractContent = updatedContent;
-            contract.LastModifiedAt = DateTime.UtcNow;
+            contract.LastModifiedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
 
             await _context.SaveChangesAsync();
         }
@@ -245,7 +341,7 @@ namespace Freelancing.Services
                 {"{{AGREED_AMOUNT}}", bidding.Budget.ToString()},
                 {"{{DELIVERY_TIMELINE}}", bidding.Delivery},
                 {"{{PROJECT_CATEGORY}}", project.Category},
-                {"{{CONTRACT_DATE}}", DateTime.UtcNow.ToString("MMMM dd, yyyy")},
+                {"{{CONTRACT_DATE}}", DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc).ToString("MMMM dd, yyyy")},
                 {"{{PROPOSAL_DETAILS}}", bidding.Proposal}
             };
 
