@@ -68,7 +68,8 @@ namespace Freelancing.Services
                 ContractTitle = $"Freelance Contract - {project.ProjectName}",
                 ContractContent = contractContent,
                 ContractTemplateUsed = template.Name,
-                Status = "Draft"
+                Status = "Draft",
+                CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc)
             };
 
             _context.Contracts.Add(contract);
