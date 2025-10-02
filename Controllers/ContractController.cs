@@ -389,7 +389,7 @@ namespace Freelancing.Controllers
                     .Include(c => c.Bidding)
                         .ThenInclude(b => b.User)
                     .FirstOrDefaultAsync(c => c.Id == id);
-                
+
                 if (contract == null)
                 {
                     TempData["ErrorMessage"] = "Contract not found.";
@@ -413,7 +413,7 @@ namespace Freelancing.Controllers
                 // Check if there are enough accepted deliverables
                 var acceptedDeliverablesCount = await _context.Deliverables
                     .CountAsync(d => d.ContractId == id && d.Status == "Approved");
-                
+
                 if (acceptedDeliverablesCount < 1)
                 {
                     TempData["ErrorMessage"] = "Project cannot be completed until at least one deliverable has been accepted by the client.";
@@ -421,7 +421,8 @@ namespace Freelancing.Controllers
                 }
 
                 var isClient = contract.Project.UserId == userId;
-                var now = DateTime.UtcNow;
+                // FIX: Ensure UTC DateTimeKind for PostgreSQL compatibility
+                var now = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
 
                 // Mark completion based on user role
                 if (isClient)
@@ -448,11 +449,11 @@ namespace Freelancing.Controllers
                 {
                     contract.Status = "Completed";
                     contract.CompletedAt = now;
-                    
+
                     // Update project status as well
                     var project = contract.Project;
                     project.Status = "Completed";
-                    
+
                     await _context.SaveChangesAsync();
 
                     // Send completion notifications to both parties
@@ -463,10 +464,10 @@ namespace Freelancing.Controllers
                 else
                 {
                     await _context.SaveChangesAsync();
-                    
+
                     // Send notification to the other party
                     await NotifyPartialCompletionAsync(contract, userId, isClient);
-                    
+
                     var otherParty = isClient ? "freelancer" : "client";
                     TempData["SuccessMessage"] = $"You have marked the project as complete. Waiting for the {otherParty} to confirm completion.";
                 }
@@ -583,6 +584,7 @@ namespace Freelancing.Controllers
             // Update deliverable requirements
             contract.DeliverableRequirements = JsonSerializer.Serialize(model.DeliverableRequirements);
 
+            // FIX: Update project deadline with proper UTC timezone handling
             try
             {
                 object? projectTarget = contract.Project ?? await _context.Projects.FindAsync(contract.ProjectId);
@@ -593,7 +595,9 @@ namespace Freelancing.Controllers
                     {
                         if (prop.PropertyType == typeof(DateTime) || prop.PropertyType == typeof(DateTime?))
                         {
-                            prop.SetValue(projectTarget, model.Deadline);
+                            // FIX: Ensure DateTime has UTC DateTimeKind for PostgreSQL compatibility
+                            var utcDeadline = DateTime.SpecifyKind(model.Deadline, DateTimeKind.Utc);
+                            prop.SetValue(projectTarget, utcDeadline);
                         }
                         else if (prop.PropertyType == typeof(string))
                         {
@@ -602,8 +606,10 @@ namespace Freelancing.Controllers
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                // Log the exception for debugging but don't break the flow
+                System.Diagnostics.Debug.WriteLine($"Error updating project deadline: {ex.Message}");
             }
 
             await _context.SaveChangesAsync();
