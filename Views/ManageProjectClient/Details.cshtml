@@ -1,4 +1,5 @@
 @model Freelancing.Models.OngoingProjectViewModel
+@using Freelancing.Helpers
 @{
     Layout = "_LayoutClient";
     ViewData["Title"] = "Project Details - " + Model.ProjectName;
@@ -42,15 +43,22 @@
                             <svg class="shrink-0 inline w-4 h-4 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
                             </svg>
-                            <span class="font-medium">Edit failed!</span>
+                            <span class="font-medium">Error!</span>
                         </div>
 
-                        <ul class="list-disc list-inside space-y-1">
-                            @foreach (var modelError in ViewData.ModelState.Values.SelectMany(v => v.Errors))
-                            {
-                                <li>@modelError.ErrorMessage</li>
-                            }
-                        </ul>
+                        <!-- Display the specific error message from TempData -->
+                        <p>@ViewBag.ErrorMessage</p>
+
+                        <!-- Also display ModelState errors if any exist -->
+                        @if (ViewData.ModelState.Values.SelectMany(v => v.Errors).Any())
+                        {
+                            <ul class="list-disc list-inside space-y-1 mt-2">
+                                @foreach (var modelError in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                                {
+                                    <li>@modelError.ErrorMessage</li>
+                                }
+                            </ul>
+                        }
                     </div>
                 }
 
@@ -204,8 +212,11 @@
                                             <span class="font-medium">Waiting for freelancer signature</span>
                                         </div>
                                     }
+                                    @{
+                                        var phTime = TimeHelpers.ToPhilippineTime((DateTime)ViewBag.ContractCreatedAt);
+                                    }
                                     <p class="text-sm text-gray-600 mt-1">
-                                        Created on @(ViewBag.ContractCreatedAt != null ? ((DateTime)ViewBag.ContractCreatedAt).ToString("MMM dd, yyyy") : "Unknown")
+                                        Created on @(ViewBag.ContractCreatedAt != null ? phTime.ToString("MMM dd, yyyy 'at' h:mm tt") : "Unknown")
                                     </p>
                                 </div>
                             }

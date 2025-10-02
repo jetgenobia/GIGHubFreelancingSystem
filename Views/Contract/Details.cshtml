@@ -1,4 +1,5 @@
 @model Freelancing.Models.ContractViewModel
+@using Freelancing.Helpers
 @{
     Layout = User.IsInRole("Client") ? "_LayoutClient" : "_LayoutFreelancer";
     ViewData["Title"] = "Contract Details - " + Model.ProjectName;
@@ -131,7 +132,8 @@
                             <h3 class="font-medium text-gray-900">Client: @Model.ClientName</h3>
                             @if (Model.ClientHasSigned)
                             {
-                                <p class="text-sm text-green-600">Signed on @Model.ClientSignedAt?.ToString("MMMM dd, yyyy 'at' h:mm tt")</p>
+                                var phTime = TimeHelpers.ToPhilippineTime(Model.ClientSignedAt.Value);
+                                <p class="text-sm text-green-600">Signed on @phTime.ToString("MMMM dd, yyyy 'at' h:mm tt")</p>
                             }
                             else
                             {
@@ -160,7 +162,8 @@
                             <h3 class="font-medium text-gray-900">Freelancer: @Model.FreelancerName</h3>
                             @if (Model.FreelancerHasSigned)
                             {
-                                <p class="text-sm text-green-600">Signed on @Model.FreelancerSignedAt?.ToString("MMMM dd, yyyy 'at' h:mm tt")</p>
+                                var phTime = TimeHelpers.ToPhilippineTime(Model.FreelancerSignedAt.Value);
+                                <p class="text-sm text-green-600">Signed on @phTime.ToString("MMMM dd, yyyy 'at' h:mm tt")</p>
                             }
                             else
                             {
@@ -263,7 +266,8 @@
                                 <h3 class="font-medium text-gray-900">Client: @Model.ClientName</h3>
                                 @if (Model.ClientMarkedComplete)
                                 {
-                                    <p class="text-sm text-green-600">Marked complete on @Model.ClientMarkedCompleteAt?.ToString("MMMM dd, yyyy 'at' h:mm tt")</p>
+                                    var phTime = TimeHelpers.ToPhilippineTime(Model.ClientMarkedCompleteAt.Value);
+                                    <p class="text-sm text-green-600">Marked complete on @phTime.ToString("MMMM dd, yyyy 'at' h:mm tt")</p>
                                 }
                                 else
                                 {
@@ -292,7 +296,8 @@
                                 <h3 class="font-medium text-gray-900">Freelancer: @Model.FreelancerName</h3>
                                 @if (Model.FreelancerMarkedComplete)
                                 {
-                                    <p class="text-sm text-green-600">Marked complete on @Model.FreelancerMarkedCompleteAt?.ToString("MMMM dd, yyyy 'at' h:mm tt")</p>
+                                    var phTime = TimeHelpers.ToPhilippineTime(Model.FreelancerMarkedCompleteAt.Value);
+                                    <p class="text-sm text-green-600">Marked complete on @phTime.ToString("MMMM dd, yyyy 'at' h:mm tt")</p>
                                 }
                                 else
                                 {
@@ -330,7 +335,10 @@
                             </svg>
                         </div>
                         <h3 class="text-xl font-semibold text-green-900 mb-2">Project Completed!</h3>
-                        <p class="text-gray-600">This project was completed on @Model.CompletedAt?.ToString("MMMM dd, yyyy 'at' h:mm tt")</p>
+                        @{
+                            var phTime = TimeHelpers.ToPhilippineTime(Model.CompletedAt.Value);
+                        }
+                        <p class="text-gray-600">This project was completed on @phTime.ToString("MMMM dd, yyyy 'at' h:mm tt")</p>
                     </div>
                 }
                 else

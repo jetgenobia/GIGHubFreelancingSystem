@@ -1,4 +1,5 @@
 @model List<Freelancing.Models.ContractViewModel>
+@using Freelancing.Helpers
 @{
     Layout = User.IsInRole("Client") ? "_LayoutClient" : "_LayoutFreelancer";
     ViewData["Title"] = "My Contracts";
@@ -122,8 +123,11 @@
                                     </div>
 
                                     <!-- Created Date -->
+                                    @{
+                                        var phTime = TimeHelpers.ToPhilippineTime(contract.CreatedAt);
+                                    }
                                     <div class="pt-2 border-t border-gray-100">
-                                        <p class="text-xs text-gray-500">Created @contract.CreatedAt.ToString("MMM dd, yyyy")</p>
+                                        <p class="text-xs text-gray-500">Created @phTime.ToString("MMM dd, yyyy 'at' h:mm tt")</p>
                                     </div>
                                 </div>
                             </div>
