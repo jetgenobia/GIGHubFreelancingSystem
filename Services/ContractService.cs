@@ -298,7 +298,7 @@ namespace Freelancing.Services
             await CreateContractRevisionAsync(contractId, contract.ContractContent, "Contract content updated", userId);
 
             contract.ContractContent = newContent;
-            contract.LastModifiedAt = DateTime.UtcNow;
+            contract.LastModifiedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
 
             await _context.SaveChangesAsync();
             await LogContractActionAsync(contractId, userId, "Modified", "Contract content updated");
@@ -384,7 +384,7 @@ namespace Freelancing.Services
             if (!isClient && !isFreelancer)
                 throw new UnauthorizedAccessException("User not authorized to sign this contract");
 
-            var now = DateTime.UtcNow;
+            var now = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
 
             if (isClient)
             {
@@ -484,7 +484,7 @@ namespace Freelancing.Services
             if (!Directory.Exists(uploadsDir))
                 Directory.CreateDirectory(uploadsDir);
 
-            var fileName = $"contract_{contractId}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.pdf";
+            var fileName = $"contract_{contractId}_{DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc):yyyyMMdd_HHmmss}.pdf";
             var filePath = Path.Combine(uploadsDir, fileName);
 
             await File.WriteAllBytesAsync(filePath, pdfData);
@@ -534,7 +534,7 @@ namespace Freelancing.Services
 
             var oldStatus = contract.Status;
             contract.Status = newStatus;
-            contract.LastModifiedAt = DateTime.UtcNow;
+            contract.LastModifiedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
 
             await _context.SaveChangesAsync();
 
