@@ -4,11 +4,13 @@ let currentChatRoomId;
 let currentUserId;
 let isConnectionReady = false;
 let typingTimer;
+let connectionAttempts = 0;
+const maxConnectionAttempts = 3;
 
 // Initialize chat functionality
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     initializeChat();
-    
+
     // Scroll to bottom on page load to show latest messages
     setTimeout(() => {
         scrollToBottom();
@@ -19,36 +21,36 @@ function initializeChat() {
     currentChatRoomId = document.getElementById('currentChatRoomId')?.value;
     currentUserId = document.getElementById('currentUserId')?.value;
     const targetUserId = document.getElementById('targetUserId')?.value;
-    
-    console.log('Chat initialization:', { 
-        currentChatRoomId, 
-        currentUserId, 
+
+    console.log('Chat initialization:', {
+        currentChatRoomId,
+        currentUserId,
         targetUserId,
         hasCurrentUserIdElement: !!document.getElementById('currentUserId'),
         hasChatRoomIdElement: !!document.getElementById('currentChatRoomId')
     });
-    
+
     if (!currentUserId) {
         console.log('Chat not initialized - no current user ID');
         return;
     }
 
-    // Initialize SignalR connection
+    // Initialize SignalR connection with better reconnection handling
     connection = new signalR.HubConnectionBuilder()
         .withUrl("/chatHub")
-        .withAutomaticReconnect()
+        .withAutomaticReconnect([0, 2000, 10000, 30000])
         .build();
 
     setupSignalRHandlers();
     startConnection();
     setupChatEventListeners();
-    
+
     // If we have a target user ID but no chat room ID, we're starting a new chat
     if (targetUserId && (!currentChatRoomId || currentChatRoomId === '00000000-0000-0000-0000-000000000000')) {
         currentChatRoomId = 'new';
         console.log('Setting up new chat with target user:', targetUserId);
     }
-    
+
     // Scroll to bottom on initial load to show latest messages
     setTimeout(() => {
         scrollToBottom();
@@ -79,7 +81,7 @@ function setupSignalRHandlers() {
         }
         // Join the new room
         connection.invoke('JoinChatRoom', newChatRoomId);
-        
+
         // Update the sidebar with the new chat room and navigate to it
         updateSidebarWithNewChatAndNavigate(newChatRoomId);
     });
@@ -95,32 +97,24 @@ function setupSignalRHandlers() {
     // Message events
     connection.on('ReceiveMessage', (message) => {
         console.log('Received message:', message);
-        
-        // Temporary: Add a simple message display for debugging
+
         if (!message || (!message.Message && !message.message)) {
             console.error('Message is missing content:', message);
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = `<div style="background: red; color: white; padding: 10px; margin: 10px;">DEBUG: Invalid message received: ${JSON.stringify(message)}</div>`;
-            document.getElementById('messagesContainer')?.appendChild(tempDiv);
             return;
         }
-        
+
         addMessageToChat(message);
         updateChatList(message);
     });
 
     connection.on('ReceiveFile', (fileMessage) => {
         console.log('Received file message:', fileMessage);
-        
-        // Temporary: Add a simple message display for debugging
+
         if (!fileMessage || (!fileMessage.FileName && !fileMessage.fileName)) {
             console.error('File message is missing content:', fileMessage);
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = `<div style="background: red; color: white; padding: 10px; margin: 10px;">DEBUG: Invalid file message received: ${JSON.stringify(fileMessage)}</div>`;
-            document.getElementById('messagesContainer')?.appendChild(tempDiv);
             return;
         }
-        
+
         addFileMessageToChat(fileMessage);
         updateChatList(fileMessage);
     });
@@ -155,7 +149,7 @@ function setupSignalRHandlers() {
         console.log('Call accepted:', callData);
         // Hide the waiting notification
         hideCallWaitingNotification();
-        
+
         // Open the video call window if we have a pending URL
         if (window.pendingVideoCallUrl) {
             console.log('Opening video call window:', window.pendingVideoCallUrl);
@@ -163,21 +157,17 @@ function setupSignalRHandlers() {
             // Clear the pending URL
             window.pendingVideoCallUrl = null;
         }
-        
-        // Global notification system will handle this
     });
 
     connection.on('CallDeclined', (callData) => {
         console.log('Call declined:', callData);
         // Hide the waiting notification
         hideCallWaitingNotification();
-        
+
         // Clear any pending video call URL
         if (window.pendingVideoCallUrl) {
             window.pendingVideoCallUrl = null;
         }
-        
-        // Global notification system will handle this
     });
 
     connection.on('VideoCallEnded', (callData) => {
@@ -185,25 +175,70 @@ function setupSignalRHandlers() {
         // Global notification system will handle this
     });
 
-    // Connection state changes
-    connection.onclose(() => {
-        console.log('SignalR connection closed');
+    // Enhanced connection state handling
+    connection.onclose((error) => {
+        console.log('SignalR connection closed', error);
         isConnectionReady = false;
+
+        // Don't auto-reconnect if user is navigating away
+        if (!window.isUnloading) {
+            setTimeout(() => {
+                if (connectionAttempts < maxConnectionAttempts) {
+                    console.log('Attempting to reconnect...');
+                    startConnection();
+                }
+            }, 5000);
+        }
+    });
+
+    connection.onreconnecting((error) => {
+        console.log('SignalR reconnecting...', error);
+        isConnectionReady = false;
+    });
+
+    connection.onreconnected((connectionId) => {
+        console.log('SignalR reconnected with ID:', connectionId);
+        isConnectionReady = true;
+        connectionAttempts = 0;
+
+        // Rejoin current chat room
+        if (currentChatRoomId && currentChatRoomId !== 'new') {
+            connection.invoke('JoinChatRoom', currentChatRoomId);
+        }
     });
 }
 
 function startConnection() {
+    connectionAttempts++;
+
     connection.start().then(() => {
         console.log('SignalR Connected');
         isConnectionReady = true;
+        connectionAttempts = 0; // Reset on successful connection
+
         if (currentChatRoomId && currentChatRoomId !== 'new') {
             connection.invoke('JoinChatRoom', currentChatRoomId);
         }
     }).catch(err => {
         console.error('SignalR Connection Error: ', err);
         isConnectionReady = false;
+
+        if (connectionAttempts < maxConnectionAttempts) {
+            console.log(`Retrying connection... Attempt ${connectionAttempts + 1} of ${maxConnectionAttempts}`);
+            setTimeout(() => {
+                startConnection();
+            }, 2000 * connectionAttempts); // Exponential backoff
+        } else {
+            console.error('Max connection attempts reached');
+            showError('Unable to connect to the server. Please refresh the page.');
+        }
     });
 }
+
+// Add this to handle page unload
+window.addEventListener('beforeunload', () => {
+    window.isUnloading = true;
+});
 
 function setupChatEventListeners() {
     const messageForm = document.getElementById('messageForm');
@@ -225,7 +260,7 @@ function setupChatEventListeners() {
 
     // Chat list item clicks
     document.querySelectorAll('.chat-item').forEach(item => {
-        item.addEventListener('click', function() {
+        item.addEventListener('click', function () {
             const chatRoomId = this.dataset.chatRoomId;
             if (chatRoomId) {
                 window.location.href = `/Chat/Index?chatRoomId=${chatRoomId}`;
@@ -236,10 +271,10 @@ function setupChatEventListeners() {
 
 function handleMessageSubmit(e) {
     e.preventDefault();
-    
+
     const messageInput = document.getElementById('messageInput');
     const message = messageInput.value.trim();
-    
+
     if (!message || !isConnectionReady || !currentChatRoomId) {
         console.log('Message submission blocked:', { message: !!message, isConnectionReady, currentChatRoomId });
         return;
@@ -292,14 +327,14 @@ function handleFileSelect(e) {
 function uploadFile(file) {
     const formData = new FormData();
     formData.append('file', file);
-    
+
     // For new chats, we need to handle file upload differently
     if (currentChatRoomId === 'new') {
         showError('Please send a text message first to create the chat room before uploading files.');
         document.getElementById('fileInput').value = '';
         return;
     }
-    
+
     formData.append('chatRoomId', currentChatRoomId);
 
     // Show loading message
@@ -309,30 +344,30 @@ function uploadFile(file) {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
-    .then(response => {
-        loadingMessage.remove();
-        
-        if (response.success) {
-            // Send file via SignalR
-            connection.invoke('SendFile', currentChatRoomId, response.fileName,
-                response.fileUrl, response.fileSize, response.fileType)
-                .then(() => {
-                    console.log('File sent successfully');
-                })
-                .catch(err => {
-                    console.error('Failed to send file:', err);
-                    showError('Failed to send file: ' + err.message);
-                });
-        } else {
-            showError('Upload failed: ' + response.message);
-        }
-    })
-    .catch(error => {
-        loadingMessage.remove();
-        console.error('Upload error:', error);
-        showError('Upload failed: ' + error.message);
-    });
+        .then(response => response.json())
+        .then(response => {
+            loadingMessage.remove();
+
+            if (response.success) {
+                // Send file via SignalR
+                connection.invoke('SendFile', currentChatRoomId, response.fileName,
+                    response.fileUrl, response.fileSize, response.fileType)
+                    .then(() => {
+                        console.log('File sent successfully');
+                    })
+                    .catch(err => {
+                        console.error('Failed to send file:', err);
+                        showError('Failed to send file: ' + err.message);
+                    });
+            } else {
+                showError('Upload failed: ' + response.message);
+            }
+        })
+        .catch(error => {
+            loadingMessage.remove();
+            console.error('Upload error:', error);
+            showError('Upload failed: ' + error.message);
+        });
 
     // Clear file input
     document.getElementById('fileInput').value = '';
@@ -373,13 +408,13 @@ function addMessageToChat(message) {
     const messageDiv = document.createElement('div');
     // Compare sender ID as strings to handle both GUID and string formats
     const isOwnMessage = String(message.SenderId || message.senderId) === String(currentUserId);
-    
-    console.log('Message ownership check:', { 
-        messageSenderId: message.SenderId || message.senderId, 
-        currentUserId: currentUserId, 
-        isOwnMessage: isOwnMessage 
+
+    console.log('Message ownership check:', {
+        messageSenderId: message.SenderId || message.senderId,
+        currentUserId: currentUserId,
+        isOwnMessage: isOwnMessage
     });
-    
+
     messageDiv.className = `message ${isOwnMessage ? 'own' : ''}`;
     messageDiv.dataset.messageId = message.Id || message.id || 'temp-' + Date.now();
 
@@ -414,7 +449,7 @@ function addFileMessageToChat(fileMessage) {
     const messageDiv = document.createElement('div');
     // Compare sender ID as strings to handle both GUID and string formats
     const isOwnMessage = String(fileMessage.SenderId || fileMessage.senderId) === String(currentUserId);
-    
+
     messageDiv.className = `message ${isOwnMessage ? 'own' : ''}`;
     messageDiv.dataset.messageId = fileMessage.Id || fileMessage.id || 'temp-' + Date.now();
 
@@ -428,12 +463,12 @@ function addFileMessageToChat(fileMessage) {
 
     // Determine if it's an image based on message type or file type
     const isImage = fileMessage.MessageType === 'image' ||
-                   (fileType && fileType.startsWith('image/')) ||
-                   fileName.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/);
+        (fileType && fileType.startsWith('image/')) ||
+        fileName.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/);
 
     const isVideo = fileMessage.MessageType === 'video' ||
-                   (fileType && fileType.startsWith('video/')) ||
-                   fileName.toLowerCase().match(/\.(mp4|mov|avi|wmv)$/);
+        (fileType && fileType.startsWith('video/')) ||
+        fileName.toLowerCase().match(/\.(mp4|mov|avi|wmv)$/);
 
     const linkClass = isOwnMessage ? 'hover:underline' : 'hover:underline';
 
@@ -480,7 +515,6 @@ function addFileMessageToChat(fileMessage) {
 
     messageDiv.innerHTML = `
     <div class="message-bubble">
-        <!-- ${!isOwnMessage ? `<div class="message-sender">${escapeHtml(senderName)}</div>` : ''} -->
         ${contentHtml}
         <div class="message-time" data-timestamp="${fileMessage.SentAt || fileMessage.sentAt}">
             ${timeDisplay}
@@ -534,25 +568,25 @@ function markMessagesAsRead() {
 function updateChatList(message) {
     // Update the chat list item with the latest message
     if (currentChatRoomId === 'new') return; // Don't update list for new chats until room is created
-    
+
     const chatItem = document.querySelector(`[data-chat-room-id="${currentChatRoomId}"]`);
     if (chatItem) {
         const messageElement = chatItem.querySelector('.chat-item-message');
         if (messageElement) {
             let messageText = '';
-            
+
             // Check if it's a file/image/video message
-            if (message.MessageType === 'file' || message.MessageType === 'image' || message.MessageType === 'video' || 
+            if (message.MessageType === 'file' || message.MessageType === 'image' || message.MessageType === 'video' ||
                 message.FileName || message.fileName || message.FileUrl || message.fileUrl) {
                 messageText = 'Sent an attachment';
             } else {
                 // Regular text message
                 messageText = message.Message || message.message || 'New message';
             }
-            
+
             messageElement.textContent = messageText;
         }
-        
+
         const timeElement = chatItem.querySelector('.chat-item-time');
         if (timeElement && (message.SentAt || message.sentAt)) {
             timeElement.textContent = formatTime(message.SentAt || message.sentAt);
@@ -567,7 +601,7 @@ function updateSidebarWithNewChatAndNavigate(newChatRoomId) {
         .then(data => {
             if (data.success && data.chatList) {
                 updateSidebarChatList(data.chatList);
-                
+
                 // Navigate to the new chat room after a short delay to ensure sidebar is updated
                 setTimeout(() => {
                     window.location.href = `/Chat/Index?chatRoomId=${newChatRoomId}`;
@@ -602,14 +636,14 @@ function updateSidebarChatList(chatList) {
 
     // Build the new chat list HTML
     let chatListHTML = '<h2 class="text-2xl font-bold pl-7">Chats</h2>';
-    
+
     chatList.forEach(chat => {
         // For new chat rooms, we want to mark the newly created one as active
         const isActive = chat.ChatRoomId === currentChatRoomId;
         const partnerPhoto = chat.Partner.Photo || 'https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497';
         const partnerName = `${chat.Partner.FirstName} ${chat.Partner.LastName}`;
         const lastMessageTime = formatTime(chat.LastMessageTime);
-        
+
         chatListHTML += `
             <div class="chat-item ${isActive ? 'active' : ''}" data-chat-room-id="${chat.ChatRoomId}">
                 <div class="chat-item-header">
@@ -633,10 +667,10 @@ function updateSidebarChatList(chatList) {
 
     // Update the sidebar content
     sidebar.innerHTML = chatListHTML;
-    
+
     // Re-attach click event listeners to the new chat items
     document.querySelectorAll('.chat-item').forEach(item => {
-        item.addEventListener('click', function() {
+        item.addEventListener('click', function () {
             const chatRoomId = this.dataset.chatRoomId;
             if (chatRoomId) {
                 window.location.href = `/Chat/Index?chatRoomId=${chatRoomId}`;
@@ -663,15 +697,15 @@ function formatTime(timestamp) {
         } else {
             date = new Date(timestamp);
         }
-        
+
         if (isNaN(date.getTime())) {
             console.warn('Invalid timestamp:', timestamp);
             return 'Now';
         }
-        
+
         const now = new Date();
         const diff = now - date;
-        
+
         if (diff < 60000) { // Less than 1 minute
             return 'Just now';
         } else if (diff < 3600000) { // Less than 1 hour
@@ -691,11 +725,11 @@ function formatTime(timestamp) {
 
 function formatFileSize(bytes) {
     if (bytes === 0) return '0 B';
-    
+
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
@@ -712,14 +746,14 @@ function showError(message) {
 }
 
 // Mark messages as read when chat becomes visible
-document.addEventListener('visibilitychange', function() {
+document.addEventListener('visibilitychange', function () {
     if (!document.hidden && currentChatRoomId && currentChatRoomId !== 'new') {
         markMessagesAsRead();
     }
 });
 
 // Mark messages as read when scrolling to bottom
-document.addEventListener('scroll', function() {
+document.addEventListener('scroll', function () {
     const messagesContainer = document.getElementById('messagesContainer');
     if (messagesContainer) {
         const isAtBottom = messagesContainer.scrollTop + messagesContainer.clientHeight >= messagesContainer.scrollHeight - 10;
@@ -740,7 +774,7 @@ function closeImageModal() {
 }
 
 // Close modal when clicking outside
-document.addEventListener('click', function(e) {
+document.addEventListener('click', function (e) {
     const modal = document.getElementById('imageModal');
     if (e.target === modal) {
         closeImageModal();
@@ -748,27 +782,26 @@ document.addEventListener('click', function(e) {
 });
 
 // Close modal with Escape key
-document.addEventListener('keydown', function(e) {
+document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
         closeImageModal();
     }
 });
 
 function initiateVideoCall() {
-    // Check if connection is ready
-    if (!isConnectionReady || !connection) {
+    // Multiple connection state checks
+    if (!connection || connection.state !== signalR.HubConnectionState.Connected) {
         showError('Connection not ready. Please wait a moment and try again.');
+        return;
+    }
+
+    if (!isConnectionReady) {
+        showError('Connection is initializing. Please try again in a moment.');
         return;
     }
 
     if (!currentChatRoomId) {
         showError('Please start a conversation first before making a video call.');
-        return;
-    }
-
-    // Additional connection state check
-    if (connection.state !== signalR.HubConnectionState.Connected) {
-        showError('Connection is not active. Please refresh the page and try again.');
         return;
     }
 
@@ -780,13 +813,9 @@ function initiateVideoCall() {
             return;
         }
 
-        // For new chats, we'll create a temporary chat room ID and pass targetUserId
         const tempChatRoomId = `temp_${Date.now()}`;
-
-        // Add retry logic
         attemptVideoCall(tempChatRoomId, 0);
     } else {
-        // Existing chat room - add retry logic
         attemptVideoCall(currentChatRoomId, 0);
     }
 }
@@ -839,16 +868,12 @@ function hideCallWaitingNotification() {
 
 function cancelVideoCall() {
     console.log('Cancelling video call');
-    
+
     // Hide the waiting notification
     hideCallWaitingNotification();
-    
+
     // Clear any pending video call URL
     if (window.pendingVideoCallUrl) {
         window.pendingVideoCallUrl = null;
     }
-    
-    // Note: We don't need to send a specific cancel event to the server
-    // The waiting notification will just disappear, and if the other person
-    // tries to accept/decline later, it won't affect anything
 }

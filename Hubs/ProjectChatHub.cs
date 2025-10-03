@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using Freelancing.Data;
@@ -32,8 +32,25 @@ namespace Freelancing.Hubs
             {
                 lock (_lockObject)
                 {
+                    // Always update to latest connection (replace old ones)
                     UserConnections[userId] = Context.ConnectionId;
                 }
+
+                // Ensure user is in their personal room for global notifications
+                var userRoomName = $"user_{userId}";
+                await Groups.AddToGroupAsync(Context.ConnectionId, userRoomName);
+
+                lock (_lockObject)
+                {
+                    if (!RoomConnections.ContainsKey(userRoomName))
+                    {
+                        RoomConnections[userRoomName] = new List<string>();
+                    }
+                    // Remove old connection if exists, add new one
+                    RoomConnections[userRoomName].RemoveAll(conn => conn == Context.ConnectionId);
+                    RoomConnections[userRoomName].Add(Context.ConnectionId);
+                }
+
                 await Clients.Caller.SendAsync("Connected", Context.ConnectionId);
                 _logger.LogInformation("User {UserId} connected with connection {ConnectionId}", userId, Context.ConnectionId);
             }
@@ -47,29 +64,45 @@ namespace Freelancing.Hubs
             {
                 lock (_lockObject)
                 {
-                    UserConnections.Remove(userId);
+                    // Only remove if this is the current connection for the user
+                    if (UserConnections.TryGetValue(userId, out var currentConnectionId) &&
+                        currentConnectionId == Context.ConnectionId)
+                    {
+                        UserConnections.Remove(userId);
+                    }
                 }
                 _logger.LogInformation("User {UserId} disconnected", userId);
             }
 
-            // Remove from all rooms
+            // Clean up room connections more thoroughly
             lock (_lockObject)
             {
+                var roomsToUpdate = new List<string>();
                 var roomsToRemove = new List<string>();
-                foreach (var room in RoomConnections)
+
+                foreach (var room in RoomConnections.ToList())
                 {
                     if (room.Value.Contains(Context.ConnectionId))
                     {
                         room.Value.Remove(Context.ConnectionId);
+                        roomsToUpdate.Add(room.Key);
+
                         if (room.Value.Count == 0)
                         {
                             roomsToRemove.Add(room.Key);
                         }
                     }
                 }
+
                 foreach (var room in roomsToRemove)
                 {
                     RoomConnections.Remove(room);
+                }
+
+                if (roomsToUpdate.Count > 0)
+                {
+                    _logger.LogInformation("Cleaned up rooms for disconnected user {UserId}: {Rooms}",
+                        userId, string.Join(", ", roomsToUpdate));
                 }
             }
 
@@ -606,12 +639,16 @@ namespace Freelancing.Hubs
                 }
 
                 var roomName = $"chat_{chatRoomId}";
+                var partnerId = chatRoom.User1Id == userId ? chatRoom.User2Id : chatRoom.User1Id;
+                var partnerRoomName = $"user_{partnerId}";
 
-                // ENSURE CALLER IS PROPERLY JOINED TO THE ROOM FIRST
+                // Clean up and ensure proper room membership
+                await CleanUpRoomConnections(roomName);
                 await EnsureSenderInRoom(roomName);
 
-                // Add a small delay to ensure room joining is complete
-                await Task.Delay(100);
+                // Ensure both users are in their personal rooms for notifications
+                await EnsureUserInPersonalRoom(userId);
+                await EnsureUserInPersonalRoom(partnerId);
 
                 // Create the call data object
                 var callData = new
@@ -622,24 +659,7 @@ namespace Freelancing.Hubs
                     ChatRoomId = chatRoomId
                 };
 
-                // Get the partner's ID
-                var partnerId = chatRoom.User1Id == userId ? chatRoom.User2Id : chatRoom.User1Id;
-                var partnerRoomName = $"user_{partnerId}";
-
-                // Ensure partner is also in their user room (for global notifications)
-                string? partnerConnectionId = null;
-                lock (_lockObject)
-                {
-                    UserConnections.TryGetValue(partnerId, out partnerConnectionId);
-                }
-
-                if (!string.IsNullOrEmpty(partnerConnectionId))
-                {
-                    // Make sure partner is in their user room
-                    await Groups.AddToGroupAsync(partnerConnectionId, partnerRoomName);
-                }
-
-                // Send notifications in sequence with small delays to prevent race conditions
+                // Send caller notification first
                 await Clients.Caller.SendAsync("CallRequested", new
                 {
                     ChatRoomId = chatRoomId,
@@ -648,17 +668,24 @@ namespace Freelancing.Hubs
                     CallerPhoto = !string.IsNullOrEmpty(user.Photo) ? user.Photo : "https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497"
                 });
 
-                // Small delay to ensure the CallRequested is processed
-                await Task.Delay(50);
+                // Get fresh connection status
+                string? partnerConnectionId = null;
+                lock (_lockObject)
+                {
+                    UserConnections.TryGetValue(partnerId, out partnerConnectionId);
+                }
 
                 // Send to chat room (for users currently in chat)
                 await Clients.OthersInGroup(roomName).SendAsync("IncomingVideoCall", callData);
 
-                // Small delay before sending to user room
-                await Task.Delay(50);
-
-                // Send to the partner's personal room (for global notifications)
+                // Send to partner's personal room (for global notifications) - CRITICAL
                 await Clients.Group(partnerRoomName).SendAsync("IncomingVideoCall", callData);
+
+                // Also send directly to partner if we have their connection ID
+                if (!string.IsNullOrEmpty(partnerConnectionId))
+                {
+                    await Clients.Client(partnerConnectionId).SendAsync("IncomingVideoCall", callData);
+                }
 
                 await Clients.Caller.SendAsync("VideoCallInitiated", chatRoomId);
 
@@ -671,6 +698,53 @@ namespace Freelancing.Hubs
             {
                 _logger.LogError(ex, "Error starting video call in room {ChatRoomId}", chatRoomId);
                 await Clients.Caller.SendAsync("Error", "Failed to start video call");
+            }
+        }
+
+        private async Task CleanUpRoomConnections(string roomName)
+        {
+            lock (_lockObject)
+            {
+                if (RoomConnections.ContainsKey(roomName))
+                {
+                    // Remove duplicate or stale connections
+                    var currentConnections = RoomConnections[roomName].ToList();
+                    var uniqueConnections = currentConnections.Distinct().ToList();
+
+                    if (uniqueConnections.Count != currentConnections.Count)
+                    {
+                        RoomConnections[roomName] = uniqueConnections;
+                        _logger.LogInformation("Cleaned up duplicate connections in room {RoomName}: {Before} → {After}",
+                            roomName, currentConnections.Count, uniqueConnections.Count);
+                    }
+                }
+            }
+        }
+
+        private async Task EnsureUserInPersonalRoom(string userId)
+        {
+            string? connectionId = null;
+            lock (_lockObject)
+            {
+                UserConnections.TryGetValue(userId, out connectionId);
+            }
+
+            if (!string.IsNullOrEmpty(connectionId))
+            {
+                var userRoomName = $"user_{userId}";
+                await Groups.AddToGroupAsync(connectionId, userRoomName);
+
+                lock (_lockObject)
+                {
+                    if (!RoomConnections.ContainsKey(userRoomName))
+                    {
+                        RoomConnections[userRoomName] = new List<string>();
+                    }
+                    if (!RoomConnections[userRoomName].Contains(connectionId))
+                    {
+                        RoomConnections[userRoomName].Add(connectionId);
+                    }
+                }
             }
         }
 

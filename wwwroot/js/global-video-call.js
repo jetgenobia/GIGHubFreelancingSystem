@@ -127,21 +127,49 @@ class GlobalVideoCall {
     async connectToProjectSignalR() {
         try {
             console.log('GlobalVideoCall: Connecting to Project SignalR...');
+
+            if (this.projectConnection) {
+                await this.projectConnection.stop();
+            }
+
             this.projectConnection = new signalR.HubConnectionBuilder()
                 .withUrl('/chatHub')
-                .withAutomaticReconnect()
+                .withAutomaticReconnect([0, 2000, 10000, 30000])
                 .build();
+
+            // Better connection handling
+            this.projectConnection.onclose(() => {
+                this.isProjectConnected = false;
+                console.log('GlobalVideoCall: Project SignalR connection closed');
+            });
+
+            this.projectConnection.onreconnecting(() => {
+                this.isProjectConnected = false;
+                console.log('GlobalVideoCall: Project SignalR reconnecting...');
+            });
+
+            this.projectConnection.onreconnected(() => {
+                this.isProjectConnected = true;
+                console.log('GlobalVideoCall: Project SignalR reconnected');
+                // Rejoin user room
+                if (this.currentUserId) {
+                    this.projectConnection.invoke('JoinUserRoom', this.currentUserId);
+                }
+            });
 
             await this.projectConnection.start();
             this.isProjectConnected = true;
             console.log('GlobalVideoCall: Project SignalR connected successfully');
 
-            // Join global room for this user
-            await this.projectConnection.invoke('JoinUserRoom', this.currentUserId);
-            console.log('GlobalVideoCall: Joined project user room:', this.currentUserId);
+            // Join user room immediately
+            if (this.currentUserId) {
+                await this.projectConnection.invoke('JoinUserRoom', this.currentUserId);
+                console.log('GlobalVideoCall: Joined project user room:', this.currentUserId);
+            }
 
         } catch (error) {
             console.error('GlobalVideoCall: Failed to connect to Project SignalR:', error);
+            this.isProjectConnected = false;
         }
     }
 
