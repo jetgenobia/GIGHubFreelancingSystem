@@ -1,4 +1,5 @@
 ﻿@model Freelancing.Models.MenteeEvidenceDisplayViewModel
+@using Freelancing.Helpers
 @{
     Layout = "_LayoutFreelancer";
     ViewData["Title"] = "Mentee Submission";
@@ -37,7 +38,8 @@
                                 <textarea rows="6" readonly class="form-control block w-full p-3 text-sm text-gray-900 border border-gray-300 rounded-lg"
                                   placeholder="">@(e.AdditionalNotes ?? "")</textarea>
                             </div>
-                            @if (Model.IsTaskAssigned == true){
+                            @if (Model.IsTaskAssigned == true)
+                            {
                                 <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
                                     <h3 class="text-lg font-semibold text-orange-800 mb-2">@Model.TaskTitle</h3>
                                     <p class="text-orange-500 text-sm">@Model.TaskDescription</p>
@@ -50,14 +52,21 @@
                                             @{
                                                 try
                                                 {
-                                                    var fileNames = System.Text.Json.JsonSerializer.Deserialize<List<string>>(e.EvidenceFilePaths) ?? new List<string>();
-                                                    var uploadsBase = "/uploads/mentorship-evidence/";
-                                                    foreach (var stored in fileNames)
+                                                    var fileUrls = System.Text.Json.JsonSerializer.Deserialize<List<string>>(e.EvidenceFilePaths) ?? new List<string>();
+                                                    foreach (var fileUrl in fileUrls)
                                                     {
-                                                        var storedFileName = System.IO.Path.GetFileName(stored);
-                                                        var displayName = System.Text.RegularExpressions.Regex.Replace(storedFileName, @"^[0-9a-fA-F\-]{36}_", "");
-                                                        var href = stored.StartsWith("/") ? stored : uploadsBase + storedFileName;
-                                                        <a href="@href" target="_blank" class="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-700 rounded">@displayName</a>
+                                                        // Extract display name from the URL
+                                                        var displayName = System.IO.Path.GetFileName(fileUrl);
+                                                        // Remove the timestamp and GUID prefix for cleaner display
+                                                        displayName = System.Text.RegularExpressions.Regex.Replace(displayName, @"^.*?_[0-9]+_[a-fA-F0-9]{8}\.", "");
+
+                                                        // Use the full Google Cloud Storage URL directly
+                                                        <a href="@fileUrl" target="_blank" class="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-700 rounded hover:bg-blue-100">
+                                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                            </svg>
+                                                            @displayName
+                                                        </a>
                                                     }
                                                 }
                                                 catch
@@ -69,7 +78,10 @@
                                     </div>
                                 }
                             }
-                            <div class="text-xs text-gray-500 mt-8">@e.SubmittedAt.ToString("MMM dd, yyyy 'at' h:mm tt")</div>
+                            @{
+                                var phTime = TimeHelpers.ToPhilippineTime(e.SubmittedAt);
+                            }
+                            <div class="text-xs text-gray-500 mt-8">Submitted: @phTime.ToString("MMM dd, yyyy 'at' h:mm tt")</div>
                             <div class="flex items-end justify-end">
                                 @if (Model.IsFullyCompleted == false)
                                 {
@@ -84,7 +96,7 @@
                                 }
                                 else
                                 {
-                                    
+
                                 }
                             </div>
                         </div>

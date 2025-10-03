@@ -154,33 +154,33 @@
                                     <div id="existing-files-list">
                                         @if (Model.ExistingEvidenceFilePaths != null && Model.ExistingEvidenceFilePaths.Any())
                                         {
-                                            foreach (var p in Model.ExistingEvidenceFilePaths)
+                                            foreach (var fileUrl in Model.ExistingEvidenceFilePaths)
                                             {
-                                                // Normalize to filename only (controller stores GUID_filename but callers may pass full path)
-                                                var storedFileName = System.IO.Path.GetFileName(p);
-                                                var displayName = System.Text.RegularExpressions.Regex.Replace(storedFileName, @"^[0-9a-fA-F\-]{36}_", "");
-                                                var href = storedFileName.StartsWith("/") ? storedFileName : $"/uploads/mentorship-evidence/{storedFileName}";
+                                                // Extract display name from the Google Cloud Storage URL
+                                                var displayName = System.IO.Path.GetFileName(fileUrl);
+                                                // Remove the timestamp and GUID prefix for cleaner display
+                                                displayName = System.Text.RegularExpressions.Regex.Replace(displayName, @"^.*?_[0-9]+_[a-fA-F0-9]{8}\.", "");
 
-                                                <div class="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-300 mb-2 existing-file-item" data-path="@storedFileName">
+                                                <div class="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-300 mb-2 existing-file-item" data-path="@fileUrl">
                                                     <div class="flex items-center space-x-2 min-w-0 flex-1">
-                                                        @if (storedFileName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) || storedFileName.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase) || storedFileName.EndsWith(".png", StringComparison.OrdinalIgnoreCase) || storedFileName.EndsWith(".gif", StringComparison.OrdinalIgnoreCase))
+                                                        @if (fileUrl.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) || fileUrl.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase) || fileUrl.EndsWith(".png", StringComparison.OrdinalIgnoreCase) || fileUrl.EndsWith(".gif", StringComparison.OrdinalIgnoreCase))
                                                         {
-                                                            <img src="@href" class="w-8 h-8 object-cover rounded" />
+                                                            <img src="@fileUrl" class="w-8 h-8 object-cover rounded" />
                                                         }
                                                         else
                                                         {
                                                             <div class="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">📄</div>
                                                         }
                                                         <div class="flex-1 min-w-0">
-                                                            <a href="@href" target="_blank" class="text-sm text-gray-700 block truncate max-w-[120px] sm:max-w-[200px] md:max-w-none" title="@displayName">@displayName</a>
+                                                            <a href="@fileUrl" target="_blank" class="text-sm text-gray-700 block truncate max-w-[120px] sm:max-w-[200px] md:max-w-none hover:text-blue-600" title="@displayName">@displayName</a>
                                                         </div>
                                                     </div>
                                                     <div class="flex items-center space-x-2">
-                                                        @* store the storedFileName (GUID_filename) so server sees same identifier on postbacks *@
-                                                        <input type="hidden" name="RetainedEvidenceFilePaths" value="@storedFileName" />
+                                                        @* Store the full Google Cloud URL so server sees same identifier on postbacks *@
+                                                        <input type="hidden" name="RetainedEvidenceFilePaths" value="@fileUrl" />
                                                         @if (!Model.IsFullyCompleted)
                                                         {
-                                                            <button type="button" class="text-red-500 flex-shrink-0 ml-2" onclick="removeExistingEvidence('@storedFileName')">✕</button>
+                                                            <button type="button" class="text-red-500 flex-shrink-0 ml-2 hover:text-red-700" onclick="removeExistingEvidence('@fileUrl')">✕</button>
                                                         }
                                                     </div>
                                                 </div>
@@ -196,7 +196,7 @@
                     }
                     else
                     {
-                        
+
                     }
 
                     @if (Model.IsFullyCompleted)
@@ -345,7 +345,7 @@
                                                     <div class="text-xs text-gray-500">${(f.size/1024).toFixed(1)} KB</div>
                                                 </div>
                                             </div>
-                                            <button type="button" class="text-red-500 flex-shrink-0 ml-2" onclick="removeNewEvidenceFile(${i})">
+                                            <button type="button" class="text-red-500 flex-shrink-0 ml-2 hover:text-red-700" onclick="removeNewEvidenceFile(${i})">
                                                 ✕
                                             </button>
                                         </div>
@@ -377,11 +377,20 @@
                 // removeExistingEvidence should work even if file input is disabled; keep it global
                 window.removeExistingEvidence = function (path) {
                     try {
-                        const selector = `.existing-file-item[data-path="${path.replace(/"/g, '\\"')}"]`;
+                        // Escape path for querySelector to handle special characters and URLs
+                        const escapedPath = path.replace(/[\\(){}[\]^$+*?.\-|]/g, '\\$&');
+                        const selector = `.existing-file-item[data-path="${escapedPath}"]`;
                         const item = document.querySelector(selector);
                         if (item) item.remove();
-                        const inputs = document.querySelectorAll('input[name="RetainedEvidenceFilePaths"][value="' + path + '"]');
-                        inputs.forEach(i => i.remove());
+
+                        // Remove the hidden input with the same URL value
+                        const inputs = document.querySelectorAll('input[name="RetainedEvidenceFilePaths"]');
+                        inputs.forEach(input => {
+                            if (input.value === path) {
+                                input.remove();
+                            }
+                        });
+
                         const existingCount = existingFilesList ? existingFilesList.querySelectorAll('.existing-file-item').length : 0;
                         const newCount = (typeof selectedFiles !== 'undefined') ? selectedFiles.length : 0;
                         if (noFilesMessage) noFilesMessage.style.display = (existingCount + newCount) === 0 ? 'flex' : 'none';
