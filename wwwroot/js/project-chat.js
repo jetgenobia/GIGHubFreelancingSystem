@@ -144,17 +144,16 @@ function setupSignalRHandlers() {
         // Show the waiting notification for the caller
         showCallWaitingNotification();
 
-        // **CRITICAL FIX**: Open the video call window immediately for the caller
-        let videoCallUrl;
+        // **CRITICAL FIX**: DO NOT open the video call window immediately
+        // Store the URL for later use when call is accepted
         if (callData.IsTemporary) {
             const targetUserId = document.getElementById('targetUserId')?.value;
-            videoCallUrl = `/Chat/VideoCall?targetUserId=${targetUserId}`;
+            window.pendingVideoCallUrl = `/Chat/VideoCall?targetUserId=${targetUserId}`;
         } else {
-            videoCallUrl = `/Chat/VideoCall?chatRoomId=${callData.ChatRoomId}`;
+            window.pendingVideoCallUrl = `/Chat/VideoCall?chatRoomId=${callData.ChatRoomId}`;
         }
 
-        console.log('Opening video call window for caller:', videoCallUrl);
-        window.open(videoCallUrl, 'VideoCall', 'width=800,height=600,scrollbars=no,resizable=yes');
+        console.log('Video call URL prepared for when accepted:', window.pendingVideoCallUrl);
     });
 
     connection.on('CallAccepted', (callData) => {
@@ -162,8 +161,24 @@ function setupSignalRHandlers() {
         // Hide the waiting notification
         hideCallWaitingNotification();
 
-        // No need to open window again since it's already open for caller
-        // The window will handle the connection establishment
+        // **CRITICAL FIX**: Now open the video call window for the caller
+        let videoCallUrl;
+        if (callData.IsTemporary === false && callData.ChatRoomId) {
+            // Use the actual chat room ID from the accepted call data
+            videoCallUrl = `/Chat/VideoCall?chatRoomId=${callData.ChatRoomId}`;
+        } else if (window.pendingVideoCallUrl) {
+            // Use the pending URL if available
+            videoCallUrl = window.pendingVideoCallUrl;
+        } else {
+            console.error('No video call URL available');
+            return;
+        }
+
+        console.log('Opening video call window for caller after acceptance:', videoCallUrl);
+        window.open(videoCallUrl, 'VideoCall', 'width=800,height=600,scrollbars=no,resizable=yes');
+
+        // Clear the pending URL
+        window.pendingVideoCallUrl = null;
     });
 
     connection.on('CallDeclined', (callData) => {
@@ -171,9 +186,10 @@ function setupSignalRHandlers() {
         // Hide the waiting notification
         hideCallWaitingNotification();
 
-        // Close the video call window if it's open
-        // Note: Due to browser security, we can't directly close windows opened by window.open()
-        // The video call page should handle this through SignalR events
+        // Clear any pending video call URL
+        if (window.pendingVideoCallUrl) {
+            window.pendingVideoCallUrl = null;
+        }
     });
 
     connection.on('VideoCallEnded', (callData) => {
@@ -834,13 +850,8 @@ function attemptVideoCall(chatRoomId, attemptCount) {
             console.log('Video call initiated successfully on attempt', attemptCount + 1);
             // Show the waiting notification
             showCallWaitingNotification();
-            // Store the video call URL for later use when call is accepted
-            if (chatRoomId.startsWith('temp_')) {
-                const targetUserId = document.getElementById('targetUserId')?.value;
-                window.pendingVideoCallUrl = `/Chat/VideoCall?targetUserId=${targetUserId}`;
-            } else {
-                window.pendingVideoCallUrl = `/Chat/VideoCall?chatRoomId=${chatRoomId}`;
-            }
+            // **CRITICAL FIX**: Do NOT store pendingVideoCallUrl here
+            // Let the CallRequested event handler manage it
         })
         .catch(err => {
             console.error(`Failed to initiate video call on attempt ${attemptCount + 1}:`, err);

@@ -238,16 +238,32 @@ class GlobalVideoCall {
             this.showIncomingCallNotification(data, 'project');
         });
 
-        // Handle project call waiting events
+        // Handle project call waiting events - **CRITICAL FIX**: Don't open window immediately
         this.projectConnection.on('CallRequested', (data) => {
+            console.log('GlobalVideoCall: Call requested (waiting for response):', data);
             this.showCallWaitingNotification(data, 'project');
+            // Do NOT open video call window here - wait for acceptance
         });
 
         this.projectConnection.on('CallAccepted', (data) => {
+            console.log('GlobalVideoCall: Call accepted:', data);
             this.hideCallWaitingNotification();
+
+            // **CRITICAL FIX**: Open video call window only after acceptance
+            if (data.ChatRoomId && data.ChatRoomId !== 'undefined') {
+                const videoCallUrl = `/Chat/VideoCall?chatRoomId=${data.ChatRoomId}`;
+                console.log('Opening video call window after acceptance:', videoCallUrl);
+                window.open(videoCallUrl, 'VideoCall', 'width=800,height=600,scrollbars=no,resizable=yes');
+            } else if (data.IsTemporary && document.getElementById('targetUserId')) {
+                const targetUserId = document.getElementById('targetUserId').value;
+                const videoCallUrl = `/Chat/VideoCall?targetUserId=${targetUserId}`;
+                console.log('Opening video call window for temporary chat:', videoCallUrl);
+                window.open(videoCallUrl, 'VideoCall', 'width=800,height=600,scrollbars=no,resizable=yes');
+            }
         });
 
         this.projectConnection.on('CallDeclined', (data) => {
+            console.log('GlobalVideoCall: Call declined:', data);
             this.hideCallWaitingNotification();
         });
 
