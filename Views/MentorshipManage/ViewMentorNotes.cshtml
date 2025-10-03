@@ -94,7 +94,8 @@
                         <div class="inline-flex flex items-center justify-between w-full">
                             @if (Model.SubmittedAt.HasValue)
                             {
-                                <div class="text-xs text-gray-500">@Model.SubmittedAt.Value.ToString("MMM dd, yyyy 'at' h:mm tt")</div>
+                                var phTime = TimeHelpers.ToPhilippineTime(Model.SubmittedAt.Value);
+                                <div class="text-xs text-gray-500">Submitted: @phTime.ToString("MMM dd, yyyy 'at' h:mm tt")</div>
                             }
                             else
                             {

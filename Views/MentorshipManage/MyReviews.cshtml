@@ -4,6 +4,7 @@
 }
 
 @model List<Freelancing.Models.MentorReviewDisplayViewModel>
+@using Freelancing.Helpers
 
 <div class="p-4 sm:ml-64">
     <div class="p-4 mt-20">
@@ -92,7 +93,12 @@
                                     }
                                     <div>
                                         <h3 class="text-lg font-semibold text-gray-900">@review.DisplayName</h3>
-                                        <p class="text-sm text-gray-600">Mentorship Date:<span class="italic"> @review.MentorshipPeriod</span></p>
+                                        @{
+                                            var phStartDate = TimeHelpers.ToPhilippineTime(review.MatchStartDate);
+                                            var phEndDate = review.MatchEndDate.HasValue ? TimeHelpers.ToPhilippineTime(review.MatchEndDate.Value) : (DateTime?)null;
+                                            var phMentorshipPeriod = $"{phStartDate.ToString("MMM dd, yyyy")} - {(phEndDate?.ToString("MMM dd, yyyy") ?? "Present")}";
+                                        }
+                                        <p class="text-sm text-gray-600">Mentorship Date:<span class="italic"> @phMentorshipPeriod</span></p>
                                     </div>
                                 </div>
                                 <div class="text-right">

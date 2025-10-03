@@ -4,6 +4,7 @@
 }
 
 @model Freelancing.Models.MentorFeedbackViewModel
+@using Freelancing.Helpers
 
 <div class="p-4 sm:ml-64">
     <div class="p-4 mt-20">
@@ -23,7 +24,16 @@
                 {
                     <text>Share your thoughts about your mentor</text>
                     <br />
-                    <span class="text-sm text-blue-600">Previously submitted on @ViewBag.ReviewSubmittedDate</span>
+                    var reviewSubmittedDate = ViewBag.ReviewSubmittedDate as DateTime?;
+                    if (reviewSubmittedDate.HasValue)
+                    {
+                        var phReviewDate = TimeHelpers.ToPhilippineTime(reviewSubmittedDate.Value);
+                        <span class="text-sm text-blue-600">Previously submitted on @phReviewDate.ToString("MMM dd, yyyy 'at' h:mm tt")</span>
+                    }
+                    else
+                    {
+                        <span class="text-sm text-blue-600">Previously submitted on @ViewBag.ReviewSubmittedDate</span>
+                    }
                 }
                 else
                 {
@@ -68,7 +78,11 @@
                     </div>
                     <div class="flex flex-col items-center">
                         <h3 class="text-xl font-semibold text-gray-900">@Model.MentorName</h3>
-                        <p class="text-gray-600">@Model.MatchStartDate.ToString("MMM dd, yyyy") - @(Model.MatchEndDate?.ToString("MMM dd, yyyy") ?? "Present")</p>
+                        @{
+                            var phStartDate = TimeHelpers.ToPhilippineTime(Model.MatchStartDate);
+                            var phEndDate = Model.MatchEndDate.HasValue ? TimeHelpers.ToPhilippineTime(Model.MatchEndDate.Value) : (DateTime?)null;
+                        }
+                        <p class="text-gray-600">@phStartDate.ToString("MMM dd, yyyy") - @(phEndDate?.ToString("MMM dd, yyyy") ?? "Present")</p>
                         <p class="text-gray-900 italic">Mentorship Date</p>
                     </div>
                 </div>
