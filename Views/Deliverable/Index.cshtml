@@ -30,6 +30,7 @@
     var statusOptions = ViewBag.StatusOptions as List<SelectListItem> ?? new();
     var currentStatus = ViewBag.CurrentStatus as string ?? "All";
 }
+@using Freelancing.Helpers
 
 <div class="p-4 sm:ml-64">
     <div class="pt-2 mt-20">
@@ -189,7 +190,10 @@
                                         </div>
                                     </div>
                                     <div class="text-sm text-gray-500 mb-4">
-                                        Submitted on @deliverable.SubmittedAt.ToString("MMM dd, yyyy 'at' h:mm tt")
+                                        @{
+                                            var phTime = TimeHelpers.ToPhilippineTime(deliverable.SubmittedAt);
+                                        }
+                                        Submitted on @phTime.ToString("MMM dd, yyyy 'at' h:mm tt")
                                     </div>
 
                                     @if (!string.IsNullOrEmpty(deliverable.SubmittedFilesPaths))
@@ -317,7 +321,10 @@
                                         </div>
                                     </div>
                                     <div class="text-sm text-gray-500 mb-4">
-                                        Submitted on @deliverable.SubmittedAt.ToString("MMM dd, yyyy 'at' h:mm tt")
+                                        @{
+                                            var phTime = TimeHelpers.ToPhilippineTime(deliverable.SubmittedAt);
+                                        }
+                                        Submitted on @phTime.ToString("MMM dd, yyyy 'at' h:mm tt")
                                     </div>
 
                                     @if (!string.IsNullOrEmpty(deliverable.SubmittedFilesPaths))
