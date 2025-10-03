@@ -156,7 +156,10 @@
                                 {
                                     <div class="flex justify-between">
                                         <span class="text-gray-500">Deadline:</span>
-                                        <span class="font-medium text-orange-600">@Model.ProjectDeadline.Value.ToString("MMM dd, yyyy h:mm tt")</span>
+                                        @{
+                                            var phTime = TimeHelpers.ToPhilippineTime(Model.ProjectDeadline.Value);
+                                        }
+                                        <span class="font-medium text-orange-600">@phTime.ToString("MMM dd, yyyy h:mm tt")</span>
                                     </div>
                                 }
                                 else
@@ -348,8 +351,8 @@
                                                 </div>
                                                 <input name="deadline"
                                                        type="datetime-local"
-                                                       min="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")"
-                                                       value="@(Model.ProjectDeadline?.ToString("yyyy-MM-ddTHH:mm"))"
+                                                       min="@TimeHelpers.ToPhilippineTime(DateTime.UtcNow).ToString("yyyy-MM-ddTHH:mm")"
+                                                       value="@(Model.ProjectDeadline.HasValue? TimeHelpers.ToPhilippineTime(Model.ProjectDeadline.Value).ToString("yyyy-MM-ddTHH:mm") : "")"
                                                        class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5"
                                                        required>
                                             </div>
