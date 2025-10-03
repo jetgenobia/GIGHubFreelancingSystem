@@ -55,10 +55,22 @@
                                                     var fileUrls = System.Text.Json.JsonSerializer.Deserialize<List<string>>(e.EvidenceFilePaths) ?? new List<string>();
                                                     foreach (var fileUrl in fileUrls)
                                                     {
-                                                        // Extract display name from the URL
-                                                        var displayName = System.IO.Path.GetFileName(fileUrl);
-                                                        // Remove the timestamp and GUID prefix for cleaner display
-                                                        displayName = System.Text.RegularExpressions.Regex.Replace(displayName, @"^.*?_[0-9]+_[a-fA-F0-9]{8}\.", "");
+                                                        // Extract display name from the Google Cloud Storage URL
+                                                        var fileName = System.IO.Path.GetFileName(fileUrl);
+                                                        var displayName = fileName;
+
+                                                        // Try to extract original filename from the pattern: originalname_timestamp_guid.ext
+                                                        var match = System.Text.RegularExpressions.Regex.Match(fileName, @"^(.+?)_\d+_[a-fA-F0-9]{8}(\.[^.]+)$");
+                                                        if (match.Success)
+                                                        {
+                                                            // Reconstruct the original filename: name + extension
+                                                            displayName = match.Groups[1].Value + match.Groups[2].Value;
+                                                        }
+                                                        else
+                                                        {
+                                                            // Fallback: try simpler pattern or use filename as-is
+                                                            displayName = System.Text.RegularExpressions.Regex.Replace(fileName, @"_\d+_[a-fA-F0-9]{8}(?=\.[^.]+$)", "");
+                                                        }
 
                                                         // Use the full Google Cloud Storage URL directly
                                                         <a href="@fileUrl" target="_blank" class="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-700 rounded hover:bg-blue-100">
@@ -119,7 +131,7 @@
             <div class="relative bg-white rounded-lg shadow">
                 <button type="button" class="absolute top-3 end-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center" onclick="closeFinishProjectModal()">
                     <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
-                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
                     </svg>
                     <span class="sr-only">Close modal</span>
                 </button>

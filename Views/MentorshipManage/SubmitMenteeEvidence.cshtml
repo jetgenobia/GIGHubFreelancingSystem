@@ -156,10 +156,23 @@
                                         {
                                             foreach (var fileUrl in Model.ExistingEvidenceFilePaths)
                                             {
+
                                                 // Extract display name from the Google Cloud Storage URL
-                                                var displayName = System.IO.Path.GetFileName(fileUrl);
-                                                // Remove the timestamp and GUID prefix for cleaner display
-                                                displayName = System.Text.RegularExpressions.Regex.Replace(displayName, @"^.*?_[0-9]+_[a-fA-F0-9]{8}\.", "");
+                                                var fileName = System.IO.Path.GetFileName(fileUrl);
+                                                var displayName = fileName;
+
+                                                // Try to extract original filename from the pattern: originalname_timestamp_guid.ext
+                                                var match = System.Text.RegularExpressions.Regex.Match(fileName, @"^(.+?)_\d+_[a-fA-F0-9]{8}(\.[^.]+)$");
+                                                if (match.Success)
+                                                {
+                                                    // Reconstruct the original filename: name + extension
+                                                    displayName = match.Groups[1].Value + match.Groups[2].Value;
+                                                }
+                                                else
+                                                {
+                                                    // Fallback: try simpler pattern or use filename as-is
+                                                    displayName = System.Text.RegularExpressions.Regex.Replace(fileName, @"_\d+_[a-fA-F0-9]{8}(?=\.[^.]+$)", "");
+                                                }
 
                                                 <div class="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-300 mb-2 existing-file-item" data-path="@fileUrl">
                                                     <div class="flex items-center space-x-2 min-w-0 flex-1">
@@ -169,7 +182,13 @@
                                                         }
                                                         else
                                                         {
-                                                            <div class="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">📄</div>
+                                                            <div class="w-8 h-8 bg-blue-100 rounded flex items-center justify-center text-xs">
+                                                                @{
+                                                                    var extension = System.IO.Path.GetExtension(fileUrl).TrimStart('.').ToUpper();
+                                                                    if (string.IsNullOrEmpty(extension)) extension = "FILE";
+                                                                }
+                                                                @extension
+                                                            </div>
                                                         }
                                                         <div class="flex-1 min-w-0">
                                                             <a href="@fileUrl" target="_blank" class="text-sm text-gray-700 block truncate max-w-[120px] sm:max-w-[200px] md:max-w-none hover:text-blue-600" title="@displayName">@displayName</a>
