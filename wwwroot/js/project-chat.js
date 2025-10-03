@@ -143,6 +143,18 @@ function setupSignalRHandlers() {
         console.log('Call requested:', callData);
         // Show the waiting notification for the caller
         showCallWaitingNotification();
+
+        // **CRITICAL FIX**: Open the video call window immediately for the caller
+        let videoCallUrl;
+        if (callData.IsTemporary) {
+            const targetUserId = document.getElementById('targetUserId')?.value;
+            videoCallUrl = `/Chat/VideoCall?targetUserId=${targetUserId}`;
+        } else {
+            videoCallUrl = `/Chat/VideoCall?chatRoomId=${callData.ChatRoomId}`;
+        }
+
+        console.log('Opening video call window for caller:', videoCallUrl);
+        window.open(videoCallUrl, 'VideoCall', 'width=800,height=600,scrollbars=no,resizable=yes');
     });
 
     connection.on('CallAccepted', (callData) => {
@@ -150,13 +162,8 @@ function setupSignalRHandlers() {
         // Hide the waiting notification
         hideCallWaitingNotification();
 
-        // Open the video call window if we have a pending URL
-        if (window.pendingVideoCallUrl) {
-            console.log('Opening video call window:', window.pendingVideoCallUrl);
-            window.open(window.pendingVideoCallUrl, 'VideoCall', 'width=800,height=600,scrollbars=no,resizable=yes');
-            // Clear the pending URL
-            window.pendingVideoCallUrl = null;
-        }
+        // No need to open window again since it's already open for caller
+        // The window will handle the connection establishment
     });
 
     connection.on('CallDeclined', (callData) => {
@@ -164,10 +171,9 @@ function setupSignalRHandlers() {
         // Hide the waiting notification
         hideCallWaitingNotification();
 
-        // Clear any pending video call URL
-        if (window.pendingVideoCallUrl) {
-            window.pendingVideoCallUrl = null;
-        }
+        // Close the video call window if it's open
+        // Note: Due to browser security, we can't directly close windows opened by window.open()
+        // The video call page should handle this through SignalR events
     });
 
     connection.on('VideoCallEnded', (callData) => {

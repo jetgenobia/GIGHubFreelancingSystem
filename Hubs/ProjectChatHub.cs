@@ -645,9 +645,6 @@ namespace Freelancing.Hubs
                 // Clean up and ensure proper room membership
                 await CleanUpRoomConnections(roomName);
                 await EnsureSenderInRoom(roomName);
-
-                // Ensure both users are in their personal rooms for notifications
-                await EnsureUserInPersonalRoom(userId);
                 await EnsureUserInPersonalRoom(partnerId);
 
                 // Create the call data object
@@ -660,39 +657,16 @@ namespace Freelancing.Hubs
                 };
 
                 // Send caller notification first
-                await Clients.Caller.SendAsync("CallRequested", new
-                {
-                    ChatRoomId = chatRoomId,
-                    CallerId = userId,
-                    CallerName = fullName ?? "Unknown User",
-                    CallerPhoto = !string.IsNullOrEmpty(user.Photo) ? user.Photo : "https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497"
-                });
+                await Clients.Caller.SendAsync("CallRequested", callData);
 
-                // Get fresh connection status
-                string? partnerConnectionId = null;
-                lock (_lockObject)
-                {
-                    UserConnections.TryGetValue(partnerId, out partnerConnectionId);
-                }
-
-                // Send to chat room (for users currently in chat)
-                await Clients.OthersInGroup(roomName).SendAsync("IncomingVideoCall", callData);
-
-                // Send to partner's personal room (for global notifications) - CRITICAL
+                // **CRITICAL FIX**: Send notification ONLY to partner's personal room to avoid duplicates
+                // Do NOT send to chat room to prevent duplicate notifications
                 await Clients.Group(partnerRoomName).SendAsync("IncomingVideoCall", callData);
-
-                // Also send directly to partner if we have their connection ID
-                if (!string.IsNullOrEmpty(partnerConnectionId))
-                {
-                    await Clients.Client(partnerConnectionId).SendAsync("IncomingVideoCall", callData);
-                }
 
                 await Clients.Caller.SendAsync("VideoCallInitiated", chatRoomId);
 
-                _logger.LogInformation("Video call started in room {ChatRoomId} by user {UserId}, notified partner {PartnerId}. Room connections: {RoomConnectionCount}, Partner connection: {PartnerConnected}",
-                    chatRoomId, userId, partnerId,
-                    RoomConnections.ContainsKey(roomName) ? RoomConnections[roomName].Count : 0,
-                    !string.IsNullOrEmpty(partnerConnectionId));
+                _logger.LogInformation("Video call started in room {ChatRoomId} by user {UserId}, notified partner {PartnerId} via personal room only",
+                    chatRoomId, userId, partnerId);
             }
             catch (Exception ex)
             {
@@ -825,7 +799,6 @@ namespace Freelancing.Hubs
                 if (chatRoomId.StartsWith("temp_"))
                 {
                     // For temporary chat rooms, we need to create a real chat room
-                    // Get the caller's user info to create the chat room
                     var caller = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id == callerId);
                     if (caller == null)
                     {
@@ -848,7 +821,7 @@ namespace Freelancing.Hubs
                     _context.ChatRooms.Add(newChatRoom);
                     await _context.SaveChangesAsync();
 
-                    // Notify the caller that their call was accepted with the new chat room ID
+                    // Notify both caller and accepter with the new chat room ID
                     string? callerConnectionId = null;
                     lock (_lockObject)
                     {
@@ -865,7 +838,6 @@ namespace Freelancing.Hubs
                         });
                     }
 
-                    // Also notify the accepter
                     await Clients.Caller.SendAsync("CallAccepted", new
                     {
                         ChatRoomId = newChatRoom.Id.ToString(),
@@ -890,8 +862,6 @@ namespace Freelancing.Hubs
                     return;
                 }
 
-                var roomName = $"chat_{chatRoomId}";
-
                 // Notify the caller that their call was accepted
                 string? callerConnectionId2 = null;
                 lock (_lockObject)
@@ -908,11 +878,11 @@ namespace Freelancing.Hubs
                     });
                 }
 
-                await Clients.Group(roomName).SendAsync("VideoCallAccepted", new
+                // Also notify the accepter to open their video call window
+                await Clients.Caller.SendAsync("CallAccepted", new
                 {
-                    AccepterId = userId,
-                    CallerId = callerId,
-                    ChatRoomId = chatRoomId
+                    ChatRoomId = chatRoomId,
+                    AccepterId = userId
                 });
 
                 _logger.LogInformation("Video call accepted in room {ChatRoomId} by user {UserId}", chatRoomId, userId);
