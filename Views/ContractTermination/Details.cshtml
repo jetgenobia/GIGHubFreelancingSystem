@@ -1,4 +1,6 @@
 @model Freelancing.Models.TerminationViewModel
+@using Freelancing.Helpers
+
 @{
     Layout = User.IsInRole("Client") ? "_LayoutClient" : "_LayoutFreelancer";
     ViewData["Title"] = "Termination Details - " + Model.ProjectName;
@@ -118,7 +120,10 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Requested On</label>
-                            <p class="text-gray-900">@Model.RequestedAt.ToString("MMM dd, yyyy 'at' h:mm tt")</p>
+                            @{
+                                var phTime = TimeHelpers.ToPhilippineTime(Model.RequestedAt);
+                            }
+                            <p class="text-gray-900">@phTime.ToString("MMM dd, yyyy 'at' h:mm tt")</p>
                         </div>
                     </div>
                 </div>
@@ -148,7 +153,8 @@
                             <h3 class="font-medium text-gray-900">Client: @Model.ClientName</h3>
                             @if (Model.ClientHasSigned)
                             {
-                                <p class="text-sm text-green-600">Signed on @Model.ClientSignedAt?.ToString("MMMM dd, yyyy 'at' h:mm tt")</p>
+                                var phClientTime = TimeHelpers.ToPhilippineTime(Model.ClientSignedAt.Value);
+                                <p class="text-sm text-green-600">Signed on @phClientTime.ToString("MMM dd, yyyy 'at' h:mm tt")</p>
                             }
                             else
                             {
@@ -177,7 +183,8 @@
                             <h3 class="font-medium text-gray-900">Freelancer: @Model.FreelancerName</h3>
                             @if (Model.FreelancerHasSigned)
                             {
-                                <p class="text-sm text-green-600">Signed on @Model.FreelancerSignedAt?.ToString("MMMM dd, yyyy 'at' h:mm tt")</p>
+                                var phFreelancerTime = TimeHelpers.ToPhilippineTime(Model.FreelancerSignedAt.Value);
+                                <p class="text-sm text-green-600">Signed on @phFreelancerTime.ToString("MMM dd, yyyy 'at' h:mm tt")</p>
                             }
                             else
                             {

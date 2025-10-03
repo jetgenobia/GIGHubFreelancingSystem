@@ -1,4 +1,6 @@
 @model Freelancing.Models.TerminationSigningViewModel
+@using Freelancing.Helpers
+
 @{
     Layout = Model.IsClient ? "_LayoutClient" : "_LayoutFreelancer";
     ViewData["Title"] = "Sign Termination - " + Model.ProjectName;
@@ -87,7 +89,10 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Requested By</label>
-                            <p class="text-gray-900">@Model.RequestedByRole on @Model.RequestedAt.ToString("MMMM dd, yyyy")</p>
+                            @{
+                                var phTime = TimeHelpers.ToPhilippineTime(Model.RequestedAt);
+                            }
+                            <p class="text-gray-900">@Model.RequestedByRole on @phTime.ToString("MMM dd, yyyy 'at' h:mm tt")</p>
                         </div>
                     </div>
                 </div>
