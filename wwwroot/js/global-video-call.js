@@ -242,25 +242,25 @@ class GlobalVideoCall {
         this.projectConnection.on('CallRequested', (data) => {
             console.log('GlobalVideoCall: Call requested (waiting for response):', data);
             this.showCallWaitingNotification(data, 'project');
-            // **CRITICAL FIX**: Do NOT open video call window here - wait for acceptance
+            // Do NOT open video call window here - wait for acceptance
         });
 
         this.projectConnection.on('CallAccepted', (data) => {
             console.log('GlobalVideoCall: Call accepted with data:', data);
             this.hideCallWaitingNotification();
 
-            // **CRITICAL FIX**: Open video call window only after acceptance with proper ChatRoomId
-            if (data.ChatRoomId && data.ChatRoomId !== 'undefined') {
-                const videoCallUrl = `/Chat/VideoCall?chatRoomId=${data.ChatRoomId}`;
+            // **CRITICAL FIX**: Use camelCase property names (chatRoomId, not ChatRoomId)
+            if (data.chatRoomId && data.chatRoomId !== 'undefined') {
+                const videoCallUrl = `/Chat/VideoCall?chatRoomId=${data.chatRoomId}`;
                 console.log('GlobalVideoCall: Opening video call window after acceptance:', videoCallUrl);
                 window.open(videoCallUrl, 'VideoCall', 'width=800,height=600,scrollbars=no,resizable=yes');
-            } else if (data.IsTemporary && document.getElementById('targetUserId')) {
+            } else if (data.isTemporary && document.getElementById('targetUserId')) {
                 const targetUserId = document.getElementById('targetUserId').value;
                 const videoCallUrl = `/Chat/VideoCall?targetUserId=${targetUserId}`;
                 console.log('GlobalVideoCall: Opening video call window for temporary chat:', videoCallUrl);
                 window.open(videoCallUrl, 'VideoCall', 'width=800,height=600,scrollbars=no,resizable=yes');
             } else {
-                console.error('GlobalVideoCall: No valid ChatRoomId in CallAccepted data:', data);
+                console.error('GlobalVideoCall: No valid chatRoomId in CallAccepted data:', data);
             }
         });
 
@@ -301,45 +301,46 @@ class GlobalVideoCall {
         console.log('GlobalVideoCall: Data values:', Object.values(data));
         const notification = document.createElement('div');
         notification.className = 'video-call-notification';
-        
+
         // Create a beautiful notification
         notification.style.cssText = `
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-            color: white !important;
-            padding: 20px !important;
-            border-radius: 12px !important;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2) !important;
-            margin-bottom: 10px !important;
-            animation: slideIn 0.3s ease-out !important;
-            backdrop-filter: blur(10px) !important;
-            border: 1px solid rgba(255,255,255,0.1) !important;
-            position: relative !important;
-            z-index: 10000 !important;
-            min-width: 300px !important;
-            max-width: 400px !important;
-            display: block !important;
-        `;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        color: white !important;
+        padding: 20px !important;
+        border-radius: 12px !important;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2) !important;
+        margin-bottom: 10px !important;
+        animation: slideIn 0.3s ease-out !important;
+        backdrop-filter: blur(10px) !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        position: relative !important;
+        z-index: 10000 !important;
+        min-width: 300px !important;
+        max-width: 400px !important;
+        display: block !important;
+    `;
 
         // Force display block directly on the element
         notification.style.display = 'block';
         notification.style.visibility = 'visible';
         notification.style.opacity = '1';
 
-        // Determine the caller name and ID based on type - handle both camelCase and PascalCase
+        // **CRITICAL FIX**: Handle both camelCase and PascalCase property names
         let callerName, callerId, callId, callerPhoto;
-        
+
         if (type === 'mentorship') {
             callerName = data.callerName || data.CallerName || 'Unknown';
             callerId = data.callerId || data.CallerId;
             callId = data.mentorshipMatchId || data.MentorshipMatchId;
             callerPhoto = data.callerPhoto || data.CallerPhoto;
         } else {
+            // For project calls, handle both camelCase and PascalCase
             callerName = data.CallerName || data.callerName || 'Unknown';
             callerId = data.CallerId || data.callerId;
-            callId = data.ChatRoomId || data.chatRoomId;
+            callId = data.ChatRoomId || data.chatRoomId; // Handle both cases
             callerPhoto = data.CallerPhoto || data.callerPhoto;
         }
-        
+
         console.log('GlobalVideoCall: Extracted data - callerName:', callerName, 'callerId:', callerId, 'callId:', callId);
 
         // Validate that we have the required data

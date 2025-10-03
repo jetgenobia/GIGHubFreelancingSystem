@@ -156,15 +156,15 @@ function setupSignalRHandlers() {
         // Hide the waiting notification
         hideCallWaitingNotification();
 
-        // **CRITICAL FIX**: Construct video call URL here with the actual ChatRoomId from acceptance
+        // **CRITICAL FIX**: Use camelCase property names (chatRoomId, not ChatRoomId)
         let videoCallUrl;
 
-        if (callData.ChatRoomId && callData.ChatRoomId !== 'undefined') {
+        if (callData.chatRoomId && callData.chatRoomId !== 'undefined') {
             // Use the actual chat room ID from the accepted call data
-            videoCallUrl = `/Chat/VideoCall?chatRoomId=${callData.ChatRoomId}`;
+            videoCallUrl = `/Chat/VideoCall?chatRoomId=${callData.chatRoomId}`;
             console.log('Opening video call window for caller after acceptance:', videoCallUrl);
             window.open(videoCallUrl, 'VideoCall', 'width=800,height=600,scrollbars=no,resizable=yes');
-        } else if (callData.IsTemporary) {
+        } else if (callData.isTemporary) { // Also check camelCase
             // Handle temporary chat room case
             const targetUserId = document.getElementById('targetUserId')?.value;
             if (targetUserId) {
@@ -175,7 +175,7 @@ function setupSignalRHandlers() {
                 console.error('No target user ID available for temporary chat');
             }
         } else {
-            console.error('No valid ChatRoomId in CallAccepted data:', callData);
+            console.error('No valid chatRoomId in CallAccepted data:', callData);
         }
     });
 
