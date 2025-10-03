@@ -25,9 +25,33 @@ namespace Freelancing.Controllers
             _encryptionService = encryptionService;
         }
 
-        public IActionResult Index()
+        [HttpGet]
+        public async Task<IActionResult> Index()
         {
-            return View();
+            try
+            {
+                var userId = GetCurrentUserId();
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return RedirectToAction("Login", "Account");
+                }
+
+                // Check user's verification status
+                var verificationStatus = await _verificationService.GetVerificationStatusAsync(userId);
+
+                // If user has a pending verification, redirect to Status page
+                if (verificationStatus != null && verificationStatus.Status.Equals("PENDING", StringComparison.OrdinalIgnoreCase))
+                {
+                    return RedirectToAction("Status");
+                }
+
+                return View();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking verification status in Index action for user {UserId}", GetCurrentUserId());
+                return View(); // Show the Index view even if there's an error checking status
+            }
         }
 
         [HttpGet]
