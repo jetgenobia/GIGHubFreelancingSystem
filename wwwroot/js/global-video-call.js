@@ -457,25 +457,60 @@ class GlobalVideoCall {
     async acceptCall(matchId, callerId, type = 'mentorship') {
         try {
             console.log('GlobalVideoCall: Accepting call:', matchId, callerId, type);
+
+            // Check connection state before accepting
+            if (type === 'project' && (!this.projectConnection || !this.isProjectConnected)) {
+                console.error('Project connection not ready');
+                alert('Connection not ready. Please refresh the page and try again.');
+                return;
+            }
+
+            if (type === 'mentorship' && (!this.mentorshipConnection || !this.isMentorshipConnected)) {
+                console.error('Mentorship connection not ready');
+                alert('Connection not ready. Please refresh the page and try again.');
+                return;
+            }
+
             // Hide notification
             this.hideNotification();
-            
-            // Send accept signal based on type
+
+            // Send accept signal based on type with retry logic
             if (type === 'mentorship' && this.mentorshipConnection && this.isMentorshipConnected) {
-                await this.mentorshipConnection.invoke('AcceptVideoCall', matchId, callerId);
+                await this.retryInvoke(this.mentorshipConnection, 'AcceptVideoCall', matchId, callerId);
                 // Open mentorship video call window
                 const videoCallUrl = `/MentorshipChat/VideoCall/${matchId}`;
                 window.open(videoCallUrl, 'videoCall', 'width=1200,height=800,scrollbars=no,resizable=yes');
             } else if (type === 'project' && this.projectConnection && this.isProjectConnected) {
-                await this.projectConnection.invoke('AcceptVideoCall', matchId, callerId);
+                await this.retryInvoke(this.projectConnection, 'AcceptVideoCall', matchId, callerId);
                 // Open project video call window
                 const videoCallUrl = `/Chat/VideoCall?chatRoomId=${matchId}`;
                 window.open(videoCallUrl, 'videoCall', 'width=1200,height=800,scrollbars=no,resizable=yes');
             }
-            
+
         } catch (error) {
             console.error('GlobalVideoCall: Error accepting call:', error);
             alert('Failed to accept video call. Please try again.');
+        }
+    }
+
+    async retryInvoke(connection, methodName, ...args) {
+        const maxAttempts = 3;
+
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            try {
+                await connection.invoke(methodName, ...args);
+                console.log(`${methodName} succeeded on attempt ${attempt + 1}`);
+                return;
+            } catch (error) {
+                console.error(`${methodName} failed on attempt ${attempt + 1}:`, error);
+
+                if (attempt < maxAttempts - 1) {
+                    // Wait before retrying
+                    await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+                } else {
+                    throw error;
+                }
+            }
         }
     }
 

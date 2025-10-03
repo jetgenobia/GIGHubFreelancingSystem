@@ -755,8 +755,20 @@ document.addEventListener('keydown', function(e) {
 });
 
 function initiateVideoCall() {
+    // Check if connection is ready
+    if (!isConnectionReady || !connection) {
+        showError('Connection not ready. Please wait a moment and try again.');
+        return;
+    }
+
     if (!currentChatRoomId) {
         showError('Please start a conversation first before making a video call.');
+        return;
+    }
+
+    // Additional connection state check
+    if (connection.state !== signalR.HubConnectionState.Connected) {
+        showError('Connection is not active. Please refresh the page and try again.');
         return;
     }
 
@@ -767,36 +779,47 @@ function initiateVideoCall() {
             showError('Please start a conversation first before making a video call.');
             return;
         }
-        
+
         // For new chats, we'll create a temporary chat room ID and pass targetUserId
         const tempChatRoomId = `temp_${Date.now()}`;
-        connection.invoke('StartVideoCall', tempChatRoomId)
-            .then(() => {
-                console.log('Video call initiated for new chat');
-                // Show the waiting notification
-                showCallWaitingNotification();
-                // Store the video call URL for later use when call is accepted
-                window.pendingVideoCallUrl = `/Chat/VideoCall?targetUserId=${targetUserId}`;
-            })
-            .catch(err => {
-                console.error('Failed to initiate video call:', err);
-                showError('Failed to start video call');
-            });
+
+        // Add retry logic
+        attemptVideoCall(tempChatRoomId, 0);
     } else {
-        // Existing chat room
-        connection.invoke('StartVideoCall', currentChatRoomId)
-            .then(() => {
-                console.log('Video call initiated');
-                // Show the waiting notification
-                showCallWaitingNotification();
-                // Store the video call URL for later use when call is accepted
-                window.pendingVideoCallUrl = `/Chat/VideoCall?chatRoomId=${currentChatRoomId}`;
-            })
-            .catch(err => {
-                console.error('Failed to initiate video call:', err);
-                showError('Failed to start video call');
-            });
+        // Existing chat room - add retry logic
+        attemptVideoCall(currentChatRoomId, 0);
     }
+}
+
+function attemptVideoCall(chatRoomId, attemptCount) {
+    const maxAttempts = 3;
+
+    connection.invoke('StartVideoCall', chatRoomId)
+        .then(() => {
+            console.log('Video call initiated successfully on attempt', attemptCount + 1);
+            // Show the waiting notification
+            showCallWaitingNotification();
+            // Store the video call URL for later use when call is accepted
+            if (chatRoomId.startsWith('temp_')) {
+                const targetUserId = document.getElementById('targetUserId')?.value;
+                window.pendingVideoCallUrl = `/Chat/VideoCall?targetUserId=${targetUserId}`;
+            } else {
+                window.pendingVideoCallUrl = `/Chat/VideoCall?chatRoomId=${chatRoomId}`;
+            }
+        })
+        .catch(err => {
+            console.error(`Failed to initiate video call on attempt ${attemptCount + 1}:`, err);
+
+            if (attemptCount < maxAttempts - 1) {
+                console.log(`Retrying video call... Attempt ${attemptCount + 2} of ${maxAttempts}`);
+                // Wait a bit before retrying
+                setTimeout(() => {
+                    attemptVideoCall(chatRoomId, attemptCount + 1);
+                }, 1000 * (attemptCount + 1)); // Exponential backoff
+            } else {
+                showError('Failed to start video call after multiple attempts. Please try again.');
+            }
+        });
 }
 
 // Call Waiting Notification Functions
