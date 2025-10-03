@@ -1,4 +1,5 @@
 ﻿@model Freelancing.Models.GoalViewModel
+@using Freelancing.Helpers
 @{
     Layout = "_LayoutFreelancer";
     ViewData["Title"] = "My Goals";
@@ -119,8 +120,9 @@
                                                 </span>
                                                 @if (goal.CompletedAt.HasValue)
                                                 {
+                                                    var phTime = TimeHelpers.ToPhilippineTime(goal.CompletedAt.Value);
                                                     <span class="text-xs text-gray-500 ml-2">
-                                                        @goal.CompletedAt.Value.ToString("MMM dd, yyyy")
+                                                        @phTime.ToString("MMM dd, yyyy 'at' h:mm tt")
                                                     </span>
                                                 }
                                             </div>
@@ -255,8 +257,9 @@
                                                                 }
                                         @if (goal.TargetDate.HasValue)
                                         {
+                                            var phTime = TimeHelpers.ToPhilippineTime(goal.TargetDate.Value);
                                             <span class="text-xs text-gray-500">
-                                                Target: @goal.TargetDate.Value.ToString("MMM dd, yyyy")
+                                                Target: @phTime.ToString("MMM dd, yyyy 'at' h:mm tt")
                                                 @if (goal.IsOverdue)
                                                 {
                                                     <span class="text-red-600 font-medium">(Overdue)</span>
