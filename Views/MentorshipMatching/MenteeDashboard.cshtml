@@ -4,6 +4,7 @@
 }
 
 @model Freelancing.Models.MenteeDashboard
+@using Freelancing.Helpers
 
 @Html.AntiForgeryToken()
 
@@ -114,13 +115,18 @@
                                             <p class="text-sm font-medium text-gray-900 truncate">
                                                 @request.MentorName
                                             </p>
+                                            @{
+                                                var phRequestTime = TimeHelpers.ToPhilippineTime(request.RequestDate);
+                                            }
                                             <p class="text-sm text-gray-500 truncate">
-                                                Requested: @request.RequestDate.ToLocalTime().ToString("MMM dd, yyyy")
+                                                Requested: @phRequestTime.ToString("MMM dd, yyyy")
                                             </p>
                                             @if (request.StartDate.HasValue)
                                             {
+                                                var phStartTime = TimeHelpers.ToPhilippineTime(request.StartDate.Value);
+
                                                 <p class="text-sm text-green-600 truncate">
-                                                    Started: @request.StartDate.Value.ToString("MMM dd, yyyy")
+                                                    Started: @phStartTime.ToString("MMM dd, yyyy")
                                                 </p>
                                             }
                                         </div>
@@ -185,19 +191,26 @@
                                             <p class="text-sm font-medium text-gray-900 truncate">
                                                 @request.MentorName
                                             </p>
+                                            @{
+                                                var phRequestTime = TimeHelpers.ToPhilippineTime(request.RequestDate);
+                                            }
                                             <p class="text-sm text-gray-500 truncate">
-                                                Requested: @request.RequestDate.ToLocalTime().ToString("MMM dd, yyyy")
+                                                Requested: @phRequestTime.ToString("MMM dd, yyyy")
                                             </p>
                                             @if (request.StartDate.HasValue)
                                             {
+                                                var phStartTime = TimeHelpers.ToPhilippineTime(request.StartDate.Value);
+
                                                 <p class="text-sm text-gray-600 truncate">
-                                                    Started: @request.StartDate.Value.ToString("MMM dd, yyyy")
+                                                    Started: @phStartTime.ToString("MMM dd, yyyy")
                                                 </p>
                                             }
                                             @if (request.EndDate.HasValue)
                                             {
+                                                var phEndTime = TimeHelpers.ToPhilippineTime(request.EndDate.Value);
+
                                                 <p class="text-sm text-green-600 truncate">
-                                                    Completed: @request.EndDate.Value.ToString("MMM dd, yyyy")
+                                                    Completed: @phEndTime.ToString("MMM dd, yyyy")
                                                 </p>
                                             }
                                         </div>
@@ -294,7 +307,11 @@
                                             {
                                                 <div class="text-sm font-medium text-gray-400">No session notes.</div>
                                             }
-                                            <div class="text-sm text-gray-600 mt-1">@(n.SubmittedAt?.ToString("MMM dd, yyyy h:mm tt") ?? "")</div>
+                                            @if (n.SubmittedAt != null)
+                                            {
+                                                var phSubmittedTime = TimeHelpers.ToPhilippineTime((DateTime)n.SubmittedAt);
+                                                <div class="text-sm text-gray-600 mt-1">@phSubmittedTime.ToString("MMM dd, yyyy h:mm tt")</div>
+                                            }
                                         </div>
                                     </div>
                                 </li>
@@ -321,7 +338,10 @@
                                     <div class="flex items-center justify-between">
                                         <div>
                                             <div class="text-sm font-medium text-gray-900">@(!string.IsNullOrWhiteSpace(s.Title) ? s.Title : "Session")</div>
-                                            <div class="text-sm text-gray-600">With @s.PartnerName • @s.StartUtc.ToString("MMM dd, yyyy h:mm tt")</div>
+                                            @{
+                                                var phSessionTime = TimeHelpers.ToPhilippineTime(s.StartUtc);
+                                            }
+                                            <div class="text-sm text-gray-600">With @s.PartnerName • @phSessionTime.ToString("MMM dd, yyyy h:mm tt")</div>
                                         </div>
                                         <div class="inline-flex items-center text-sm text-gray-900">
                                             <a asp-controller="MentorshipChat"
@@ -363,7 +383,10 @@
                                         {
                                             <div>
                                                 <div class="text-sm font-medium text-gray-900">@(!string.IsNullOrWhiteSpace(s.Title) ? s.Title : "Proposed Session")</div>
-                                                <div class="text-sm text-gray-600">From @s.PartnerName • @s.StartUtc.ToString("MMM dd, yyyy h:mm tt")</div>
+                                                @{
+                                                    var phProposedSessionTime = TimeHelpers.ToPhilippineTime(s.StartUtc);
+                                                }
+                                                <div class="text-sm text-gray-600">From @s.PartnerName • @phProposedSessionTime.ToString("MMM dd, yyyy h:mm tt")</div>
                                             </div>
                                             <div class="flex flex-col md:flex-row items-center md:items-end ml-auto space-y-2 md:space-y-0 md:space-x-2">
                                                 <form asp-controller="MentorshipManage" asp-action="AcceptSession" method="post">
@@ -384,7 +407,10 @@
                                         {
                                             <div>
                                                 <div class="text-sm font-medium text-gray-900">@(!string.IsNullOrWhiteSpace(s.Title) ? s.Title : "Proposed Session")</div>
-                                                <div class="text-sm text-gray-600">Created by You • @s.StartUtc.ToString("MMM dd, yyyy h:mm tt")</div>
+                                                @{
+                                                    var phProposedSessionTime = TimeHelpers.ToPhilippineTime(s.StartUtc);
+                                                }
+                                                <div class="text-sm text-gray-600">Created by You • @phProposedSessionTime.ToString("MMM dd, yyyy h:mm tt")</div>
                                             </div>
                                             <div class="text-sm text-gray-500">Awaiting response</div>
                                         }

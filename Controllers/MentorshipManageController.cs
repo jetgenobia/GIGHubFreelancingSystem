@@ -375,7 +375,7 @@ namespace Freelancing.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateSession(Guid matchId, DateTime startUtc, string? title, string? notes, string? timeZone = null, int tzOffsetMinutes = 0)
+        public async Task<IActionResult> CreateSession(Guid matchId, DateTime startUtc, string? title, string? notes, string? timeZone = "Asia/Manila")
         {
             var userId = GetCurrentUserId();
             var match = await _context.MentorshipMatches
@@ -387,9 +387,10 @@ namespace Freelancing.Controllers
                 TempData["Error"] = "Access denied or mentorship not found";
                 return RedirectToAction("AvailableMentors", "MentorshipMatching");
             }
+            var utcDateTime = DateTime.SpecifyKind(startUtc, DateTimeKind.Utc);
 
             // Per requirement: treat inputs as local and store/display consistently (no UTC conversion)
-            var result = await _schedulingService.CreateSessionAsync(matchId, userId, startUtc, title, notes, timeZone);
+            var result = await _schedulingService.CreateSessionAsync(matchId, userId, utcDateTime, title, notes, timeZone);
             if (!result.ok)
             {
                 TempData["Error"] = result.error;
