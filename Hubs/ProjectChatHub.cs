@@ -551,5 +551,161 @@ namespace Freelancing.Hubs
 
             return "file";
         }
+
+        // Add these methods to your ChatHub class, after the existing methods
+
+        #region Video Call Methods
+
+        public async Task StartVideoCall(string chatRoomId)
+        {
+            try
+            {
+                var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    await Clients.Caller.SendAsync("Error", "User not authenticated");
+                    return;
+                }
+
+                // Verify user is part of this chat room
+                var chatRoom = await _context.ChatRooms
+                    .Include(cr => cr.User1)
+                    .Include(cr => cr.User2)
+                    .FirstOrDefaultAsync(cr => cr.Id.ToString() == chatRoomId &&
+                                             (cr.User1Id == userId || cr.User2Id == userId) &&
+                                             cr.IsActive);
+
+                if (chatRoom == null)
+                {
+                    await Clients.Caller.SendAsync("Error", "Access denied or chat room not found");
+                    return;
+                }
+
+                var roomName = $"chat_{chatRoomId}";
+
+                // Notify other participants about the video call
+                await Clients.OthersInGroup(roomName).SendAsync("IncomingVideoCall", new
+                {
+                    ChatRoomId = chatRoomId,
+                    CallerId = userId,
+                    CallerName = Context.User.Identity?.Name
+                });
+
+                await Clients.Caller.SendAsync("VideoCallInitiated", chatRoomId);
+
+                _logger.LogInformation("Video call started in room {ChatRoomId} by user {UserId}", chatRoomId, userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error starting video call in room {ChatRoomId}", chatRoomId);
+                await Clients.Caller.SendAsync("Error", "Failed to start video call");
+            }
+        }
+
+        public async Task SendOffer(string chatRoomId, string offer)
+        {
+            try
+            {
+                var roomName = $"chat_{chatRoomId}";
+                await Clients.OthersInGroup(roomName).SendAsync("ReceiveOffer", offer);
+                _logger.LogInformation("WebRTC offer sent to room {ChatRoomId}", chatRoomId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending WebRTC offer to room {ChatRoomId}", chatRoomId);
+            }
+        }
+
+        public async Task SendAnswer(string chatRoomId, string answer)
+        {
+            try
+            {
+                var roomName = $"chat_{chatRoomId}";
+                await Clients.OthersInGroup(roomName).SendAsync("ReceiveAnswer", answer);
+                _logger.LogInformation("WebRTC answer sent to room {ChatRoomId}", chatRoomId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending WebRTC answer to room {ChatRoomId}", chatRoomId);
+            }
+        }
+
+        public async Task SendIceCandidate(string chatRoomId, string candidate)
+        {
+            try
+            {
+                var roomName = $"chat_{chatRoomId}";
+                await Clients.OthersInGroup(roomName).SendAsync("ReceiveIceCandidate", candidate);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending ICE candidate to room {ChatRoomId}", chatRoomId);
+            }
+        }
+
+        public async Task EndVideoCall(string chatRoomId)
+        {
+            try
+            {
+                var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var roomName = $"chat_{chatRoomId}";
+
+                await Clients.OthersInGroup(roomName).SendAsync("VideoCallEnded", new
+                {
+                    ChatRoomId = chatRoomId,
+                    EndedByUserId = userId
+                });
+
+                _logger.LogInformation("Video call ended in room {ChatRoomId} by user {UserId}", chatRoomId, userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error ending video call in room {ChatRoomId}", chatRoomId);
+            }
+        }
+
+        public async Task AcceptVideoCall(string chatRoomId)
+        {
+            try
+            {
+                var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var roomName = $"chat_{chatRoomId}";
+
+                await Clients.OthersInGroup(roomName).SendAsync("VideoCallAccepted", new
+                {
+                    ChatRoomId = chatRoomId,
+                    AcceptedByUserId = userId
+                });
+
+                _logger.LogInformation("Video call accepted in room {ChatRoomId} by user {UserId}", chatRoomId, userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error accepting video call in room {ChatRoomId}", chatRoomId);
+            }
+        }
+
+        public async Task RejectVideoCall(string chatRoomId)
+        {
+            try
+            {
+                var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var roomName = $"chat_{chatRoomId}";
+
+                await Clients.OthersInGroup(roomName).SendAsync("VideoCallRejected", new
+                {
+                    ChatRoomId = chatRoomId,
+                    RejectedByUserId = userId
+                });
+
+                _logger.LogInformation("Video call rejected in room {ChatRoomId} by user {UserId}", chatRoomId, userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error rejecting video call in room {ChatRoomId}", chatRoomId);
+            }
+        }
+
+        #endregion
     }
 }
