@@ -200,6 +200,7 @@
                     var isCurrentUserClient = Model.ClientId == currentUserId;
                     var isCurrentUserFreelancer = Model.FreelancerId == currentUserId;
                     var canCurrentUserSign = (isCurrentUserClient && !Model.ClientHasSigned) || (isCurrentUserFreelancer && !Model.FreelancerHasSigned);
+                    var isTerminationRequestor = Model.RequestedByUserId == currentUserId;
                 }
 
                 @if (canCurrentUserSign && (Model.Status == "Pending" || Model.Status == "AwaitingClient" || Model.Status == "AwaitingFreelancer"))
@@ -230,7 +231,7 @@
                                     </button>
                                 </form>
                             }
-                            @if (Model.CanUserCancel && Model.Status == "Pending" || Model.Status == "AwaitingFreelancer" || Model.Status == "AwaitingClient")
+                            @if (isTerminationRequestor && Model.CanUserCancel && (Model.Status == "Pending" || Model.Status == "AwaitingFreelancer" || Model.Status == "AwaitingClient"))
                             {
                                 <!-- Trigger button opens confirmation modal instead of submitting immediately -->
                                 <button type="button" data-modal-show="cancelRequestModal" class="focus:outline-none text-white bg-gray-700 hover:bg-gray-800 focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-800">
