@@ -567,6 +567,31 @@ namespace Freelancing.Hubs
                     return;
                 }
 
+                // Get user info for caller name and photo
+                var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id == userId);
+                if (user == null)
+                {
+                    await Clients.Caller.SendAsync("Error", "User not found");
+                    return;
+                }
+                var fullName = $"{user.FirstName} {user.LastName}";
+
+                // Check if this is a temporary chat room ID (for new chats)
+                if (chatRoomId.StartsWith("temp_"))
+                {
+                    // For temporary chat rooms, we need to get the target user ID from the caller
+                    // This will be handled by the video call page when it opens
+                    await Clients.Caller.SendAsync("CallRequested", new
+                    {
+                        ChatRoomId = chatRoomId,
+                        CallerId = userId,
+                        CallerName = fullName ?? "Unknown User",
+                        CallerPhoto = !string.IsNullOrEmpty(user.Photo) ? user.Photo : "https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497",
+                        IsTemporary = true
+                    });
+                    return;
+                }
+
                 // Verify user is part of this chat room
                 var chatRoom = await _context.ChatRooms
                     .Include(cr => cr.User1)
@@ -583,17 +608,37 @@ namespace Freelancing.Hubs
 
                 var roomName = $"chat_{chatRoomId}";
 
-                // Notify other participants about the video call
-                await Clients.OthersInGroup(roomName).SendAsync("IncomingVideoCall", new
+                // Notify the caller that their call is being requested
+                await Clients.Caller.SendAsync("CallRequested", new
                 {
                     ChatRoomId = chatRoomId,
                     CallerId = userId,
-                    CallerName = Context.User.Identity?.Name
+                    CallerName = fullName ?? "Unknown User",
+                    CallerPhoto = !string.IsNullOrEmpty(user.Photo) ? user.Photo : "https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497"
                 });
+
+                // Create the call data object
+                var callData = new
+                {
+                    CallerId = userId,
+                    CallerName = fullName ?? "Unknown User",
+                    CallerPhoto = !string.IsNullOrEmpty(user.Photo) ? user.Photo : "https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497",
+                    ChatRoomId = chatRoomId
+                };
+
+                // Send to chat room (for users currently in chat)
+                await Clients.OthersInGroup(roomName).SendAsync("IncomingVideoCall", callData);
+
+                // IMPORTANT: Also send to the partner's personal room (for global notifications)
+                var partnerId = chatRoom.User1Id == userId ? chatRoom.User2Id : chatRoom.User1Id;
+                var partnerRoomName = $"user_{partnerId}";
+
+                await Clients.Group(partnerRoomName).SendAsync("IncomingVideoCall", callData);
 
                 await Clients.Caller.SendAsync("VideoCallInitiated", chatRoomId);
 
-                _logger.LogInformation("Video call started in room {ChatRoomId} by user {UserId}", chatRoomId, userId);
+                _logger.LogInformation("Video call started in room {ChatRoomId} by user {UserId}, notified partner {PartnerId}",
+                    chatRoomId, userId, partnerId);
             }
             catch (Exception ex)
             {
