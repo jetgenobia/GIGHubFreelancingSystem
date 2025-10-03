@@ -51,17 +51,20 @@
                     <input type="hidden" name="timeZone" value="Asia/Manila" />
 
                     <div>
-                        <label class="block text-sm font-medium mb-1">Start Date and Time</label>
-                        @{
-                            // Get current Manila time for minimum value
-                            var currentManilaTime = TimeHelpers.ToPhilippineTime(DateTime.UtcNow);
-                            var minDateTime = currentManilaTime.ToString("yyyy-MM-ddTHH:mm");
-                        }
-                        <input type="datetime-local"
-                               id="startLocal"
-                               class="border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
-                               required
-                               min="@minDateTime" />
+                        <label for="startLocal" class="block mb-2 text-sm font-medium text-gray-900">Start Date and Time</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                                <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M20 4a2 2 0 0 0-2-2h-2V1a1 1 0 0 0-2 0v1h-3V1a1 1 0 0 0-2 0v1H6V1a1 1 0 0 0-2 0v1H2a2 2 0 0 0-2 2v2h20V4ZM0 18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8H0v10Zm5-8h10a1 1 0 0 1 0 2H5a1 1 0 0 1 0-2Z" />
+                                </svg>
+                            </div>
+                            <input name="startDateTime"
+                                   id="startLocal"
+                                   type="datetime-local"
+                                   min="@TimeHelpers.ToPhilippineTime(DateTime.UtcNow).ToString("yyyy-MM-ddTHH:mm")"
+                                   class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5"
+                                   required>
+                        </div>
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium mb-1">Title</label>
@@ -82,66 +85,35 @@
 </div>
 
 <script>
-    document.getElementById('sessionForm').addEventListener('submit', function(e) {
-        const startLocalInput = document.getElementById('startLocal');
-        const startUtcHidden = document.getElementById('startUtcHidden');
-
-        if (!startLocalInput.value) {
-            alert('Please select a start date and time.');
-            e.preventDefault();
-            return;
-        }
-
-        try {
-            // Parse the datetime-local input value
-            const inputValue = startLocalInput.value; // Format: "2025-10-05T08:00"
-
-            // Create a Date object treating the input as Manila time
-            // We need to manually construct the Manila time and then convert to UTC
-            const [datePart, timePart] = inputValue.split('T');
-            const [year, month, day] = datePart.split('-').map(Number);
-            const [hours, minutes] = timePart.split(':').map(Number);
-
-            // Create date in Manila timezone (UTC+8)
-            // Manila time = UTC + 8 hours, so UTC = Manila time - 8 hours
-            const manilaDateTime = new Date(year, month - 1, day, hours, minutes, 0);
-
-            // Convert Manila time to UTC by subtracting 8 hours (480 minutes)
-            const utcDateTime = new Date(manilaDateTime.getTime() - (8 * 60 * 60 * 1000));
-
-            // Set the hidden field with UTC time
-            startUtcHidden.value = utcDateTime.toISOString();
-
-            console.log('Input (Manila time):', inputValue);
-            console.log('Parsed Manila datetime:', manilaDateTime);
-            console.log('Converted to UTC:', utcDateTime.toISOString());
-            console.log('Expected format for DB:', utcDateTime.toISOString());
-
-        } catch (error) {
-            console.error('Error converting datetime:', error);
-            alert('Invalid date/time format. Please try again.');
-            e.preventDefault();
-        }
-    });
-
-    // Set default to current Manila time + 1 hour for convenience
     document.addEventListener('DOMContentLoaded', function() {
-        // Get current Manila time using the server-provided minimum value as base
-        const minValue = document.getElementById('startLocal').getAttribute('min');
-        if (minValue) {
-            // Parse the minimum value and add 1 hour
-            const minDate = new Date(minValue + ':00'); // Add seconds for proper parsing
-            minDate.setHours(minDate.getHours() + 1);
+        const form = document.getElementById('sessionForm');
+        const startInput = document.querySelector('input[name="startDateTime"]');
 
-            // Format back to datetime-local format
-            const year = minDate.getFullYear();
-            const month = String(minDate.getMonth() + 1).padStart(2, '0');
-            const day = String(minDate.getDate()).padStart(2, '0');
-            const hours = String(minDate.getHours()).padStart(2, '0');
-            const minutes = String(minDate.getMinutes()).padStart(2, '0');
+        if (form && startInput) {
+            form.addEventListener('submit', function(e) {
+                const selectedDate = new Date(startInput.value);
+                const now = new Date();
 
-            const defaultValue = `${year}-${month}-${day}T${hours}:${minutes}`;
-            document.getElementById('startLocal').value = defaultValue;
+                if (selectedDate <= now) {
+                    e.preventDefault();
+                    alert('Please select a session time in the future.');
+                    return false;
+                }
+            });
+        }
+
+        // Set default to current Manila time + 1 hour for convenience
+        if (startInput) {
+            const currentManilaTime = new Date('@TimeHelpers.ToPhilippineTime(DateTime.UtcNow).ToString("yyyy-MM-ddTHH:mm"):00');
+            currentManilaTime.setHours(currentManilaTime.getHours() + 1);
+
+            const year = currentManilaTime.getFullYear();
+            const month = String(currentManilaTime.getMonth() + 1).padStart(2, '0');
+            const day = String(currentManilaTime.getDate()).padStart(2, '0');
+            const hours = String(currentManilaTime.getHours()).padStart(2, '0');
+            const minutes = String(currentManilaTime.getMinutes()).padStart(2, '0');
+
+            startInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
         }
     });
 </script>

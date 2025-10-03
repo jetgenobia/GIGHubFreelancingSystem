@@ -1,4 +1,5 @@
 ﻿using Freelancing.Data;
+using Freelancing.Helpers;
 using Freelancing.Models;
 using Freelancing.Models.Entities;
 using Freelancing.Services;
@@ -375,63 +376,111 @@ namespace Freelancing.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateSession(Guid matchId, DateTime startUtc, string? title, string? notes, string? timeZone = "Asia/Manila")
+        public async Task<IActionResult> CreateSession(Guid matchId, DateTime startDateTime, string? title, string? notes, string? timeZone = "Asia/Manila")
         {
             var userId = GetCurrentUserId();
-            var match = await _context.MentorshipMatches
-                .Include(mm => mm.Mentor)
-                .Include(mm => mm.Mentee)
-                .FirstOrDefaultAsync(mm => mm.Id == matchId && (mm.MentorId == userId || mm.MenteeId == userId) && (mm.Status == "Active" || mm.Status == "Completed"));
-            if (match == null)
+            if (string.IsNullOrEmpty(userId))
             {
-                TempData["Error"] = "Access denied or mentorship not found";
-                return RedirectToAction("AvailableMentors", "MentorshipMatching");
+                TempData["Error"] = "User not authenticated.";
+                return RedirectToAction("Sessions", new { matchId });
             }
-            var utcDateTime = DateTime.SpecifyKind(startUtc, DateTimeKind.Utc);
 
-            // Per requirement: treat inputs as local and store/display consistently (no UTC conversion)
-            var result = await _schedulingService.CreateSessionAsync(matchId, userId, utcDateTime, title, notes, timeZone);
-            if (!result.ok)
+            try
             {
-                TempData["Error"] = result.error;
-            }
-            else
-            {
-                TempData["Success"] = "Session proposed";
-                
-                // Send notification to the target mentor/mentee
-                var isCurrentUserMentor = match.MentorId == userId;
-                var targetUserId = isCurrentUserMentor ? match.MenteeId : match.MentorId;
-                var requestorName = isCurrentUserMentor 
-                    ? $"{match.Mentor.FirstName} {match.Mentor.LastName}"
-                    : $"{match.Mentee.FirstName} {match.Mentee.LastName}";
-                
-                // Determine the target user's role and appropriate redirect URL
-                var isTargetUserMentor = match.MentorId == targetUserId;
-                var redirectUrl = isTargetUserMentor 
-                    ? $"/MentorshipMatching/MentorDashboard?matchId={matchId}"
-                    : $"/MentorshipMatching/MenteeDashboard?matchId={matchId}";
-                
-                var calendarIconSvg = "<svg viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><g id=\"SVGRepo_bgCarrier\" stroke-width=\"0\"></g><g id=\"SVGRepo_tracerCarrier\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></g><g id=\"SVGRepo_iconCarrier\"> <path d=\"M3 9H21M12 18V12M15 15.001L9 15M7 3V5M17 3V5M6.2 21H17.8C18.9201 21 19.4802 21 19.908 20.782C20.2843 20.5903 20.5903 20.2843 20.782 19.908C21 19.4802 21 18.9201 21 17.8V8.2C21 7.07989 21 6.51984 20.782 6.09202C20.5903 5.71569 20.2843 5.40973 19.908 5.21799C19.4802 5 18.9201 5 17.8 5H6.2C5.0799 5 4.51984 5 4.09202 5.21799C3.71569 5.40973 3.40973 5.71569 3.21799 6.09202C3 6.51984 3 7.07989 3 8.2V17.8C3 18.9201 3 19.4802 3.21799 19.908C3.40973 20.2843 3.71569 20.5903 4.09202 20.782C4.51984 21 5.07989 21 6.2 21Z\" stroke=\"#000000\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path> </g></svg>";
-                
-                var sessionDate = startUtc.ToString("MMMM dd, yyyy 'at' h:mm tt");
-                var notificationTitle = "New Session Proposal";
-                var notificationMessage = $"{requestorName} has proposed a new session for {sessionDate}";
-                if (!string.IsNullOrEmpty(title))
+                // Get and validate the mentorship match
+                var match = await _context.MentorshipMatches
+                    .Include(mm => mm.Mentor)
+                    .Include(mm => mm.Mentee)
+                    .FirstOrDefaultAsync(mm => mm.Id == matchId && (mm.MentorId == userId || mm.MenteeId == userId) && (mm.Status == "Active" || mm.Status == "Completed"));
+
+                if (match == null)
                 {
-                    notificationMessage += $": {title}";
+                    TempData["Error"] = "Access denied or mentorship not found";
+                    return RedirectToAction("AvailableMentors", "MentorshipMatching");
                 }
-                
-                await _notificationService.CreateNotificationAsync(
-                    targetUserId,
-                    notificationTitle,
-                    notificationMessage,
-                    "session_proposal",
-                    calendarIconSvg,
-                    redirectUrl
-                );
+
+                // Convert datetime from Philippine Time to UTC for storage (following SetDeadline pattern)
+                DateTime utcStartTime;
+                if (startDateTime.Kind == DateTimeKind.Unspecified)
+                {
+                    // Assume the datetime input is in Philippine Time and convert to UTC
+                    var phTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila");
+                    utcStartTime = TimeZoneInfo.ConvertTimeToUtc(startDateTime, phTimeZone);
+                }
+                else if (startDateTime.Kind == DateTimeKind.Local)
+                {
+                    utcStartTime = startDateTime.ToUniversalTime();
+                }
+                else
+                {
+                    utcStartTime = startDateTime; // Already UTC
+                }
+
+                // Validate session time is in the future (compare with UTC)
+                if (utcStartTime <= DateTime.UtcNow)
+                {
+                    TempData["Error"] = "Session time must be set in the future.";
+                    return RedirectToAction("Sessions", new { matchId });
+                }
+
+                // Create the session using the scheduling service
+                var result = await _schedulingService.CreateSessionAsync(matchId, userId, utcStartTime, title, notes, timeZone);
+
+                if (!result.ok)
+                {
+                    TempData["Error"] = result.error;
+                }
+                else
+                {
+                    TempData["Success"] = "Session proposed successfully!";
+
+                    // Send notification to the target mentor/mentee
+                    var isCurrentUserMentor = match.MentorId == userId;
+                    var targetUserId = isCurrentUserMentor ? match.MenteeId : match.MentorId;
+                    var requestorName = isCurrentUserMentor
+                        ? $"{match.Mentor.FirstName} {match.Mentor.LastName}"
+                        : $"{match.Mentee.FirstName} {match.Mentee.LastName}";
+
+                    // Determine the target user's role and appropriate redirect URL
+                    var isTargetUserMentor = match.MentorId == targetUserId;
+                    var redirectUrl = isTargetUserMentor
+                        ? $"/MentorshipMatching/MentorDashboard?matchId={matchId}"
+                        : $"/MentorshipMatching/MenteeDashboard?matchId={matchId}";
+
+                    var calendarIconSvg = "<svg viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><g id=\"SVGRepo_bgCarrier\" stroke-width=\"0\"></g><g id=\"SVGRepo_tracerCarrier\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></g><g id=\"SVGRepo_iconCarrier\"> <path d=\"M3 9H21M12 18V12M15 15.001L9 15M7 3V5M17 3V5M6.2 21H17.8C18.9201 21 19.4802 21 19.908 20.782C20.2843 20.5903 20.5903 20.2843 20.782 19.908C21 19.4802 21 18.9201 21 17.8V8.2C21 7.07989 21 6.51984 20.782 6.09202C20.5903 5.71569 20.2843 5.40973 19.908 5.21799C19.4802 5 18.9201 5 17.8 5H6.2C5.0799 5 4.51984 5 4.09202 5.21799C3.71569 5.40973 3.40973 5.71569 3.21799 6.09202C3 6.51984 3 7.07989 3 8.2V17.8C3 18.9201 3 19.4802 3.21799 19.908C3.40973 20.2843 3.71569 20.5903 4.09202 20.782C4.51984 21 5.07989 21 6.2 21Z\" stroke=\"#000000\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path> </g></svg>";
+
+                    // Use Philippine Time for display in notification (following SetDeadline pattern)
+                    var phDisplayTime = TimeHelpers.ToPhilippineTime(utcStartTime);
+                    var sessionDate = phDisplayTime.ToString("MMMM dd, yyyy 'at' h:mm tt");
+                    var notificationTitle = "New Session Proposal";
+                    var notificationMessage = $"{requestorName} has proposed a new session for {sessionDate}";
+                    if (!string.IsNullOrEmpty(title))
+                    {
+                        notificationMessage += $": {title}";
+                    }
+
+                    await _notificationService.CreateNotificationAsync(
+                        targetUserId,
+                        notificationTitle,
+                        notificationMessage,
+                        "session_proposal",
+                        calendarIconSvg,
+                        redirectUrl
+                    );
+                }
+
+                return RedirectToAction("Sessions", new { matchId });
             }
-            return RedirectToAction("Sessions", new { matchId });
+            catch (DbUpdateException dbEx)
+            {
+                TempData["Error"] = $"Database error occurred while creating the session: {dbEx.InnerException?.Message ?? dbEx.Message}";
+                return RedirectToAction("Sessions", new { matchId });
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"An error occurred while creating the session: {ex.Message}";
+                return RedirectToAction("Sessions", new { matchId });
+            }
         }
 
         [HttpPost]
