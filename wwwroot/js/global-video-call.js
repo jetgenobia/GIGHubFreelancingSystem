@@ -238,27 +238,29 @@ class GlobalVideoCall {
             this.showIncomingCallNotification(data, 'project');
         });
 
-        // Handle project call waiting events - **CRITICAL FIX**: Don't open window immediately
+        // Handle project call waiting events
         this.projectConnection.on('CallRequested', (data) => {
             console.log('GlobalVideoCall: Call requested (waiting for response):', data);
             this.showCallWaitingNotification(data, 'project');
-            // Do NOT open video call window here - wait for acceptance
+            // **CRITICAL FIX**: Do NOT open video call window here - wait for acceptance
         });
 
         this.projectConnection.on('CallAccepted', (data) => {
-            console.log('GlobalVideoCall: Call accepted:', data);
+            console.log('GlobalVideoCall: Call accepted with data:', data);
             this.hideCallWaitingNotification();
 
-            // **CRITICAL FIX**: Open video call window only after acceptance
+            // **CRITICAL FIX**: Open video call window only after acceptance with proper ChatRoomId
             if (data.ChatRoomId && data.ChatRoomId !== 'undefined') {
                 const videoCallUrl = `/Chat/VideoCall?chatRoomId=${data.ChatRoomId}`;
-                console.log('Opening video call window after acceptance:', videoCallUrl);
+                console.log('GlobalVideoCall: Opening video call window after acceptance:', videoCallUrl);
                 window.open(videoCallUrl, 'VideoCall', 'width=800,height=600,scrollbars=no,resizable=yes');
             } else if (data.IsTemporary && document.getElementById('targetUserId')) {
                 const targetUserId = document.getElementById('targetUserId').value;
                 const videoCallUrl = `/Chat/VideoCall?targetUserId=${targetUserId}`;
-                console.log('Opening video call window for temporary chat:', videoCallUrl);
+                console.log('GlobalVideoCall: Opening video call window for temporary chat:', videoCallUrl);
                 window.open(videoCallUrl, 'VideoCall', 'width=800,height=600,scrollbars=no,resizable=yes');
+            } else {
+                console.error('GlobalVideoCall: No valid ChatRoomId in CallAccepted data:', data);
             }
         });
 

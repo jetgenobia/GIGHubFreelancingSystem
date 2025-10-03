@@ -144,16 +144,11 @@ function setupSignalRHandlers() {
         // Show the waiting notification for the caller
         showCallWaitingNotification();
 
-        // **CRITICAL FIX**: DO NOT open the video call window immediately
-        // Store the URL for later use when call is accepted
-        if (callData.IsTemporary) {
-            const targetUserId = document.getElementById('targetUserId')?.value;
-            window.pendingVideoCallUrl = `/Chat/VideoCall?targetUserId=${targetUserId}`;
-        } else {
-            window.pendingVideoCallUrl = `/Chat/VideoCall?chatRoomId=${callData.ChatRoomId}`;
-        }
+        // **CRITICAL FIX**: Do NOT prepare video call URL here if ChatRoomId is undefined
+        // The ChatRoomId might be undefined at this stage
+        console.log('Call initiated, waiting for acceptance. ChatRoomId:', callData.ChatRoomId);
 
-        console.log('Video call URL prepared for when accepted:', window.pendingVideoCallUrl);
+        // Do NOT set window.pendingVideoCallUrl here - it will be handled in CallAccepted
     });
 
     connection.on('CallAccepted', (callData) => {
@@ -161,24 +156,27 @@ function setupSignalRHandlers() {
         // Hide the waiting notification
         hideCallWaitingNotification();
 
-        // **CRITICAL FIX**: Now open the video call window for the caller
+        // **CRITICAL FIX**: Construct video call URL here with the actual ChatRoomId from acceptance
         let videoCallUrl;
-        if (callData.IsTemporary === false && callData.ChatRoomId) {
+
+        if (callData.ChatRoomId && callData.ChatRoomId !== 'undefined') {
             // Use the actual chat room ID from the accepted call data
             videoCallUrl = `/Chat/VideoCall?chatRoomId=${callData.ChatRoomId}`;
-        } else if (window.pendingVideoCallUrl) {
-            // Use the pending URL if available
-            videoCallUrl = window.pendingVideoCallUrl;
+            console.log('Opening video call window for caller after acceptance:', videoCallUrl);
+            window.open(videoCallUrl, 'VideoCall', 'width=800,height=600,scrollbars=no,resizable=yes');
+        } else if (callData.IsTemporary) {
+            // Handle temporary chat room case
+            const targetUserId = document.getElementById('targetUserId')?.value;
+            if (targetUserId) {
+                videoCallUrl = `/Chat/VideoCall?targetUserId=${targetUserId}`;
+                console.log('Opening video call window for temporary chat:', videoCallUrl);
+                window.open(videoCallUrl, 'VideoCall', 'width=800,height=600,scrollbars=no,resizable=yes');
+            } else {
+                console.error('No target user ID available for temporary chat');
+            }
         } else {
-            console.error('No video call URL available');
-            return;
+            console.error('No valid ChatRoomId in CallAccepted data:', callData);
         }
-
-        console.log('Opening video call window for caller after acceptance:', videoCallUrl);
-        window.open(videoCallUrl, 'VideoCall', 'width=800,height=600,scrollbars=no,resizable=yes');
-
-        // Clear the pending URL
-        window.pendingVideoCallUrl = null;
     });
 
     connection.on('CallDeclined', (callData) => {
@@ -851,17 +849,16 @@ function attemptVideoCall(chatRoomId, attemptCount) {
             // Show the waiting notification
             showCallWaitingNotification();
             // **CRITICAL FIX**: Do NOT store pendingVideoCallUrl here
-            // Let the CallRequested event handler manage it
+            // The video call window will be opened when CallAccepted is received
         })
         .catch(err => {
             console.error(`Failed to initiate video call on attempt ${attemptCount + 1}:`, err);
 
             if (attemptCount < maxAttempts - 1) {
                 console.log(`Retrying video call... Attempt ${attemptCount + 2} of ${maxAttempts}`);
-                // Wait a bit before retrying
                 setTimeout(() => {
                     attemptVideoCall(chatRoomId, attemptCount + 1);
-                }, 1000 * (attemptCount + 1)); // Exponential backoff
+                }, 1000 * (attemptCount + 1));
             } else {
                 showError('Failed to start video call after multiple attempts. Please try again.');
             }
