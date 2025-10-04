@@ -770,10 +770,20 @@ namespace Freelancing.Hubs
                 var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var roomName = $"chat_{chatRoomId}";
 
-                await Clients.OthersInGroup(roomName).SendAsync("VideoCallEnded", new
+                // **CRITICAL FIX**: Also notify caller's personal room to hide waiting notification
+                var callerRoomName = $"user_{userId}";
+
+                await Clients.Group(roomName).SendAsync("VideoCallEnded", new
                 {
-                    ChatRoomId = chatRoomId,
-                    EndedByUserId = userId
+                    chatRoomId = chatRoomId,      // camelCase
+                    endedByUserId = userId        // camelCase
+                });
+
+                // Also notify caller's personal room to hide any waiting notifications
+                await Clients.Group(callerRoomName).SendAsync("VideoCallEnded", new
+                {
+                    chatRoomId = chatRoomId,      // camelCase
+                    endedByUserId = userId        // camelCase
                 });
 
                 _logger.LogInformation("Video call ended in room {ChatRoomId} by user {UserId}", chatRoomId, userId);
@@ -821,6 +831,7 @@ namespace Freelancing.Hubs
                     _context.ChatRooms.Add(newChatRoom);
                     await _context.SaveChangesAsync();
 
+                    // **CRITICAL FIX**: Use camelCase property names for consistency
                     // Notify both caller and accepter with the new chat room ID
                     string? callerConnectionId = null;
                     lock (_lockObject)
@@ -832,17 +843,17 @@ namespace Freelancing.Hubs
                     {
                         await Clients.Client(callerConnectionId).SendAsync("CallAccepted", new
                         {
-                            ChatRoomId = newChatRoom.Id.ToString(),
-                            AccepterId = userId,
-                            IsTemporary = false
+                            chatRoomId = newChatRoom.Id.ToString(),  // camelCase
+                            accepterId = userId,                     // camelCase
+                            isTemporary = false                      // camelCase
                         });
                     }
 
                     await Clients.Caller.SendAsync("CallAccepted", new
                     {
-                        ChatRoomId = newChatRoom.Id.ToString(),
-                        AccepterId = userId,
-                        IsTemporary = false
+                        chatRoomId = newChatRoom.Id.ToString(),  // camelCase
+                        accepterId = userId,                     // camelCase
+                        isTemporary = false                      // camelCase
                     });
 
                     _logger.LogInformation("Temporary video call accepted and chat room {ChatRoomId} created between {CallerId} and {AccepterId}",
@@ -862,6 +873,7 @@ namespace Freelancing.Hubs
                     return;
                 }
 
+                // **CRITICAL FIX**: Use camelCase property names for consistency
                 // Notify the caller that their call was accepted
                 string? callerConnectionId2 = null;
                 lock (_lockObject)
@@ -873,16 +885,16 @@ namespace Freelancing.Hubs
                 {
                     await Clients.Client(callerConnectionId2).SendAsync("CallAccepted", new
                     {
-                        ChatRoomId = chatRoomId,
-                        AccepterId = userId
+                        chatRoomId = chatRoomId,  // camelCase
+                        accepterId = userId       // camelCase
                     });
                 }
 
                 // Also notify the accepter to open their video call window
                 await Clients.Caller.SendAsync("CallAccepted", new
                 {
-                    ChatRoomId = chatRoomId,
-                    AccepterId = userId
+                    chatRoomId = chatRoomId,  // camelCase
+                    accepterId = userId       // camelCase
                 });
 
                 _logger.LogInformation("Video call accepted in room {ChatRoomId} by user {UserId}", chatRoomId, userId);
@@ -891,6 +903,78 @@ namespace Freelancing.Hubs
             {
                 _logger.LogError(ex, "Error accepting video call in room {ChatRoomId}", chatRoomId);
                 await Clients.Caller.SendAsync("Error", "Failed to accept video call");
+            }
+        }
+
+        public async Task DeclineVideoCall(string chatRoomId, string callerId)
+        {
+            try
+            {
+                var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    await Clients.Caller.SendAsync("Error", "User not authenticated");
+                    return;
+                }
+
+                // Check if this is a temporary chat room ID
+                if (chatRoomId.StartsWith("temp_"))
+                {
+                    // For temporary chat rooms, just notify the caller that their call was declined
+                    string? callerConnectionId = null;
+                    lock (_lockObject)
+                    {
+                        UserConnections.TryGetValue(callerId, out callerConnectionId);
+                    }
+
+                    if (!string.IsNullOrEmpty(callerConnectionId))
+                    {
+                        await Clients.Client(callerConnectionId).SendAsync("CallDeclined", new
+                        {
+                            chatRoomId = chatRoomId,  // Use camelCase
+                            declinerId = userId,      // Use camelCase
+                            isTemporary = true        // Use camelCase
+                        });
+                    }
+
+                    _logger.LogInformation("Temporary video call declined in room {ChatRoomId} by user {UserId}", chatRoomId, userId);
+                    return;
+                }
+
+                // Verify access to this chat room
+                var chatRoom = await _context.ChatRooms
+                    .FirstOrDefaultAsync(cr => cr.Id.ToString() == chatRoomId &&
+                                             (cr.User1Id == userId || cr.User2Id == userId) &&
+                                             cr.IsActive);
+
+                if (chatRoom == null)
+                {
+                    await Clients.Caller.SendAsync("Error", "Access denied or chat room not found");
+                    return;
+                }
+
+                // **CRITICAL FIX**: Notify the caller that their call was declined
+                string? callerConnectionId2 = null;
+                lock (_lockObject)
+                {
+                    UserConnections.TryGetValue(callerId, out callerConnectionId2);
+                }
+
+                if (!string.IsNullOrEmpty(callerConnectionId2))
+                {
+                    await Clients.Client(callerConnectionId2).SendAsync("CallDeclined", new
+                    {
+                        chatRoomId = chatRoomId,  // Use camelCase to match JavaScript expectations
+                        declinerId = userId       // Use camelCase to match JavaScript expectations
+                    });
+                }
+
+                _logger.LogInformation("Video call declined in room {ChatRoomId} by user {UserId}", chatRoomId, userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error declining video call in room {ChatRoomId}", chatRoomId);
+                await Clients.Caller.SendAsync("Error", "Failed to decline video call");
             }
         }
 
