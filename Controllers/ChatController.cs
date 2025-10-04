@@ -72,26 +72,33 @@ namespace Freelancing.Controllers
 
                 if (lastMessage != null)
                 {
-                    try
-                    {
-                        var encryptionKey = _encryptionService.GenerateRoomKey(chatRoom.Id.ToString());
-                        var decryptedMessage = _encryptionService.DecryptMessage(lastMessage.Message, encryptionKey);
-                        lastMessageTime = lastMessage.SentAt;
+                    lastMessageTime = lastMessage.SentAt;
 
-                        // Check if it's a file, image, or video message
-                        if (lastMessage.MessageType == "file" || lastMessage.MessageType == "image" || lastMessage.MessageType == "video")
+                    // **CRITICAL FIX**: Check message type first before attempting decryption
+                    if (lastMessage.MessageType == "file" || lastMessage.MessageType == "image" || lastMessage.MessageType == "video")
+                    {
+                        // For file/image/video messages, don't try to decrypt - just show "Sent an attachment"
+                        lastMessageText = "Sent an attachment";
+                    }
+                    else if (lastMessage.MessageType == "system")
+                    {
+                        // System messages are not encrypted
+                        lastMessageText = lastMessage.Message;
+                    }
+                    else
+                    {
+                        // Only decrypt text messages
+                        try
                         {
-                            lastMessageText = "Sent an attachment";
-                        }
-                        else
-                        {
+                            var encryptionKey = _encryptionService.GenerateRoomKey(chatRoom.Id.ToString());
+                            var decryptedMessage = _encryptionService.DecryptMessage(lastMessage.Message, encryptionKey);
                             lastMessageText = decryptedMessage;
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Failed to decrypt last message: {ex.Message}");
-                        lastMessageText = "Message unavailable";
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Failed to decrypt last message: {ex.Message}");
+                            lastMessageText = "Message unavailable";
+                        }
                     }
                 }
 
@@ -374,26 +381,33 @@ namespace Freelancing.Controllers
 
                 if (lastMessage != null)
                 {
-                    try
-                    {
-                        var encryptionKey = _encryptionService.GenerateRoomKey(chatRoom.Id.ToString());
-                        var decryptedMessage = _encryptionService.DecryptMessage(lastMessage.Message, encryptionKey);
-                        lastMessageTime = lastMessage.SentAt;
+                    lastMessageTime = lastMessage.SentAt;
 
-                        // Check if it's a file, image, or video message
-                        if (lastMessage.MessageType == "file" || lastMessage.MessageType == "image" || lastMessage.MessageType == "video")
+                    // **CRITICAL FIX**: Check message type first before attempting decryption
+                    if (lastMessage.MessageType == "file" || lastMessage.MessageType == "image" || lastMessage.MessageType == "video")
+                    {
+                        // For file/image/video messages, don't try to decrypt - just show "Sent an attachment"
+                        lastMessageText = "Sent an attachment";
+                    }
+                    else if (lastMessage.MessageType == "system")
+                    {
+                        // System messages are not encrypted
+                        lastMessageText = lastMessage.Message;
+                    }
+                    else
+                    {
+                        // Only decrypt text messages
+                        try
                         {
-                            lastMessageText = "Sent an attachment";
-                        }
-                        else
-                        {
+                            var encryptionKey = _encryptionService.GenerateRoomKey(chatRoom.Id.ToString());
+                            var decryptedMessage = _encryptionService.DecryptMessage(lastMessage.Message, encryptionKey);
                             lastMessageText = decryptedMessage;
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Failed to decrypt last message: {ex.Message}");
-                        lastMessageText = "Message unavailable";
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Failed to decrypt last message: {ex.Message}");
+                            lastMessageText = "Message unavailable";
+                        }
                     }
                 }
 
@@ -633,8 +647,14 @@ namespace Freelancing.Controllers
                     {
                         decryptedContent = message.Message; // System messages are not encrypted
                     }
+                    else if (message.MessageType == "file" || message.MessageType == "image" || message.MessageType == "video")
+                    {
+                        // **CRITICAL FIX**: For file messages, don't decrypt - use filename directly
+                        decryptedContent = message.Message; // This contains the filename
+                    }
                     else
                     {
+                        // Only decrypt text messages
                         decryptedContent = _encryptionService.DecryptMessage(message.Message, encryptionKey);
                     }
                 }
@@ -685,8 +705,14 @@ namespace Freelancing.Controllers
                     {
                         decryptedContent = message.Message; // System messages are not encrypted
                     }
+                    else if (message.MessageType == "file" || message.MessageType == "image" || message.MessageType == "video")
+                    {
+                        // **CRITICAL FIX**: For file messages, don't decrypt - use filename directly
+                        decryptedContent = message.Message; // This contains the filename
+                    }
                     else
                     {
+                        // Only decrypt text messages
                         decryptedContent = _encryptionService.DecryptMessage(message.Message, encryptionKey);
                     }
                 }
