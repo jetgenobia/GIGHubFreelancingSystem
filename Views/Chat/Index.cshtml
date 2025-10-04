@@ -104,9 +104,9 @@
 
         /* Remove the CSS that was removing padding from images */
         /* .message-bubble:has(.image-message),
-                                .message-bubble:has(.video-message) {
-                                    padding: 0;
-                                } */
+                                        .message-bubble:has(.video-message) {
+                                            padding: 0;
+                                        } */
 
         .message-sender {
             font-size: 0.875rem;
@@ -368,571 +368,730 @@
                 display: block;
             }
         }
+
+        /* Add this to the existing <style> section */
+
+        /* Loading overlay styles */
+        .chat-loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @@keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .loading-subtext {
+            font-size: 16px;
+            opacity: 0.8;
+            text-align: center;
+            max-width: 400px;
+            line-height: 1.5;
+        }
+
+        .loading-progress {
+            width: 300px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+
+        .loading-progress-bar {
+            width: 0%;
+            height: 100%;
+            background: white;
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        .chat-main-content {
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+            .chat-main-content.loaded {
+                opacity: 1;
+            }
     </style>
 </head>
 <body data-user-id="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value">
-    <nav class="fixed top-0 z-50 w-full bg-white border-b border-gray-200">
-        <div class="px-3 py-3 lg:px-5 lg:pl-3">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center justify-start rtl:justify-end">
-                    <button id="sidebar-toggle" type="button" class="inline-flex items-center p-2 text-sm text-gray-500 rounded-lg sm:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200">
-                        <span class="sr-only">Open sidebar</span>
-                        <svg class="w-6 h-6" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                            <path clip-rule="evenodd" fill-rule="evenodd" d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zm0 10.5a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75zM2 10a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 10z"></path>
-                        </svg>
-                    </button>
-                    <a class="-m-1.5 p-1.5 ms-5 hide-mobile" asp-area="" asp-controller="Home" asp-action="Index">
-                        <span class="sr-only">Your Company</span>
-                        <img class="h-16 w-auto" src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(2).png?updatedAt=1749718355580" alt="">
-                    </a>
-                </div>
-                <div class="flex items-center justify-center flex-1 mx-4">
-                    <form class="max-w-xl w-full mx-auto" data-search-form="true">
-                        <label for="default-search" class="mb-2 text-sm font-medium text-gray-900 sr-only">Search</label>
-                        <div class="relative">
-                            <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-                                <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
-                                </svg>
+
+    <div id="chatLoadingOverlay" class="chat-loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading Messages</div>
+        <div class="loading-subtext">Please wait...</div>
+        <div class="loading-progress">
+            <div class="loading-progress-bar" id="loadingProgressBar"></div>
+        </div>
+    </div>
+
+    <div class="chat-main-content" id="chatMainContent">
+
+        <nav class="fixed top-0 z-50 w-full bg-white border-b border-gray-200">
+            <div class="px-3 py-3 lg:px-5 lg:pl-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center justify-start rtl:justify-end">
+                        <button id="sidebar-toggle" type="button" class="inline-flex items-center p-2 text-sm text-gray-500 rounded-lg sm:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200">
+                            <span class="sr-only">Open sidebar</span>
+                            <svg class="w-6 h-6" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path clip-rule="evenodd" fill-rule="evenodd" d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zm0 10.5a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75zM2 10a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 10z"></path>
+                            </svg>
+                        </button>
+                        <a class="-m-1.5 p-1.5 ms-5 hide-mobile" asp-area="" asp-controller="Home" asp-action="Index">
+                            <span class="sr-only">Your Company</span>
+                            <img class="h-16 w-auto" src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(2).png?updatedAt=1749718355580" alt="">
+                        </a>
+                    </div>
+                    <div class="flex items-center justify-center flex-1 mx-4">
+                        <form class="max-w-xl w-full mx-auto" data-search-form="true">
+                            <label for="default-search" class="mb-2 text-sm font-medium text-gray-900 sr-only">Search</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                                    <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
+                                    </svg>
+                                </div>
+                                <input type="search" id="default-search" name="searchTerm" class="block w-full p-4 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-gray-300 focus:border-gray-300" placeholder="Search GIGHub" required />
                             </div>
-                            <input type="search" id="default-search" name="searchTerm" class="block w-full p-4 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-gray-300 focus:border-gray-300" placeholder="Search GIGHub" required />
-                        </div>
-                    </form>
-                </div>
-                <div class="flex items-center">
-                    <button id="dropdownNotificationButton" data-dropdown-toggle="dropdownNotification" class="relative inline-flex items-center text-sm font-medium text-center text-gray-500 hover:text-gray-900 focus:outline-none mr-3 mt-1" type="button">
-                        <svg viewBox="-1.5 0 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="currentColor" class="w-6 h-6">
-                            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-                            <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin-round="round"></g>
-                            <g id="SVGRepo_iconCarrier">
-                                <title>notification_bell [#1397]</title>
-                                <desc>Created with Sketch.</desc>
-                                <defs> </defs>
-                                <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                                    <g id="Dribbble-Light-Preview" transform="translate(-181.000000, -720.000000)" fill="currentColor">
-                                        <g id="icons" transform="translate(56.000000, 160.000000)">
-                                            <path d="M137.75,574 L129.25,574 L129.25,568 C129.25,565.334 131.375,564 133.498937,564 L133.501063,564 C135.625,564 137.75,565.334 137.75,568 L137.75,574 Z M134.5625,577 C134.5625,577.552 134.0865,578 133.5,578 C132.9135,578 132.4375,577.552 132.4375,577 L132.4375,576 L134.5625,576 L134.5625,577 Z M140.9375,574 C140.351,574 139.875,573.552 139.875,573 L139.875,568 C139.875,564.447 137.359,562.475 134.5625,562.079 L134.5625,561 C134.5625,560.448 134.0865,560 133.5,560 C132.9135,560 132.4375,560.448 132.4375,561 L132.4375,562.079 C129.641,562.475 127.125,564.447 127.125,568 L127.125,573 C127.125,573.552 126.649,574 126.0625,574 C125.476,574 125,574.448 125,575 C125,575.552 125.476,576 126.0625,576 L130.3125,576 L130.3125,577 C130.3125,578.657 131.739438,580 133.5,580 C135.260563,580 136.6875,578.657 136.6875,577 L136.6875,576 L140.9375,576 C141.524,576 142,575.552 142,575 C142,574.448 141.524,574 140.9375,574 L140.9375,574 Z" id="notification_bell-[#1397]"> </path>
+                        </form>
+                    </div>
+                    <div class="flex items-center">
+                        <button id="dropdownNotificationButton" data-dropdown-toggle="dropdownNotification" class="relative inline-flex items-center text-sm font-medium text-center text-gray-500 hover:text-gray-900 focus:outline-none mr-3 mt-1" type="button">
+                            <svg viewBox="-1.5 0 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="currentColor" class="w-6 h-6">
+                                <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin-round="round"></g>
+                                <g id="SVGRepo_iconCarrier">
+                                    <title>notification_bell [#1397]</title>
+                                    <desc>Created with Sketch.</desc>
+                                    <defs> </defs>
+                                    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+                                        <g id="Dribbble-Light-Preview" transform="translate(-181.000000, -720.000000)" fill="currentColor">
+                                            <g id="icons" transform="translate(56.000000, 160.000000)">
+                                                <path d="M137.75,574 L129.25,574 L129.25,568 C129.25,565.334 131.375,564 133.498937,564 L133.501063,564 C135.625,564 137.75,565.334 137.75,568 L137.75,574 Z M134.5625,577 C134.5625,577.552 134.0865,578 133.5,578 C132.9135,578 132.4375,577.552 132.4375,577 L132.4375,576 L134.5625,576 L134.5625,577 Z M140.9375,574 C140.351,574 139.875,573.552 139.875,573 L139.875,568 C139.875,564.447 137.359,562.475 134.5625,562.079 L134.5625,561 C134.5625,560.448 134.0865,560 133.5,560 C132.9135,560 132.4375,560.448 132.4375,561 L132.4375,562.079 C129.641,562.475 127.125,564.447 127.125,568 L127.125,573 C127.125,573.552 126.649,574 126.0625,574 C125.476,574 125,574.448 125,575 C125,575.552 125.476,576 126.0625,576 L130.3125,576 L130.3125,577 C130.3125,578.657 131.739438,580 133.5,580 C135.260563,580 136.6875,578.657 136.6875,577 L136.6875,576 L140.9375,576 C141.524,576 142,575.552 142,575 C142,574.448 141.524,574 140.9375,574 L140.9375,574 Z" id="notification_bell-[#1397]"> </path>
+                                            </g>
                                         </g>
                                     </g>
                                 </g>
-                            </g>
-                        </svg>
-                        <span class="sr-only">Notifications</span>
-                        <div class="absolute inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 border-2 border-white rounded-full -top-1 -end-1" style="display: none;">0</div>
-                    </button>
-                    <a asp-action="Index" asp-controller="Chat" class="relative inline-flex items-center text-sm font-medium text-center text-gray-500 hover:text-gray-900 focus:outline-none mr-3 mt-1">
-                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6">
-                            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-                            <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
-                            <g id="SVGRepo_iconCarrier">
-                                <path fill-rule="evenodd" clip-rule="evenodd" d="M12 3C10.5937 3 9.2995 3.05598 8.14453 3.14113C6.41589 3.26859 5.80434 3.32966 5.0751 3.73C4.42984 4.08423 3.66741 4.90494 3.36159 5.5745C3.01922 6.32408 3.00002 7.07231 3.00002 9.13826V10.8156C3.00002 11.9615 3.00437 12.3963 3.06904 12.7399C3.37386 14.3594 4.64066 15.6262 6.26012 15.931C6.60374 15.9957 7.03847 16 8.18442 16C8.1948 16 8.20546 16 8.21637 16C8.33199 15.9998 8.47571 15.9996 8.61593 16.019C9.21331 16.1021 9.74133 16.4502 10.053 16.9666C10.1261 17.0878 10.1825 17.22 10.2279 17.3264C10.2322 17.3364 10.2364 17.3462 10.2404 17.3557L10.6994 18.4267C11.0609 19.2701 11.3055 19.8382 11.518 20.2317C11.6905 20.5511 11.7828 20.6364 11.794 20.6477C11.9249 20.7069 12.0751 20.7069 12.2061 20.6477C12.2172 20.6364 12.3095 20.5511 12.482 20.2317C12.6946 19.8382 12.9392 19.2701 13.3006 18.4267L13.7596 17.3557C13.7637 17.3462 13.7679 17.3364 13.7721 17.3264C13.8175 17.22 13.8739 17.0878 13.9471 16.9666C14.2587 16.4502 14.7867 16.1021 15.3841 16.019C15.5243 15.9996 15.668 15.9998 15.7837 16C15.7946 16 15.8052 16 15.8156 16C16.9616 16 17.3963 15.9957 17.7399 15.931C19.3594 15.6262 20.6262 14.3594 20.931 12.7399C20.9957 12.3963 21 11.9615 21 10.8156V9.13826C21 7.07231 20.9808 6.32408 20.6384 5.5745C20.3326 4.90494 19.5702 4.08423 18.9249 3.73C18.1957 3.32966 17.5841 3.26859 15.8555 3.14113C14.7005 3.05598 13.4064 3 12 3ZM7.99746 1.14655C9.19742 1.05807 10.5408 1 12 1C13.4593 1 14.8026 1.05807 16.0026 1.14655C16.0472 1.14984 16.0913 1.15308 16.1351 1.1563C17.6971 1.27104 18.7416 1.34777 19.8874 1.97681C20.9101 2.53823 21.973 3.68239 22.4577 4.74356C23.001 5.93322 23.0007 7.13737 23.0001 8.95396C23 9.0147 23 9.07613 23 9.13826V10.8156C23 10.8555 23 10.8949 23 10.9337C23.0002 11.921 23.0003 12.5583 22.8965 13.1098C22.4392 15.539 20.5391 17.4392 18.1099 17.8965C17.5583 18.0003 16.9211 18.0002 15.9337 18C15.8949 18 15.8555 18 15.8156 18C15.7355 18 15.6941 18.0001 15.6638 18.0009C15.6625 18.0009 15.6612 18.0009 15.66 18.001C15.6596 18.002 15.659 18.0032 15.6585 18.0044C15.6458 18.0319 15.6294 18.07 15.5979 18.1436L15.1192 19.2604C14.7825 20.0462 14.5027 20.6992 14.2417 21.1823C13.9898 21.6486 13.6509 22.1678 13.098 22.4381C12.4052 22.7768 11.5948 22.7768 10.902 22.4381C10.3491 22.1678 10.0103 21.6486 9.75836 21.1823C9.49738 20.6992 9.21753 20.0462 8.88079 19.2604L8.40215 18.1436C8.3706 18.07 8.35421 18.0319 8.34157 18.0044C8.34101 18.0032 8.34048 18.002 8.33998 18.001C8.33881 18.0009 8.33755 18.0009 8.33621 18.0009C8.30594 18.0001 8.26451 18 8.18442 18C8.14451 18 8.10515 18 8.06633 18C7.07897 18.0002 6.44169 18.0003 5.89017 17.8965C3.46098 17.4392 1.56079 15.539 1.10356 13.1098C0.999748 12.5583 0.999849 11.921 0.999383 10.9337 0.998989 9.0147 1.54238 4.74356C2.02707 3.68239 3.08998 2.53823 4.11264 1.97681C5.25848 1.34777 6.30294 1.27104 7.86493 1.1563C7.9087 1.15308 7.95287 1.14984 7.99746 1.14655Z" fill="currentColor"></path>
-                            </g>
-                        </svg>
-                        <span class="sr-only">Messages</span>
-                        <div id="message-counter" class="absolute inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 border-2 border-white rounded-full -top-1 -end-1" style="display: none;">0</div>
-                    </a>
+                            </svg>
+                            <span class="sr-only">Notifications</span>
+                            <div class="absolute inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 border-2 border-white rounded-full -top-1 -end-1" style="display: none;">0</div>
+                        </button>
+                        <a asp-action="Index" asp-controller="Chat" class="relative inline-flex items-center text-sm font-medium text-center text-gray-500 hover:text-gray-900 focus:outline-none mr-3 mt-1">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6">
+                                <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                <g id="SVGRepo_iconCarrier">
+                                    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 3C10.5937 3 9.2995 3.05598 8.14453 3.14113C6.41589 3.26859 5.80434 3.32966 5.0751 3.73C4.42984 4.08423 3.66741 4.90494 3.36159 5.5745C3.01922 6.32408 3.00002 7.07231 3.00002 9.13826V10.8156C3.00002 11.9615 3.00437 12.3963 3.06904 12.7399C3.37386 14.3594 4.64066 15.6262 6.26012 15.931C6.60374 15.9957 7.03847 16 8.18442 16C8.1948 16 8.20546 16 8.21637 16C8.33199 15.9998 8.47571 15.9996 8.61593 16.019C9.21331 16.1021 9.74133 16.4502 10.053 16.9666C10.1261 17.0878 10.1825 17.22 10.2279 17.3264C10.2322 17.3364 10.2364 17.3462 10.2404 17.3557L10.6994 18.4267C11.0609 19.2701 11.3055 19.8382 11.518 20.2317C11.6905 20.5511 11.7828 20.6364 11.794 20.6477C11.9249 20.7069 12.0751 20.7069 12.2061 20.6477C12.2172 20.6364 12.3095 20.5511 12.482 20.2317C12.6946 19.8382 12.9392 19.2701 13.3006 18.4267L13.7596 17.3557C13.7637 17.3462 13.7679 17.3364 13.7721 17.3264C13.8175 17.22 13.8739 17.0878 13.9471 16.9666C14.2587 16.4502 14.7867 16.1021 15.3841 16.019C15.5243 15.9996 15.668 15.9998 15.7837 16C15.7946 16 15.8052 16 15.8156 16C16.9616 16 17.3963 15.9957 17.7399 15.931C19.3594 15.6262 20.6262 14.3594 20.931 12.7399C20.9957 12.3963 21 11.9615 21 10.8156V9.13826C21 7.07231 20.9808 6.32408 20.6384 5.5745C20.3326 4.90494 19.5702 4.08423 18.9249 3.73C18.1957 3.32966 17.5841 3.26859 15.8555 3.14113C14.7005 3.05598 13.4064 3 12 3ZM7.99746 1.14655C9.19742 1.05807 10.5408 1 12 1C13.4593 1 14.8026 1.05807 16.0026 1.14655C16.0472 1.14984 16.0913 1.15308 16.1351 1.1563C17.6971 1.27104 18.7416 1.34777 19.8874 1.97681C20.9101 2.53823 21.973 3.68239 22.4577 4.74356C23.001 5.93322 23.0007 7.13737 23.0001 8.95396C23 9.0147 23 9.07613 23 9.13826V10.8156C23 10.8555 23 10.8949 23 10.9337C23.0002 11.921 23.0003 12.5583 22.8965 13.1098C22.4392 15.539 20.5391 17.4392 18.1099 17.8965C17.5583 18.0003 16.9211 18.0002 15.9337 18C15.8949 18 15.8555 18 15.8156 18C15.7355 18 15.6941 18.0001 15.6638 18.0009C15.6625 18.0009 15.6612 18.0009 15.66 18.001C15.6596 18.002 15.659 18.0032 15.6585 18.0044C15.6458 18.0319 15.6294 18.07 15.5979 18.1436L15.1192 19.2604C14.7825 20.0462 14.5027 20.6992 14.2417 21.1823C13.9898 21.6486 13.6509 22.1678 13.098 22.4381C12.4052 22.7768 11.5948 22.7768 10.902 22.4381C10.3491 22.1678 10.0103 21.6486 9.75836 21.1823C9.49738 20.6992 9.21753 20.0462 8.88079 19.2604L8.40215 18.1436C8.3706 18.07 8.35421 18.0319 8.34157 18.0044C8.34101 18.0032 8.34048 18.002 8.33998 18.001C8.33881 18.0009 8.33755 18.0009 8.33621 18.0009C8.30594 18.0001 8.26451 18 8.18442 18C8.14451 18 8.10515 18 8.06633 18C7.07897 18.0002 6.44169 18.0003 5.89017 17.8965C3.46098 17.4392 1.56079 15.539 1.10356 13.1098C0.999748 12.5583 0.999849 11.921 0.999383 10.9337 0.998989 9.0147 1.54238 4.74356C2.02707 3.68239 3.08998 2.53823 4.11264 1.97681C5.25848 1.34777 6.30294 1.27104 7.86493 1.1563C7.9087 1.15308 7.95287 1.14984 7.99746 1.14655Z" fill="currentColor"></path>
+                                </g>
+                            </svg>
+                            <span class="sr-only">Messages</span>
+                            <div id="message-counter" class="absolute inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 border-2 border-white rounded-full -top-1 -end-1" style="display: none;">0</div>
+                        </a>
 
-                    <!-- Dropdown menu -->
-                    <div id="dropdownNotification" class="z-20 hidden w-full max-w-sm bg-white divide-y divide-gray-100 rounded-lg shadow-lg" aria-labelledby="dropdownNotificationButton">
-                        <div class="block px-4 py-2 font-medium text-center text-gray-700 rounded-t-lg bg-gray-50">
-                            Notifications
-                        </div>
-                        <div class="divide-y divide-gray-100 max-h-64 overflow-y-auto">
-                            <!-- Notifications will be loaded dynamically here -->
-                        </div>
-                        <!-- View All button will be added dynamically by JavaScript -->
-                    </div>
-                    <div class="flex items-center me-5">
-                        <div>
-                            <button type="button" class="flex text-sm bg-gray-800 rounded-full focus:ring-4 focus:ring-gray-300" aria-expanded="false" data-dropdown-toggle="dropdown-user">
-                                <span class="sr-only">Open user menu</span>
-                                @if (!string.IsNullOrEmpty(@User.FindFirst("Photo")?.Value))
-                                {
-                                    <img class="w-8 h-8 rounded-full" src="@User.FindFirst("Photo")?.Value" alt="user photo">
-                                }
-                                else
-                                {
-                                    <img class="w-8 h-8 rounded-full" src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497" alt="user photo">
-                                }
-                            </button>
-                        </div>
-                        <div class="z-50 hidden my-4 text-base list-none bg-white divide-y divide-gray-100 rounded-sm shadow-sm" id="dropdown-user">
-                            <div class="px-4 py-3" role="none">
-                                <p class="text-sm text-gray-900" role="none">
-                                    @User.FindFirst("FullName")?.Value
-                                </p>
-                                <p class="text-sm font-medium text-gray-900 truncate" role="none">
-                                    @User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
-                                </p>
+                        <!-- Dropdown menu -->
+                        <div id="dropdownNotification" class="z-20 hidden w-full max-w-sm bg-white divide-y divide-gray-100 rounded-lg shadow-lg" aria-labelledby="dropdownNotificationButton">
+                            <div class="block px-4 py-2 font-medium text-center text-gray-700 rounded-t-lg bg-gray-50">
+                                Notifications
                             </div>
-                            <ul class="py-1" role="none">
-                                <li>
-                                    <a asp-controller="Account" asp-action="AccountSettings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Account Settings</a>
-                                </li>
-                                <li>
-                                    <a asp-controller="Account" asp-action="LogOut" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Sign out</a>
-                                </li>
-                            </ul>
+                            <div class="divide-y divide-gray-100 max-h-64 overflow-y-auto">
+                                <!-- Notifications will be loaded dynamically here -->
+                            </div>
+                            <!-- View All button will be added dynamically by JavaScript -->
+                        </div>
+                        <div class="flex items-center me-5">
+                            <div>
+                                <button type="button" class="flex text-sm bg-gray-800 rounded-full focus:ring-4 focus:ring-gray-300" aria-expanded="false" data-dropdown-toggle="dropdown-user">
+                                    <span class="sr-only">Open user menu</span>
+                                    @if (!string.IsNullOrEmpty(@User.FindFirst("Photo")?.Value))
+                                    {
+                                        <img class="w-8 h-8 rounded-full" src="@User.FindFirst("Photo")?.Value" alt="user photo">
+                                    }
+                                    else
+                                    {
+                                        <img class="w-8 h-8 rounded-full" src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497" alt="user photo">
+                                    }
+                                </button>
+                            </div>
+                            <div class="z-50 hidden my-4 text-base list-none bg-white divide-y divide-gray-100 rounded-sm shadow-sm" id="dropdown-user">
+                                <div class="px-4 py-3" role="none">
+                                    <p class="text-sm text-gray-900" role="none">
+                                        @User.FindFirst("FullName")?.Value
+                                    </p>
+                                    <p class="text-sm font-medium text-gray-900 truncate" role="none">
+                                        @User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
+                                    </p>
+                                </div>
+                                <ul class="py-1" role="none">
+                                    <li>
+                                        <a asp-controller="Account" asp-action="AccountSettings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Account Settings</a>
+                                    </li>
+                                    <li>
+                                        <a asp-controller="Account" asp-action="LogOut" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Sign out</a>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </nav>
+        </nav>
 
-    <div class="chat-container">
-        <!-- Mobile overlay -->
-        <div id="sidebar-overlay" class="fixed inset-0 sm:hidden" style="display: none;"></div>
+        <div class="chat-container">
+            <!-- Mobile overlay -->
+            <div id="sidebar-overlay" class="fixed inset-0 sm:hidden" style="display: none;"></div>
 
-        <!-- Chat Sidebar -->
-        <aside id="chat-sidebar" class="fixed top-0 left-0 z-40 w-96 h-screen pt-25 transition-transform -translate-x-full bg-white border-r border-gray-200 sm:translate-x-0" aria-label="Sidebar">
-            <h2 class="text-2xl font-bold pl-7">Chats</h2>
-            @if (ViewBag.ChatList != null && ((List<ChatListItemViewModel>)ViewBag.ChatList).Any())
-            {
-                @foreach (var chat in (List<ChatListItemViewModel>)ViewBag.ChatList)
+            <!-- Chat Sidebar -->
+            <aside id="chat-sidebar" class="fixed top-0 left-0 z-40 w-96 h-screen pt-25 transition-transform -translate-x-full bg-white border-r border-gray-200 sm:translate-x-0" aria-label="Sidebar">
+                <h2 class="text-2xl font-bold pl-7">Chats</h2>
+                @if (ViewBag.ChatList != null && ((List<ChatListItemViewModel>)ViewBag.ChatList).Any())
                 {
-                    <div class="chat-item @(chat.IsActive ? "active" : "")" data-chat-room-id="@chat.ChatRoomId">
-                        <div class="chat-item-header">
-                            <div class="flex items-center space-x-3">
-                                <img class="rounded-full" style="width: 50px; height:auto"
-                                     src="@(string.IsNullOrEmpty(chat.Partner.Photo) ? "https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497" : chat.Partner.Photo)"
-                                     alt="@chat.Partner.FirstName">
-                                <div>
-                                    <div class="chat-item-name">@chat.Partner.FirstName @chat.Partner.LastName</div>
-                                    <div class="chat-item-message text-truncate">@chat.LastMessage</div>
+                    @foreach (var chat in (List<ChatListItemViewModel>)ViewBag.ChatList)
+                    {
+                        <div class="chat-item @(chat.IsActive ? "active" : "")" data-chat-room-id="@chat.ChatRoomId">
+                            <div class="chat-item-header">
+                                <div class="flex items-center space-x-3">
+                                    <img class="rounded-full" style="width: 50px; height:auto"
+                                         src="@(string.IsNullOrEmpty(chat.Partner.Photo) ? "https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497" : chat.Partner.Photo)"
+                                         alt="@chat.Partner.FirstName">
+                                    <div>
+                                        <div class="chat-item-name">@chat.Partner.FirstName @chat.Partner.LastName</div>
+                                        <div class="chat-item-message text-truncate">@chat.LastMessage</div>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end">
+                                    <div class="chat-item-time">@FormatTime(chat.LastMessageTime)</div>
+                                    @if (chat.UnreadCount > 0)
+                                    {
+                                        <div class="unread-badge">@chat.UnreadCount</div>
+                                    }
                                 </div>
                             </div>
-                            <div class="flex flex-col items-end">
-                                <div class="chat-item-time">@FormatTime(chat.LastMessageTime)</div>
-                                @if (chat.UnreadCount > 0)
-                                {
-                                    <div class="unread-badge">@chat.UnreadCount</div>
-                                }
-                            </div>
                         </div>
+                    }
+                }
+                else
+                {
+                    <div class="no-chats p-5">
+                        <i class="fas fa-comments"></i>
+                        <h3 class="text-lg font-medium mb-2">No Active Chats</h3>
+                        <p class="text-sm">You don't have any active conversations yet.</p>
                     </div>
                 }
-            }
-            else
-            {
-                <div class="no-chats p-5">
-                    <i class="fas fa-comments"></i>
-                    <h3 class="text-lg font-medium mb-2">No Active Chats</h3>
-                    <p class="text-sm">You don't have any active conversations yet.</p>
-                </div>
-            }
-        </aside>
+            </aside>
 
-        <!-- Main Chat Area -->
-        <div class="chat-main">
-            @if (ViewBag.SelectedChat != null)
-            {
-                var selectedChat = (ChatViewModel)ViewBag.SelectedChat;
-                var partner = selectedChat.Partner;
-                var isPartnerDeleted = partner?.IsDeleted ?? false;
+            <!-- Main Chat Area -->
+            <div class="chat-main">
+                @if (ViewBag.SelectedChat != null)
+                {
+                    var selectedChat = (ChatViewModel)ViewBag.SelectedChat;
+                    var partner = selectedChat.Partner;
+                    var isPartnerDeleted = partner?.IsDeleted ?? false;
 
-                <!-- Chat Header -->
-                <div class="chat-header">
-                    <div class="flex items-center space-x-3">
-                        <img class="w-10 h-10 rounded-full"
-                             src="@(string.IsNullOrEmpty(partner.Photo) ? "https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497" : partner.Photo)"
-                             alt="@partner.FirstName">
-                        <div>
-                            <h3 class="text-lg font-semibold">@partner.FirstName @partner.LastName</h3>
-                            <!-- Simple security indicator -->
-                            <div class="flex items-center gap-2 text-sm">
-                                <span class="text-green-600 flex items-center gap-1">
-                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    Secure Chat
-                                </span>
-                                <a onclick="showSecurityInfo()"
-                                   title="Security information">
-                                    <svg class="w-[17px] h-[17px] text-blue-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
-                                        <path fill-rule="evenodd" d="M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm9.408-5.5a1 1 0 1 0 0 2h.01a1 1 0 1 0 0-2h-.01ZM10 10a1 1 0 1 0 0 2h1v3h-1a1 1 0 1 0 0 2h4a1 1 0 1 0 0-2h-1v-4a1 1 0 0 0-1-1h-2Z" clip-rule="evenodd" />
-                                    </svg>
-                                </a>
+                    <!-- Chat Header -->
+                    <div class="chat-header">
+                        <div class="flex items-center space-x-3">
+                            <img class="w-10 h-10 rounded-full"
+                                 src="@(string.IsNullOrEmpty(partner.Photo) ? "https://ik.imagekit.io/6txj3mofs/GIGHub%20(11).png?updatedAt=1750552804497" : partner.Photo)"
+                                 alt="@partner.FirstName">
+                            <div>
+                                <h3 class="text-lg font-semibold">@partner.FirstName @partner.LastName</h3>
+                                <!-- Simple security indicator -->
+                                <div class="flex items-center gap-2 text-sm">
+                                    <span class="text-green-600 flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Secure Chat
+                                    </span>
+                                    <a onclick="showSecurityInfo()"
+                                       title="Security information">
+                                        <svg class="w-[17px] h-[17px] text-blue-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                                            <path fill-rule="evenodd" d="M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm9.408-5.5a1 1 0 1 0 0 2h.01a1 1 0 1 0 0-2h-.01ZM10 10a1 1 0 1 0 0 2h1v3h-1a1 1 0 1 0 0 2h4a1 1 0 1 0 0-2h-1v-4a1 1 0 0 0-1-1h-2Z" clip-rule="evenodd" />
+                                        </svg>
+                                    </a>
+                                </div>
                             </div>
                         </div>
+                        <div class="flex items-center gap-2">
+                            @if (isPartnerDeleted)
+                            {
+                                <button class="btn-video opacity-50 cursor-not-allowed" disabled title="User unavailable">
+                                    <svg class="w-6 h-6 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 6H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1Zm7 11-6-2V9l6-2v10Z" />
+                                    </svg>
+                                </button>
+                            }
+                            else
+                            {
+                                <button class="btn-video" onclick="startVideoCall()" title="Start Video Call">
+                                    <svg class="w-6 h-6 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 6H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1Zm7 11-6-2V9l6-2v10Z" />
+                                    </svg>
+                                </button>
+                            }
+                        </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        @if (isPartnerDeleted)
+
+                    <!-- Chat Messages -->
+                    <div class="chat-messages" id="messagesContainer">
+                        @if (selectedChat.ChatRoomId == Guid.Empty)
                         {
-                            <button class="btn-video opacity-50 cursor-not-allowed" disabled title="User unavailable">
-                                <svg class="w-6 h-6 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 6H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1Zm7 11-6-2V9l6-2v10Z" />
-                                </svg>
-                            </button>
+                            <div class="message system" data-message-id="new-chat">
+                                <div class="message-bubble system-message">
+                                    <div class="system-message-content">
+                                        <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                                        <span>Start a new conversation with @selectedChat.Partner.FirstName @selectedChat.Partner.LastName.</span>
+                                    </div>
+                                </div>
+                            </div>
                         }
                         else
                         {
-                            <button class="btn-video" onclick="startVideoCall()" title="Start Video Call">
-                                <svg class="w-6 h-6 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 6H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1Zm7 11-6-2V9l6-2v10Z" />
-                                </svg>
-                            </button>
+                            @foreach (var message in selectedChat.Messages)
+                            {
+                                <div class="message @(message.IsCurrentUser ? "own" : "") @(message.MessageType == "system" ? "system" : "")" data-message-id="@message.Id">
+                                    <div class="message-bubble @(message.MessageType == "system" ? "system-message" : "")">
+
+                                        @if (message.MessageType == "system")
+                                        {
+                                            <div class="system-message-content">
+                                                <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                                                <span>@message.Message</span>
+                                            </div>
+                                        }
+                                        else if (message.MessageType == "file")
+                                        {
+                                            <div class="file-message">
+                                                <div class="file-icon">
+                                                    <svg class="w-[24px] h-[24px] text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                                                        <path fill-rule="evenodd" d="M9 2.221V7H4.221a2 2 0 0 1 .365-.5L8.5 2.586A2 2 0 0 1 9 2.22ZM11 2v5a2 2 0 0 1-2 2H4v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-7Z" clip-rule="evenodd" />
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <a href="@message.FileUrl" download class="hover:underline">
+                                                        @message.Message
+                                                    </a>
+                                                    <div class="text-xs opacity-75">
+                                                        @(message.FileSize.HasValue ? (message.FileSize.Value / 1024.0 / 1024.0).ToString("F2") + " MB" : "")
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                        else if (message.MessageType == "image")
+                                        {
+                                            <div class="image-message">
+                                                <img src="@message.FileUrl" alt="@message.Message"
+                                                     class="max-w rounded-lg cursor-pointer"
+                                                     onclick="openImageModal('@message.FileUrl')"
+                                                     style="max-height: 300px; object-fit: cover;">
+                                            </div>
+                                        }
+                                        else if (message.MessageType == "video")
+                                        {
+                                            <div class="video-message">
+                                                <video class="max-w-xs rounded-lg" controls style="max-height: 200px;">
+                                                    <source src="@message.FileUrl" type="@message.FileType">
+                                                    Your browser does not support the video tag.
+                                                </video>
+                                                <div class="text-xs opacity-75 mt-1">@message.Message</div>
+                                                @if (message.FileSize.HasValue)
+                                                {
+                                                    <div class="text-xs opacity-75">@((message.FileSize.Value / 1024.0 / 1024.0).ToString("F2")) MB</div>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="message-content">@message.Message</div>
+                                        }
+
+                                        @if (message.MessageType != "system")
+                                        {
+                                            <div class="message-time" data-timestamp="@message.SentAt.ToString("yyyy-MM-ddTHH:mm:ss")">
+                                                @FormatTime(message.SentAt)
+                                                @if (message.IsCurrentUser)
+                                                {
+                                                    <i class="fas fa-check" title="Sent"></i>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
                         }
                     </div>
-                </div>
 
-                <!-- Chat Messages -->
-                <div class="chat-messages" id="messagesContainer">
-                    @if (selectedChat.ChatRoomId == Guid.Empty)
-                    {
-                        <div class="message system" data-message-id="new-chat">
-                            <div class="message-bubble system-message">
-                                <div class="system-message-content">
-                                    <i class="fas fa-info-circle text-blue-500 mr-2"></i>
-                                    <span>Start a new conversation with @selectedChat.Partner.FirstName @selectedChat.Partner.LastName.</span>
+                    <!-- Typing Indicator -->
+                    <div class="typing-indicator px-4 py-2" id="typingIndicator" style="display: none;">
+                        <i class="fas fa-circle animate-pulse"></i>
+                        <i class="fas fa-circle animate-pulse" style="animation-delay: 0.2s;"></i>
+                        <i class="fas fa-circle animate-pulse" style="animation-delay: 0.4s;"></i>
+                        <span class="ml-2">@partner.FirstName is typing...</span>
+                    </div>
+
+                    <!-- Security Information Modal -->
+                    <div id="securityInfoModal" class="fixed inset-0 hidden z-50" style="background: rgba(0,0,0,0.8);">
+                        <div class="flex items-center justify-center min-h-screen px-4">
+                            <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="text-lg font-semibold">Chat Security</h3>
+                                    <button onclick="hideSecurityInfo()" class="text-gray-400 hover:text-gray-600">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
                                 </div>
+
+                                <div class="space-y-4">
+                                    <div class="flex items-start gap-3">
+                                        <div class="text-green-500 mt-1">
+                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-medium text-gray-900">Encrypted Storage</h4>
+                                            <p class="text-sm text-gray-600">Your messages are encrypted using AES-256 encryption before being stored in our database.</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-start gap-3">
+                                        <div class="text-blue-500 mt-1">
+                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-medium text-gray-900">Secure Transmission</h4>
+                                            <p class="text-sm text-gray-600">All messages are sent over HTTPS and processed securely on our servers.</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-start gap-3">
+                                        <div class="text-purple-500 mt-1">
+                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd"></path>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-medium text-gray-900">Access Control</h4>
+                                            <p class="text-sm text-gray-600">Only authorized mentors and mentees can access their conversation messages.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-6 bg-blue-50 border border-blue-200 rounded-md p-4">
+                                    <div class="flex">
+                                        <div class="text-blue-400 mr-2">
+                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-sm font-medium text-blue-800">Server-Side Security</h4>
+                                            <p class="text-sm text-blue-700">Messages are automatically encrypted and decrypted by our secure servers to provide the best user experience.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-6 flex justify-end">
+                                    <button onclick="hideSecurityInfo()"
+                                            class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                                        Got it
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chat Input -->
+                    @if (isPartnerDeleted)
+                    {
+                        <div class="chat-input">
+                            <div class="p-4 text-sm text-gray-600 text-center">
+                                This user's account is no longer available. Messaging and video calls are disabled.
                             </div>
                         </div>
                     }
                     else
                     {
-                        @foreach (var message in selectedChat.Messages)
-                        {
-                            <div class="message @(message.IsCurrentUser ? "own" : "") @(message.MessageType == "system" ? "system" : "")" data-message-id="@message.Id">
-                                <div class="message-bubble @(message.MessageType == "system" ? "system-message" : "")">
+                        <div class="chat-input">
+                            <form id="messageForm" class="flex space-x-2">
+                                <input type="hidden" id="currentChatRoomId" value="@selectedChat.ChatRoomId" />
+                                <input type="hidden" id="currentUserId" value="@ViewBag.CurrentUserId" />
+                                @if (!string.IsNullOrEmpty(selectedChat.TargetUserId))
+                                {
+                                    <input type="hidden" id="targetUserId" value="@selectedChat.TargetUserId" />
+                                }
 
-                                    @if (message.MessageType == "system")
-                                    {
-                                        <div class="system-message-content">
-                                            <i class="fas fa-info-circle text-blue-500 mr-2"></i>
-                                            <span>@message.Message</span>
-                                        </div>
-                                    }
-                                    else if (message.MessageType == "file")
-                                    {
-                                        <div class="file-message">
-                                            <div class="file-icon">
-                                                <svg class="w-[24px] h-[24px] text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
-                                                    <path fill-rule="evenodd" d="M9 2.221V7H4.221a2 2 0 0 1 .365-.5L8.5 2.586A2 2 0 0 1 9 2.22ZM11 2v5a2 2 0 0 1-2 2H4v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-7Z" clip-rule="evenodd" />
-                                                </svg>
-                                            </div>
-                                            <div>
-                                                <a href="@message.FileUrl" download class="hover:underline">
-                                                    @message.Message
-                                                </a>
-                                                <div class="text-xs opacity-75">
-                                                    @(message.FileSize.HasValue ? (message.FileSize.Value / 1024.0 / 1024.0).ToString("F2") + " MB" : "")
-                                                </div>
-                                            </div>
-                                        </div>
-                                    }
-                                    else if (message.MessageType == "image")
-                                    {
-                                        <div class="image-message">
-                                            <img src="@message.FileUrl" alt="@message.Message"
-                                                 class="max-w rounded-lg cursor-pointer"
-                                                 onclick="openImageModal('@message.FileUrl')"
-                                                 style="max-height: 300px; object-fit: cover;">
-                                        </div>
-                                    }
-                                    else if (message.MessageType == "video")
-                                    {
-                                        <div class="video-message">
-                                            <video class="max-w-xs rounded-lg" controls style="max-height: 200px;">
-                                                <source src="@message.FileUrl" type="@message.FileType">
-                                                Your browser does not support the video tag.
-                                            </video>
-                                            <div class="text-xs opacity-75 mt-1">@message.Message</div>
-                                            @if (message.FileSize.HasValue)
-                                            {
-                                                <div class="text-xs opacity-75">@((message.FileSize.Value / 1024.0 / 1024.0).ToString("F2")) MB</div>
-                                            }
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <div class="message-content">@message.Message</div>
-                                    }
-
-                                    @if (message.MessageType != "system")
-                                    {
-                                        <div class="message-time" data-timestamp="@message.SentAt.ToString("yyyy-MM-ddTHH:mm:ss")">
-                                            @FormatTime(message.SentAt)
-                                            @if (message.IsCurrentUser)
-                                            {
-                                                <i class="fas fa-check" title="Sent"></i>
-                                            }
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        }
-                    }
-                </div>
-
-                <!-- Typing Indicator -->
-                <div class="typing-indicator px-4 py-2" id="typingIndicator" style="display: none;">
-                    <i class="fas fa-circle animate-pulse"></i>
-                    <i class="fas fa-circle animate-pulse" style="animation-delay: 0.2s;"></i>
-                    <i class="fas fa-circle animate-pulse" style="animation-delay: 0.4s;"></i>
-                    <span class="ml-2">@partner.FirstName is typing...</span>
-                </div>
-
-                <!-- Security Information Modal -->
-                <div id="securityInfoModal" class="fixed inset-0 hidden z-50" style="background: rgba(0,0,0,0.8);">
-                    <div class="flex items-center justify-center min-h-screen px-4">
-                        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-lg font-semibold">Chat Security</h3>
-                                <button onclick="hideSecurityInfo()" class="text-gray-400 hover:text-gray-600">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                <label for="fileInput" class="flex items-center justify-center w-8 h-8 mt-1 text-gray-500 hover:text-gray-700 cursor-pointer">
+                                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                        <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                        <g id="SVGRepo_iconCarrier">
+                                            <path d="M17 5.93023V16C17 18.7614 14.7614 21 12 21C9.23858 21 7 18.7614 7 16V6.33333C7 4.49238 8.49238 3 10.3333 3C12.1743 3 13.6667 4.49238 13.6667 6.33333V15.9845C13.6667 16.905 12.9205 17.6512 12 17.6512C11.0795 17.6512 10.3333 16.905 10.3333 15.9845V6.5" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                                        </g>
                                     </svg>
+                                </label>
+                                <input type="file" id="fileInput" class="hidden" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.webp,.bmp,.mp4,.mov,.avi,.wmv,.flv,.webm" />
+
+                                <input type="text" id="messageInput"
+                                       class="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       placeholder="@(selectedChat.ChatRoomId == Guid.Empty ? "Type your first message to start the conversation..." : "Type your message...")" />
+
+                                <button type="submit"
+                                        class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                                    <i class="fas fa-paper-plane"></i>
                                 </button>
-                            </div>
-
-                            <div class="space-y-4">
-                                <div class="flex items-start gap-3">
-                                    <div class="text-green-500 mt-1">
-                                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h4 class="font-medium text-gray-900">Encrypted Storage</h4>
-                                        <p class="text-sm text-gray-600">Your messages are encrypted using AES-256 encryption before being stored in our database.</p>
-                                    </div>
-                                </div>
-
-                                <div class="flex items-start gap-3">
-                                    <div class="text-blue-500 mt-1">
-                                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h4 class="font-medium text-gray-900">Secure Transmission</h4>
-                                        <p class="text-sm text-gray-600">All messages are sent over HTTPS and processed securely on our servers.</p>
-                                    </div>
-                                </div>
-
-                                <div class="flex items-start gap-3">
-                                    <div class="text-purple-500 mt-1">
-                                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd"></path>
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h4 class="font-medium text-gray-900">Access Control</h4>
-                                        <p class="text-sm text-gray-600">Only authorized mentors and mentees can access their conversation messages.</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="mt-6 bg-blue-50 border border-blue-200 rounded-md p-4">
-                                <div class="flex">
-                                    <div class="text-blue-400 mr-2">
-                                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h4 class="text-sm font-medium text-blue-800">Server-Side Security</h4>
-                                        <p class="text-sm text-blue-700">Messages are automatically encrypted and decrypted by our secure servers to provide the best user experience.</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="mt-6 flex justify-end">
-                                <button onclick="hideSecurityInfo()"
-                                        class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
-                                    Got it
-                                </button>
-                            </div>
+                            </form>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Chat Input -->
-                @if (isPartnerDeleted)
-                {
-                    <div class="chat-input">
-                        <div class="p-4 text-sm text-gray-600 text-center">
-                            This user's account is no longer available. Messaging and video calls are disabled.
-                        </div>
-                    </div>
+                    }
                 }
-                else
-                {
-                    <div class="chat-input">
-                        <form id="messageForm" class="flex space-x-2">
-                            <input type="hidden" id="currentChatRoomId" value="@selectedChat.ChatRoomId" />
-                            <input type="hidden" id="currentUserId" value="@ViewBag.CurrentUserId" />
-                            @if (!string.IsNullOrEmpty(selectedChat.TargetUserId))
-                            {
-                                <input type="hidden" id="targetUserId" value="@selectedChat.TargetUserId" />
-                            }
-
-                            <label for="fileInput" class="flex items-center justify-center w-8 h-8 mt-1 text-gray-500 hover:text-gray-700 cursor-pointer">
-                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-                                    <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
-                                    <g id="SVGRepo_iconCarrier">
-                                        <path d="M17 5.93023V16C17 18.7614 14.7614 21 12 21C9.23858 21 7 18.7614 7 16V6.33333C7 4.49238 8.49238 3 10.3333 3C12.1743 3 13.6667 4.49238 13.6667 6.33333V15.9845C13.6667 16.905 12.9205 17.6512 12 17.6512C11.0795 17.6512 10.3333 16.905 10.3333 15.9845V6.5" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    </g>
-                                </svg>
-                            </label>
-                            <input type="file" id="fileInput" class="hidden" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.webp,.bmp,.mp4,.mov,.avi,.wmv,.flv,.webm" />
-
-                            <input type="text" id="messageInput"
-                                   class="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                   placeholder="@(selectedChat.ChatRoomId == Guid.Empty ? "Type your first message to start the conversation..." : "Type your message...")" />
-
-                            <button type="submit"
-                                    class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
-                        </form>
-                    </div>
-                }
-            }
-        </div>
-    </div>
-
-    <!-- Image Modal -->
-    <div class="modal" id="imageModal">
-        <div class="modal-content">
-            <span class="close" onclick="closeImageModal()">&times;</span>
-            <img id="modalImage" style="max-width: 100%; max-height: 80vh;">
-        </div>
-    </div>
-
-    <!-- Call Waiting Notification -->
-    <div class="call-waiting-notification" id="callWaitingNotification" style="display: none;">
-        <div class="flex items-center gap-3 mb-3">
-            <i class="fas fa-phone text-2xl text-orange-500"></i>
-            <div>
-                <div class="font-semibold">Calling...</div>
-                <div class="text-sm text-gray-600">Waiting for response</div>
             </div>
         </div>
-        <div class="flex gap-2">
-            <button class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
-                    onclick="cancelVideoCall()">
-                <i class="fas fa-times"></i> Cancel
-            </button>
+
+        <!-- Image Modal -->
+        <div class="modal" id="imageModal">
+            <div class="modal-content">
+                <span class="close" onclick="closeImageModal()">&times;</span>
+                <img id="modalImage" style="max-width: 100%; max-height: 80vh;">
+            </div>
         </div>
-    </div>
 
-    <script src="~/js/site.js" asp-append-version="true"></script>
-    <script src="~/js/notification.js" asp-append-version="true"></script>
-    <script src="~/js/global-video-call.js" asp-append-version="true"></script>
-    <script src="~/js/project-chat.js" asp-append-version="true"></script>
-    <script src="~/js/search.js" asp-append-version="true"></script>
-    <script src="~/js/message-counter.js" asp-append-version="true"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+        <!-- Call Waiting Notification -->
+        <div class="call-waiting-notification" id="callWaitingNotification" style="display: none;">
+            <div class="flex items-center gap-3 mb-3">
+                <i class="fas fa-phone text-2xl text-orange-500"></i>
+                <div>
+                    <div class="font-semibold">Calling...</div>
+                    <div class="text-sm text-gray-600">Waiting for response</div>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
+                        onclick="cancelVideoCall()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+            </div>
+        </div>
 
-    <script>
-        // Global functions for security modal
-        function showSecurityInfo() {
-            document.getElementById('securityInfoModal').classList.remove('hidden');
-        }
+        <script src="~/js/site.js" asp-append-version="true"></script>
+        <script src="~/js/notification.js" asp-append-version="true"></script>
+        <script src="~/js/global-video-call.js" asp-append-version="true"></script>
+        <script src="~/js/project-chat.js" asp-append-version="true"></script>
+        <script src="~/js/search.js" asp-append-version="true"></script>
+        <script src="~/js/message-counter.js" asp-append-version="true"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
 
-        function hideSecurityInfo() {
-            document.getElementById('securityInfoModal').classList.add('hidden');
-        }
+        <script>
+            let loadingProgress = 0;
+            let loadingSteps = [
+                { text: "Loading Messages", subtext: "Please wait..." },
+                { text: "Loading Messages", subtext: "Please wait..." },
+                { text: "Loading Messages", subtext: "Please wait..." },
+                { text: "Loading Messages", subtext: "Please wait..." },
+                { text: "Chat Ready!"}
+            ];
+            let currentStep = 0;
 
-        // Video call functionality
-        function startVideoCall() {
-            if (typeof initiateVideoCall === 'function') {
-                initiateVideoCall();
-            } else {
-                const currentChatRoomId = document.getElementById('currentChatRoomId').value;
-                if (currentChatRoomId && currentChatRoomId !== '00000000-0000-0000-0000-000000000000') {
-                    // Open video call in a new window
-                    const videoCallUrl = `/Chat/VideoCall?chatRoomId=${currentChatRoomId}`;
-                    window.open(videoCallUrl, 'VideoCall', 'width=800,height=600,scrollbars=no,resizable=yes');
+            function updateLoadingProgress(progress, stepIndex = null) {
+                const progressBar = document.getElementById('loadingProgressBar');
+                const loadingText = document.querySelector('.loading-text');
+                const loadingSubtext = document.querySelector('.loading-subtext');
+
+                if (progressBar) {
+                    progressBar.style.width = progress + '%';
+                }
+
+                if (stepIndex !== null && stepIndex < loadingSteps.length) {
+                    loadingText.textContent = loadingSteps[stepIndex].text;
+                    loadingSubtext.textContent = loadingSteps[stepIndex].subtext;
+                    currentStep = stepIndex;
+                }
+            }
+
+            function hideLoadingOverlay() {
+                const overlay = document.getElementById('chatLoadingOverlay');
+                const mainContent = document.getElementById('chatMainContent');
+
+                // Final step
+                updateLoadingProgress(100, 4);
+
+                setTimeout(() => {
+                    overlay.style.opacity = '0';
+                    setTimeout(() => {
+                        overlay.style.display = 'none';
+                        mainContent.classList.add('loaded');
+                    }, 300);
+                }, 800);
+            }
+
+            // Initialize loading
+            document.addEventListener('DOMContentLoaded', function() {
+                updateLoadingProgress(20, 0);
+
+                // Simulate loading progress
+                setTimeout(() => updateLoadingProgress(40, 1), 500);
+                setTimeout(() => updateLoadingProgress(60, 2), 1000);
+                setTimeout(() => updateLoadingProgress(80, 3), 1500);
+            });
+
+            // Listen for SignalR ready event
+            window.addEventListener('signalRReady', function(event) {
+                console.log('SignalR systems ready:', event.detail);
+                hideLoadingOverlay();
+            });
+
+            // Fallback - hide loading after maximum time
+            setTimeout(() => {
+                if (document.getElementById('chatLoadingOverlay').style.display !== 'none') {
+                    console.log('Loading timeout reached, showing chat anyway');
+                    hideLoadingOverlay();
+                }
+            }, 5000);
+
+            // Global functions for security modal
+            function showSecurityInfo() {
+                document.getElementById('securityInfoModal').classList.remove('hidden');
+            }
+
+            function hideSecurityInfo() {
+                document.getElementById('securityInfoModal').classList.add('hidden');
+            }
+
+            // Video call functionality
+            function startVideoCall() {
+                if (typeof initiateVideoCall === 'function') {
+                    initiateVideoCall();
                 } else {
-                    alert('Please start a conversation first before making a video call.');
+                    const currentChatRoomId = document.getElementById('currentChatRoomId').value;
+                    if (currentChatRoomId && currentChatRoomId !== '00000000-0000-0000-0000-000000000000') {
+                        // Open video call in a new window
+                        const videoCallUrl = `/Chat/VideoCall?chatRoomId=${currentChatRoomId}`;
+                        window.open(videoCallUrl, 'VideoCall', 'width=800,height=600,scrollbars=no,resizable=yes');
+                    } else {
+                        alert('Please start a conversation first before making a video call.');
+                    }
                 }
             }
-        }
 
-        // Sidebar toggle functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            const sidebarToggle = document.getElementById('sidebar-toggle');
-            const sidebar = document.getElementById('chat-sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
+            // Sidebar toggle functionality
+            document.addEventListener('DOMContentLoaded', function() {
+                const sidebarToggle = document.getElementById('sidebar-toggle');
+                const sidebar = document.getElementById('chat-sidebar');
+                const overlay = document.getElementById('sidebar-overlay');
 
-            // Close modal when clicking outside
-            document.getElementById('securityInfoModal').addEventListener('click', function(e) {
-                if (e.target === this) {
-                    hideSecurityInfo();
-                }
-            });
-
-            function openSidebar() {
-                sidebar.classList.remove('-translate-x-full');
-                overlay.style.display = 'block';
-                document.body.style.overflow = 'hidden';
-            }
-
-            function closeSidebar() {
-                sidebar.classList.add('-translate-x-full');
-                overlay.style.display = 'none';
-                document.body.style.overflow = '';
-            }
-
-            // Toggle sidebar on button click
-            sidebarToggle.addEventListener('click', function() {
-                if (sidebar.classList.contains('-translate-x-full')) {
-                    openSidebar();
-                } else {
-                    closeSidebar();
-                }
-            });
-
-            // Close sidebar when clicking overlay
-            overlay.addEventListener('click', closeSidebar);
-
-            // Close sidebar on escape key
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape' && !sidebar.classList.contains('-translate-x-full')) {
-                    closeSidebar();
-                }
-            });
-
-            // Handle window resize
-            window.addEventListener('resize', function() {
-                if (window.innerWidth >= 640) { // sm breakpoint
-                    closeSidebar();
-                }
-            });
-
-            const chatItems = document.querySelectorAll('.chat-item');
-            chatItems.forEach(item => {
-                item.addEventListener('click', function() {
-                    const chatRoomId = this.getAttribute('data-chat-room-id');
-                    if (chatRoomId && chatRoomId !== '00000000-0000-0000-0000-000000000000') {
-                        if (connection && connection.state === signalR.HubConnectionState.Connected) {
-                            connection.invoke("MarkAllMessagesAsRead", chatRoomId).catch(err => {
-                                console.error('Error marking messages as read:', err);
-                            });
-                        }
-
-                        window.location.href = `/Chat/Index?chatRoomId=${chatRoomId}`;
+                // Close modal when clicking outside
+                document.getElementById('securityInfoModal').addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        hideSecurityInfo();
                     }
                 });
-            });
 
-            const currentChatRoomId = document.getElementById('currentChatRoomId')?.value;
-            if (currentChatRoomId && currentChatRoomId !== '00000000-0000-0000-0000-000000000000') {
-                setTimeout(() => {
-                    if (connection && connection.state === signalR.HubConnectionState.Connected) {
-                        connection.invoke("MarkAllMessagesAsRead", currentChatRoomId).catch(err => {
-                            console.error('Error marking messages as read on page load:', err);
-                        });
+                function openSidebar() {
+                    sidebar.classList.remove('-translate-x-full');
+                    overlay.style.display = 'block';
+                    document.body.style.overflow = 'hidden';
+                }
+
+                function closeSidebar() {
+                    sidebar.classList.add('-translate-x-full');
+                    overlay.style.display = 'none';
+                    document.body.style.overflow = '';
+                }
+
+                // Toggle sidebar on button click
+                sidebarToggle.addEventListener('click', function() {
+                    if (sidebar.classList.contains('-translate-x-full')) {
+                        openSidebar();
+                    } else {
+                        closeSidebar();
                     }
-                }, 1000);
-            }
-        });
-    </script>
+                });
+
+                // Close sidebar when clicking overlay
+                overlay.addEventListener('click', closeSidebar);
+
+                // Close sidebar on escape key
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && !sidebar.classList.contains('-translate-x-full')) {
+                        closeSidebar();
+                    }
+                });
+
+                // Handle window resize
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth >= 640) { // sm breakpoint
+                        closeSidebar();
+                    }
+                });
+
+                const chatItems = document.querySelectorAll('.chat-item');
+                chatItems.forEach(item => {
+                    item.addEventListener('click', function() {
+                        const chatRoomId = this.getAttribute('data-chat-room-id');
+                        if (chatRoomId && chatRoomId !== '00000000-0000-0000-0000-000000000000') {
+                            if (connection && connection.state === signalR.HubConnectionState.Connected) {
+                                connection.invoke("MarkAllMessagesAsRead", chatRoomId).catch(err => {
+                                    console.error('Error marking messages as read:', err);
+                                });
+                            }
+
+                            window.location.href = `/Chat/Index?chatRoomId=${chatRoomId}`;
+                        }
+                    });
+                });
+
+                const currentChatRoomId = document.getElementById('currentChatRoomId')?.value;
+                if (currentChatRoomId && currentChatRoomId !== '00000000-0000-0000-0000-000000000000') {
+                    setTimeout(() => {
+                        if (connection && connection.state === signalR.HubConnectionState.Connected) {
+                            connection.invoke("MarkAllMessagesAsRead", currentChatRoomId).catch(err => {
+                                console.error('Error marking messages as read on page load:', err);
+                            });
+                        }
+                    }, 1000);
+                }
+            });
+        </script>
+    </div>
 </body>
 </html>
 

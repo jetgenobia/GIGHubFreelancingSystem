@@ -239,6 +239,14 @@ function startConnection() {
         if (currentChatRoomId && currentChatRoomId !== 'new') {
             connection.invoke('JoinChatRoom', currentChatRoomId);
         }
+
+        // Dispatch event to hide loading overlay
+        window.dispatchEvent(new CustomEvent('signalRReady', {
+            detail: {
+                connectionReady: isConnectionReady,
+                chatRoomId: currentChatRoomId
+            }
+        }));
     }).catch(err => {
         console.error('SignalR Connection Error: ', err);
         isConnectionReady = false;
@@ -251,6 +259,13 @@ function startConnection() {
         } else {
             console.error('Max connection attempts reached');
             showError('Unable to connect to the server. Please refresh the page.');
+
+            // Hide loading overlay even on connection failure
+            setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('signalRReady', {
+                    detail: { connectionReady: false, error: true }
+                }));
+            }, 1000);
         }
     });
 }
