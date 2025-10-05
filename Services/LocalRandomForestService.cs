@@ -172,8 +172,16 @@ namespace Freelancing.Services
                     _logger.LogInformation("Limited training data to 50 samples for memory constraints");
                 }
 
+                _logger.LogInformation("Training ML model with {Count} samples", trainingData.Count);
+
+                // Validate that we have actual training data
+                if (!trainingData.Any())
+                {
+                    throw new InvalidOperationException("No training data available - cannot train model");
+                }
+
                 // Convert to ML.NET format
-                var dataView = _mlContext.Data.LoadFromEnumerable(trainingData.Select(x => new SmartHiringTrainingInput
+                var mlNetData = trainingData.Select(x => new SmartHiringTrainingInput
                 {
                     SkillMatchScore = x.SkillMatchScore,
                     AvgRating = x.AvgRating,
@@ -193,12 +201,23 @@ namespace Freelancing.Services
                     WorkloadFactor = x.WorkloadFactor,
                     MentorshipProgramCompleted = x.MentorshipProgramCompleted,
                     IsSuccessfulMatch = x.IsSuccessfulMatch == 1
-                }));
+                }).ToList();
 
-                // Clear training data from memory
+                var dataView = _mlContext.Data.LoadFromEnumerable(mlNetData);
+
+                // Clear training data from memory after conversion
                 trainingData.Clear();
                 trainingData = null;
+                mlNetData.Clear();
+                mlNetData = null;
                 GC.Collect();
+
+                // Validate the data view has data
+                var rowCount = dataView.GetRowCount();
+                if (!rowCount.HasValue || rowCount.Value == 0)
+                {
+                    throw new InvalidOperationException("DataView contains no rows - cannot train model");
+                }
 
                 // Use a more memory-efficient pipeline
                 var pipeline = _mlContext.Transforms.Concatenate("Features",
@@ -225,7 +244,7 @@ namespace Freelancing.Services
                         numberOfIterations: 5)); // Reduced iterations
 
                 // Train the model
-                _logger.LogInformation("Training ML model with {Count} samples", dataView.GetRowCount() ?? 0);
+                _logger.LogInformation("Training ML model with {Count} samples", rowCount.Value);
                 var model = pipeline.Fit(dataView);
 
                 // Save the model
