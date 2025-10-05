@@ -96,6 +96,7 @@ namespace Freelancing.Services
                 <h2>Welcome to GigHub!</h2>
                 <p>Please confirm your email address by clicking the link below:</p>
                 <p><a href='{callbackUrl}'>Confirm Email</a></p>
+                <p><strong>This confirmation link will expire in 24 hours.</strong></p>
                 <p>If you didn't create this account, please ignore this email.</p>
                 <p>Best regards,<br/>The GigHub Team</p>";
 

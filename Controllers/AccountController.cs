@@ -128,25 +128,213 @@ namespace Freelancing.Controllers
         {
             if (userId == null || token == null)
             {
-                return RedirectToAction("Index", "Home");
+                ViewBag.Error = "Invalid confirmation link.";
+                return View();
             }
 
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
             {
-                return NotFound($"Unable to load user with ID '{userId}'.");
+                ViewBag.Error = "User not found.";
+                return View();
             }
 
-            var decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token));
-            var result = await _userManager.ConfirmEmailAsync(user, decodedToken);
-
-            if (result.Succeeded)
+            // Check if email is already confirmed
+            if (await _userManager.IsEmailConfirmedAsync(user))
             {
-                ViewBag.Message = "Thank you for confirming your email. You can now log in.";
+                ViewBag.Message = "Your email has already been confirmed. You can now log in.";
+                return View();
             }
-            else
+
+            try
             {
-                ViewBag.Error = "Error confirming your email.";
+                var decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token));
+                var result = await _userManager.ConfirmEmailAsync(user, decodedToken);
+
+                if (result.Succeeded)
+                {
+                    ViewBag.Message = "Thank you for confirming your email. You can now log in.";
+                    ViewBag.ShowLoginButton = true;
+                }
+                else
+                {
+                    // Check if the error is due to an invalid/expired token
+                    if (result.Errors.Any(e =>
+                        string.Equals(e.Code, "InvalidToken", StringComparison.OrdinalIgnoreCase) ||
+                        (e.Description?.Contains("expired", StringComparison.OrdinalIgnoreCase) ?? false) ||
+                        (e.Description?.Contains("Invalid token", StringComparison.OrdinalIgnoreCase) ?? false)))
+                    {
+                        ViewBag.Error = "Your email confirmation link has expired or is invalid.";
+                        ViewBag.ShowResendOption = true;
+                        ViewBag.UserId = userId;
+                        ViewBag.UserEmail = user.Email;
+                    }
+                    else
+                    {
+                        ViewBag.Error = "Error confirming your email. Please try again or contact support.";
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                ViewBag.Error = "Your email confirmation link is invalid or has expired.";
+                ViewBag.ShowResendOption = true;
+                ViewBag.UserId = userId;
+                ViewBag.UserEmail = user.Email;
+            }
+
+            return View();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ResendEmailConfirmation(string userId)
+        {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return NotFound();
+            }
+
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                ViewBag.Error = "User not found.";
+                return View();
+            }
+
+            // Check if email is already confirmed
+            if (await _userManager.IsEmailConfirmedAsync(user))
+            {
+                ViewBag.Message = "Your email has already been confirmed. You can log in now.";
+                return View();
+            }
+
+            var model = new ResendEmailConfirmationViewModel
+            {
+                UserId = userId,
+                Email = user.Email!
+            };
+
+            return View(model);
+        }
+
+        [HttpPost]
+        [EnableRateLimiting("AuthPolicy")]
+        public async Task<IActionResult> ResendEmailConfirmation(ResendEmailConfirmationViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var user = await _userManager.FindByIdAsync(model.UserId);
+            if (user == null)
+            {
+                ViewBag.Error = "User not found.";
+                return View(model);
+            }
+
+            // Check if email is already confirmed
+            if (await _userManager.IsEmailConfirmedAsync(user))
+            {
+                ViewBag.Message = "Your email has already been confirmed. You can log in now.";
+                return View(model);
+            }
+
+            try
+            {
+                // Generate new email confirmation token
+                var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+                var callbackUrl = Url.Action("ConfirmEmail", "Account",
+                    new { userId = user.Id, token = encodedToken },
+                    Request.Scheme);
+
+                // Send new confirmation email
+                await _emailService.SendEmailConfirmationAsync(user.Email!, callbackUrl!);
+
+                ViewBag.Message = "A new confirmation email has been sent. Please check your email and follow the instructions.";
+            }
+            catch (Exception)
+            {
+                ViewBag.Error = "We couldn't send the confirmation email. Please try again later or contact support.";
+            }
+
+            return View(model);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CancelRegistration(string userId)
+        {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return NotFound();
+            }
+
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                ViewBag.Error = "User not found.";
+                return View();
+            }
+
+            // Only allow cancellation if email is not confirmed
+            if (await _userManager.IsEmailConfirmedAsync(user))
+            {
+                ViewBag.Error = "Cannot cancel a confirmed account. Please use the normal account deletion process.";
+                return View();
+            }
+
+            var model = new CancelRegistrationViewModel
+            {
+                UserId = userId,
+                Email = user.Email!,
+                UserName = user.UserName!
+            };
+
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [EnableRateLimiting("AuthPolicy")]
+        public async Task<IActionResult> CancelRegistrationConfirmed(CancelRegistrationViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View("CancelRegistration", model);
+            }
+
+            var user = await _userManager.FindByIdAsync(model.UserId);
+            if (user == null)
+            {
+                ViewBag.Error = "User not found.";
+                return View("CancelRegistration", model);
+            }
+
+            // Only allow cancellation if email is not confirmed
+            if (await _userManager.IsEmailConfirmedAsync(user))
+            {
+                ViewBag.Error = "Cannot cancel a confirmed account.";
+                return View("CancelRegistration", model);
+            }
+
+            try
+            {
+                // Delete the unconfirmed user account
+                var result = await _userManager.DeleteAsync(user);
+                if (result.Succeeded)
+                {
+                    ViewBag.Message = "Your registration has been cancelled successfully. You can now register again with the same email address if you wish.";
+                    ViewBag.ShowRegistrationButton = true;
+                }
+                else
+                {
+                    ViewBag.Error = "An error occurred while cancelling your registration. Please contact support.";
+                }
+            }
+            catch (Exception)
+            {
+                ViewBag.Error = "An error occurred while cancelling your registration. Please contact support.";
             }
 
             return View();
@@ -244,7 +432,9 @@ namespace Freelancing.Controllers
                 var userForCheck = await _userManager.FindByNameAsync(userNameToSignIn);
                 if (userForCheck != null && !await _userManager.IsEmailConfirmedAsync(userForCheck))
                 {
-                    ModelState.AddModelError("", "Please confirm your email address before logging in.");
+                    ModelState.AddModelError("", "Please confirm your email address before logging in. " +
+                        $"<a href='{Url.Action("ResendEmailConfirmation", new { userId = userForCheck.Id })}'>Resend confirmation email</a> or " +
+                        $"<a href='{Url.Action("CancelRegistration", new { userId = userForCheck.Id })}'>cancel registration</a>.");
                     return View(model);
                 }
 

@@ -330,6 +330,11 @@ static void ConfigureIdentity(IServiceCollection services, IWebHostEnvironment e
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
+    services.Configure<DataProtectionTokenProviderOptions>(options =>
+    {
+        options.TokenLifespan = TimeSpan.FromHours(24);
+    });
+
     services.ConfigureApplicationCookie(options =>
     {
         options.LoginPath = "/Account/Login";
