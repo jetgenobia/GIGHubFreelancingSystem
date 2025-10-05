@@ -1,4 +1,4 @@
-using Freelancing.Data;
+﻿using Freelancing.Data;
 using Freelancing.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
@@ -157,6 +157,9 @@ namespace Freelancing.Services
         {
             try
             {
+                // ✅ FORCE INITIALIZATION - This will detect the newly trained model
+                await _localRandomForest.EnsureInitializedAsync();
+
                 // Check if local Random Forest is available
                 if (_localRandomForest.IsAvailable)
                 {
@@ -164,7 +167,7 @@ namespace Freelancing.Services
                     var cacheKey = $"{projectId}_{freelancerId}";
                     _logger.LogInformation($"Cache key: {cacheKey}");
                     _logger.LogInformation($"Static cache size: {_predictionCache.Count}");
-                    
+
                     // Check cache first
                     lock (_cacheLock)
                     {
@@ -179,9 +182,9 @@ namespace Freelancing.Services
                             _logger.LogInformation($"CACHE MISS! No cached prediction found for key: {cacheKey}");
                         }
                     }
-                    
+
                     _logger.LogInformation("Using Random Forest model for prediction");
-                    
+
                     // Convert MLFeatures to dictionary for Random Forest
                     var featureDict = new Dictionary<string, object>
                     {
@@ -203,10 +206,10 @@ namespace Freelancing.Services
                         ["workload_factor"] = features.WorkloadFactor,
                         ["mentorship_program_completed"] = features.MentorshipProgramCompleted
                     };
-                    
+
                     // Get prediction from local Random Forest
                     var prediction = await _localRandomForest.PredictAsync(featureDict);
-                    
+
                     // Cache the result
                     lock (_cacheLock)
                     {
@@ -214,7 +217,7 @@ namespace Freelancing.Services
                         _logger.LogInformation($"Cached prediction for key: {cacheKey}, value: {prediction:F3}");
                         _logger.LogInformation($"Static cache size after caching: {_predictionCache.Count}");
                     }
-                    
+
                     _logger.LogInformation($"Random Forest prediction: {prediction:F3}");
                     return prediction;
                 }
