@@ -411,7 +411,12 @@ static void RegisterApplicationServices(IServiceCollection services)
     services.AddScoped<ISmartHiringFeatureService, SmartHiringFeatureService>();
     services.AddScoped<ISmartHiringService, SmartHiringService>();
     services.AddSingleton<ILocalRandomForestService, LocalRandomForestService>();
-    services.AddHttpClient<LocalRandomForestService>();
+    
+    // Configure HttpClient for LocalRandomForestService with proper timeout
+    services.AddHttpClient<LocalRandomForestService>(client =>
+    {
+        client.Timeout = TimeSpan.FromSeconds(60); // Allow longer timeout for ML predictions
+    });
 
     // Background services
     services.AddHostedService<UserCleanupHostedService>();

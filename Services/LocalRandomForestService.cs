@@ -13,13 +13,20 @@ namespace Freelancing.Services
     {
         private readonly ILogger<LocalRandomForestService> _logger;
         private readonly HttpClient _httpClient;
+        private readonly string _apiUrl;
         private bool _isInitialized = false;
-        private readonly string _apiUrl = "http://flask-ml-api:5000";
 
-        public LocalRandomForestService(ILogger<LocalRandomForestService> logger, HttpClient httpClient)
+        public LocalRandomForestService(ILogger<LocalRandomForestService> logger, HttpClient httpClient, IConfiguration configuration)
         {
             _logger = logger;
             _httpClient = httpClient;
+            
+            // Check for Railway environment variables first, then fallback to local
+            _apiUrl = Environment.GetEnvironmentVariable("FLASK_API_URL") 
+                     ?? configuration["FlaskAPI:Url"] 
+                     ?? "http://flask-ml-api:5000";
+                     
+            _logger.LogInformation($"Flask API URL configured as: {_apiUrl}");
         }
 
         public bool IsAvailable => _isInitialized;
@@ -28,16 +35,15 @@ namespace Freelancing.Services
         {
             if (_isInitialized) return;
 
-            var isRailway = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("RAILWAY_ENVIRONMENT"));
-            if (isRailway)
-            {
-                _logger.LogInformation("Skipping Flask ML API initialization in Railway environment");
-                return;
-            }
+            // Remove Railway environment skip - we want to try initialization in all environments
+            _logger.LogInformation($"Attempting to initialize Flask ML API at: {_apiUrl}");
 
             try
             {
-                var response = await _httpClient.GetAsync($"{_apiUrl}/health");
+                // Set timeout for health check
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                
+                var response = await _httpClient.GetAsync($"{_apiUrl}/health", cts.Token);
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -55,12 +61,20 @@ namespace Freelancing.Services
                 }
                 else
                 {
-                    _logger.LogWarning("Flask API health check failed");
+                    _logger.LogWarning($"Flask API health check failed: {response.StatusCode}");
                 }
+            }
+            catch (TaskCanceledException)
+            {
+                _logger.LogWarning("Flask API health check timed out");
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogWarning($"Failed to connect to Flask API: {ex.Message}");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to connect to Flask API");
+                _logger.LogError(ex, "Unexpected error during Flask API initialization");
             }
         }
 
@@ -77,7 +91,10 @@ namespace Freelancing.Services
                 var json = JsonSerializer.Serialize(requestData);
                 var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
                 
-                var response = await _httpClient.PostAsync($"{_apiUrl}/predict", content);
+                // Set timeout for prediction request
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                
+                var response = await _httpClient.PostAsync($"{_apiUrl}/predict", content, cts.Token);
                 
                 if (response.IsSuccessStatusCode)
                 {
@@ -86,6 +103,7 @@ namespace Freelancing.Services
                     
                     if (result?.Success == true)
                     {
+                        _logger.LogInformation($"Random Forest prediction successful: {result.Prediction:F3}");
                         return result.Prediction;
                     }
                     else
@@ -95,8 +113,14 @@ namespace Freelancing.Services
                 }
                 else
                 {
-                    throw new Exception($"HTTP request failed: {response.StatusCode}");
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    throw new Exception($"HTTP request failed: {response.StatusCode} - {errorContent}");
                 }
+            }
+            catch (TaskCanceledException)
+            {
+                _logger.LogError("Random Forest prediction timed out");
+                throw new TimeoutException("Prediction request timed out");
             }
             catch (Exception ex)
             {

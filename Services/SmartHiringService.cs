@@ -221,7 +221,22 @@ namespace Freelancing.Services
                 else
                 {
                     _logger.LogWarning("Random Forest not available, using fallback scoring");
-                    return CalculateFallbackScore(features);
+                    _logger.LogInformation("Attempting to re-initialize Random Forest service...");
+                    
+                    // Try to re-initialize the service
+                    await _localRandomForest.EnsureInitializedAsync();
+                    
+                    if (_localRandomForest.IsAvailable)
+                    {
+                        _logger.LogInformation("Random Forest service re-initialized successfully, retrying prediction");
+                        // Recursively call with the now-available service
+                        return await UseLocalRandomForestAsync(features, projectId, freelancerId);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Random Forest service still not available after re-initialization attempt");
+                        return CalculateFallbackScore(features);
+                    }
                 }
             }
             catch (Exception ex)

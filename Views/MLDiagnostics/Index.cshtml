@@ -1,0 +1,204 @@
+@using Freelancing.Models.ViewModels
+@model MLDiagnosticsViewModel
+@{
+    ViewData["Title"] = "ML Service Diagnostics";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-robot"></i>
+                        ML Service Diagnostics
+                    </h3>
+                </div>
+                <div class="card-body">
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show">
+                            @TempData["SuccessMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+                    @if (TempData["ErrorMessage"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show">
+                            @TempData["ErrorMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <div class="row">
+                        <!-- Service Status -->
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Service Status</h5>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <td><strong>Random Forest Service:</strong></td>
+                                            <td>
+                                                @if (Model.IsRandomForestAvailable)
+                                                {
+                                                    <span class="badge bg-success">? Available</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-danger">? Not Available</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Prediction Cache:</strong></td>
+                                            <td><span class="badge bg-info">@Model.CacheStatus</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Environment:</strong></td>
+                                            <td>
+                                                @if (Model.IsRailwayEnvironment)
+                                                {
+                                                    <span class="badge bg-primary">Railway</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">Local/Other</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Flask API URL:</strong></td>
+                                            <td><code>@Model.FlaskApiUrl</code></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Actions</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form asp-action="TestConnection" method="post" class="mb-3">
+                                        <button type="submit" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-plug"></i>
+                                            Test ML Connection
+                                        </button>
+                                    </form>
+                                    
+                                    <form asp-action="ClearCache" method="post">
+                                        <button type="submit" class="btn btn-warning btn-sm" 
+                                                onclick="return confirm('Are you sure you want to clear the prediction cache?')">
+                                            <i class="fas fa-trash"></i>
+                                            Clear Prediction Cache
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Environment Variables -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Environment Variables</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>Variable</th>
+                                                    <th>Value</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var env in Model.EnvironmentVariables)
+                                                {
+                                                    <tr>
+                                                        <td><code>@env.Key</code></td>
+                                                        <td>
+                                                            @if (env.Value == "Not set")
+                                                            {
+                                                                <span class="text-muted">@env.Value</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <code>@env.Value</code>
+                                                            }
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Troubleshooting Guide -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Troubleshooting Guide</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="accordion" id="troubleshootingAccordion">
+                                        <div class="accordion-item">
+                                            <h2 class="accordion-header" id="headingRailway">
+                                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRailway">
+                                                    Railway Deployment Issues
+                                                </button>
+                                            </h2>
+                                            <div id="collapseRailway" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
+                                                <div class="accordion-body">
+                                                    <p><strong>If the Random Forest service is not available in Railway:</strong></p>
+                                                    <ol>
+                                                        <li>Deploy the Flask API as a separate Railway service using <code>standalone_flask_api.py</code></li>
+                                                        <li>Set the <code>FLASK_API_URL</code> environment variable to point to your Flask service URL</li>
+                                                        <li>Ensure the model files (<code>smart_hiring_model.pkl</code> and <code>feature_columns.json</code>) are uploaded to the Flask service</li>
+                                                        <li>Check Railway logs for the Flask service to ensure it's starting properly</li>
+                                                    </ol>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="accordion-item">
+                                            <h2 class="accordion-header" id="headingLocal">
+                                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseLocal">
+                                                    Local Development Issues
+                                                </button>
+                                            </h2>
+                                            <div id="collapseLocal" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
+                                                <div class="accordion-body">
+                                                    <p><strong>For local development:</strong></p>
+                                                    <ol>
+                                                        <li>Use Docker Compose: <code>docker-compose up</code></li>
+                                                        <li>Or run Flask manually: <code>python wwwroot/models/flask_api.py</code></li>
+                                                        <li>Ensure Flask API is accessible at <code>http://localhost:5000</code></li>
+                                                        <li>Check that model files exist in <code>wwwroot/models/</code></li>
+                                                    </ol>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
