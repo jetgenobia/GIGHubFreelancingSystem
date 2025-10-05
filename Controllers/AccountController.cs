@@ -385,7 +385,8 @@ namespace Freelancing.Controllers
                 ViewBag.Error = "An error occurred while cancelling your registration. Please contact support.";
             }
 
-            return View();
+            // Return the CancelRegistration view (not looking for CancelRegistrationConfirmed.cshtml)
+            return View("CancelRegistration", model);
         }
 
         [HttpGet]

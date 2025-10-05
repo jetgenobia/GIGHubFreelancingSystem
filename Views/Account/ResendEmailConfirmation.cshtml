@@ -90,10 +90,6 @@
                     else if (Model != null)
                     {
                         <div class="space-y-4">
-                            <div class="p-4 mb-4 text-sm text-blue-800 border border-blue-300 rounded-lg bg-blue-50" role="alert">
-                                <p class="font-medium">Resend confirmation email</p>
-                            </div>
-
                             <form asp-action="ResendEmailConfirmation" method="post" class="space-y-4">
                                 <input type="hidden" asp-for="UserId" />
 
