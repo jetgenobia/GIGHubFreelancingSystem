@@ -246,7 +246,7 @@ namespace Freelancing.Controllers
                 // Validate the new email format
                 if (!IsValidEmail(model.Email))
                 {
-                    ModelState.AddModelError("Email", "Please enter a valid email address.");
+                    ModelState.AddModelError("", "Please enter a valid email address.");
                     return View(model);
                 }
 
@@ -254,7 +254,7 @@ namespace Freelancing.Controllers
                 var existingUser = await _userManager.FindByEmailAsync(model.Email);
                 if (existingUser != null && existingUser.Id != user.Id)
                 {
-                    ModelState.AddModelError("Email", "This email address is already registered.");
+                    ModelState.AddModelError("", "This email address is already registered.");
                     return View(model);
                 }
 
