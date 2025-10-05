@@ -1,15 +1,14 @@
 # Railway configuration for Flask ML API deployment
-# This file configures how Railway should deploy the Flask API
-
 [build]
-# Build command - install dependencies
 cmd = "pip install -r railway_requirements.txt"
 
 [deploy]
-# Start command - run the Flask API with Gunicorn for production
 cmd = "gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 60 standalone_flask_api:app"
 
 [env]
-# Environment variables
+# Environment variables for Flask service
 FLASK_ENV = "production"
+PYTHON_VERSION = "3.9"
 PYTHONPATH = "."
+
+# NOTE: PORT is automatically provided by Railway - DO NOT SET IT HERE
