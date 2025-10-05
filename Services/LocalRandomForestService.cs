@@ -151,6 +151,11 @@ namespace Freelancing.Services
             {
                 _logger.LogInformation("Starting ML model training...");
 
+                // Force garbage collection before training
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+
                 // Get training data from your existing service
                 var trainingData = await _featureService.PrepareTrainingDataAsync();
 
@@ -158,6 +163,13 @@ namespace Freelancing.Services
                 {
                     _logger.LogWarning("No training data available, generating sample data");
                     trainingData = GenerateSampleTrainingData();
+                }
+
+                // Limit training data size for Railway
+                if (trainingData.Count > 50)
+                {
+                    trainingData = trainingData.Take(50).ToList();
+                    _logger.LogInformation("Limited training data to 50 samples for memory constraints");
                 }
 
                 // Convert to ML.NET format
@@ -183,7 +195,12 @@ namespace Freelancing.Services
                     IsSuccessfulMatch = x.IsSuccessfulMatch == 1
                 }));
 
-                // Define training pipeline using FastTree (works like Random Forest)
+                // Clear training data from memory
+                trainingData.Clear();
+                trainingData = null;
+                GC.Collect();
+
+                // Use a more memory-efficient pipeline
                 var pipeline = _mlContext.Transforms.Concatenate("Features",
                         nameof(SmartHiringTrainingInput.SkillMatchScore),
                         nameof(SmartHiringTrainingInput.AvgRating),
@@ -202,13 +219,13 @@ namespace Freelancing.Services
                         nameof(SmartHiringTrainingInput.SkillsCountMatch),
                         nameof(SmartHiringTrainingInput.WorkloadFactor),
                         nameof(SmartHiringTrainingInput.MentorshipProgramCompleted))
-// Replace the FastTree line with this simpler trainer:
-.Append(_mlContext.BinaryClassification.Trainers.SdcaLogisticRegression(
-    labelColumnName: nameof(SmartHiringTrainingInput.IsSuccessfulMatch),
-    featureColumnName: "Features"));
+                    .Append(_mlContext.BinaryClassification.Trainers.AveragedPerceptron(
+                        labelColumnName: nameof(SmartHiringTrainingInput.IsSuccessfulMatch),
+                        featureColumnName: "Features",
+                        numberOfIterations: 5)); // Reduced iterations
 
                 // Train the model
-                _logger.LogInformation("Training ML model with {Count} samples", trainingData.Count);
+                _logger.LogInformation("Training ML model with {Count} samples", dataView.GetRowCount() ?? 0);
                 var model = pipeline.Fit(dataView);
 
                 // Save the model
@@ -222,6 +239,9 @@ namespace Freelancing.Services
                 _model = model;
                 _predictionEngine = _mlContext.Model.CreatePredictionEngine<SmartHiringInput, SmartHiringOutput>(_model);
                 _isInitialized = true;
+
+                // Final cleanup
+                GC.Collect();
 
                 _logger.LogInformation("Model trained and saved to: {ModelPath}", modelPath);
                 return modelPath;
