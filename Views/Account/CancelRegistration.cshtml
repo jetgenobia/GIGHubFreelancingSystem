@@ -48,7 +48,7 @@
         <nav class="flex items-center justify-between h-24 lg:px-8" aria-label="Global">
             <div class="flex lg:flex-1">
                 <a class="-m-1.5 p-2" asp-area="" asp-controller="Home" asp-action="Index">
-                    <span class="sr-only">GigHub</span>
+                    <span class="sr-only">Your Company</span>
                     <img class="h-20 w-auto" src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(2).png?updatedAt=1749718355580" alt="">
                 </a>
             </div>
@@ -56,79 +56,83 @@
     </header>
 
     <main class="relative px-9 mt-6">
-        <div class="flex justify-center items-center min-h-screen">
-            <div class="w-full max-w-md p-6 bg-white border border-gray-200 rounded-lg shadow">
-                <div class="mb-5">
-                    <h5 class="mb-2 text-2xl font-bold text-gray-900 text-center">Cancel Registration</h5>
-                </div>
-
-                @if (!string.IsNullOrEmpty(ViewBag.Error as string))
-                {
-                    <div class="mt-2 flex items-center p-4 mb-4 text-sm text-red-800 border border-red-300 rounded-lg bg-red-50" role="alert">
-                        <svg class="shrink-0 inline w-4 h-4 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
-                        </svg>
-                        <span class="sr-only">Error</span>
-                        <div>@ViewBag.Error</div>
+        <div class="grid grid-cols-1 gap-8 md:grid-cols-2 items-center">
+            <div class="flex justify-center">
+                <div class="w-full max-w-md p-6 bg-white border border-gray-200 rounded-lg shadow">
+                    <div class="mb-5">
+                        <h5 class="mb-2 text-2xl font-bold text-gray-900 text-center">Cancel Registration</h5>
                     </div>
-                }
-
-                @if (!string.IsNullOrEmpty(ViewBag.Message as string))
-                {
-                    <div class="mt-2 flex items-center p-4 mb-4 text-sm text-green-800 border border-green-300 rounded-lg bg-green-50" role="alert">
-                        <svg class="shrink-0 inline w-4 h-4 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z" />
-                        </svg>
-                        <span class="sr-only">Success</span>
-                        <div>@ViewBag.Message</div>
-                    </div>
-                    
-                    @if (ViewBag.ShowRegistrationButton == true)
+                    @if (!string.IsNullOrEmpty(ViewBag.Error as string))
                     {
-                        <div class="text-center mt-4">
-                            <a asp-controller="Account" asp-action="Registration" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 focus:outline-none">Register Again</a>
+                        <div class="mt-2 flex items-center p-4 mb-4 text-sm text-red-800 border border-red-300 rounded-lg bg-red-50" role="alert">
+                            <svg class="shrink-0 inline w-4 h-4 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
+                            </svg>
+                            <span class="sr-only">Error</span>
+                            <div>@ViewBag.Error</div>
                         </div>
                     }
-                }
-                else if (Model != null)
-                {
-                    <div class="space-y-4">
-                        <div class="text-sm text-gray-600">
-                            <p><strong>Username:</strong> @Model.UserName</p>
-                            <p><strong>Email:</strong> @Model.Email</p>
-                        </div>
-                        
-                        <div class="p-4 mb-4 text-sm text-yellow-800 border border-yellow-300 rounded-lg bg-yellow-50" role="alert">
-                            <p class="font-medium">Are you sure you want to cancel your registration?</p>
-                            <p class="mt-2">This action will permanently delete your unconfirmed account. You will be able to register again with the same email address.</p>
+
+                    @if (!string.IsNullOrEmpty(ViewBag.Message as string))
+                    {
+                        <div class="mt-2 flex items-center p-4 mb-4 text-sm text-green-800 border border-green-300 rounded-lg bg-green-50" role="alert">
+                            <svg class="shrink-0 inline w-4 h-4 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z" />
+                            </svg>
+                            <span class="sr-only">Success</span>
+                            <div>@ViewBag.Message</div>
                         </div>
 
-                        <form asp-action="CancelRegistrationConfirmed" method="post" class="space-y-4">
-                            <input type="hidden" asp-for="UserId" />
-                            <input type="hidden" asp-for="Email" />
-                            <input type="hidden" asp-for="UserName" />
-                            
-                            <div class="flex items-center">
-                                <input asp-for="ConfirmCancellation" type="checkbox" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2" required>
-                                <label asp-for="ConfirmCancellation" class="ms-2 text-sm font-medium text-gray-900">I understand that this will permanently delete my registration</label>
+                        @if (ViewBag.ShowRegistrationButton == true)
+                        {
+                            <div class="text-center mt-4">
+                                <a asp-controller="Account" asp-action="Registration" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 focus:outline-none">Register Again</a>
                             </div>
-                            <span asp-validation-for="ConfirmCancellation" class="text-red-600 text-sm"></span>
+                        }
+                    }
+                    else if (Model != null)
+                    {
+                        <div class="space-y-4">
+                            <div class="text-sm text-gray-600">
+                                <p><strong>Username:</strong> @Model.UserName</p>
+                                <p><strong>Email:</strong> @Model.Email</p>
+                            </div>
 
-                            <div class="flex space-x-2">
-                                <button type="submit" class="flex-1 text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm py-2.5 focus:outline-none">
-                                    Cancel Registration
-                                </button>
-                                <a asp-controller="Account" asp-action="Login" class="flex-1 text-center text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm py-2.5 focus:outline-none">
-                                    Keep Account
-                                </a>
+                            <div class="p-4 mb-4 text-sm text-yellow-800 border border-yellow-300 rounded-lg bg-yellow-50" role="alert">
+                                <p class="font-medium">Are you sure you want to cancel your registration?</p>
+                                <p class="mt-2">This action will permanently delete your unconfirmed account. You will be able to register again with the same email address.</p>
                             </div>
-                        </form>
+
+                            <form asp-action="CancelRegistrationConfirmed" method="post" class="space-y-4">
+                                <input type="hidden" asp-for="UserId" />
+                                <input type="hidden" asp-for="Email" />
+                                <input type="hidden" asp-for="UserName" />
+
+                                <div class="flex items-center">
+                                    <input asp-for="ConfirmCancellation" type="checkbox" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2" required>
+                                    <label asp-for="ConfirmCancellation" class="ms-2 text-sm font-medium text-gray-900">I understand that this will permanently delete my registration</label>
+                                </div>
+                                <span asp-validation-for="ConfirmCancellation" class="text-red-600 text-sm"></span>
+
+                                <div class="flex space-x-2">
+                                    <button type="submit" class="flex-1 text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm py-2.5 focus:outline-none">
+                                        Cancel Registration
+                                    </button>
+                                    <a asp-controller="Account" asp-action="Login" class="flex-1 text-center text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm py-2.5 focus:outline-none">
+                                        Keep Account
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    }
+
+                    <div class="text-center mt-4">
+                        <a asp-controller="Account" asp-action="Login" class="text-sm font-light text-blue-600 hover:text-blue-800">Back to Login</a>
                     </div>
-                }
-
-                <div class="text-center mt-4">
-                    <a asp-controller="Account" asp-action="Login" class="text-sm font-light text-blue-600 hover:text-blue-800">Back to Login</a>
                 </div>
+            </div>
+            <div class="flex items-center justify-center">
+                <img class="w-3/4 h-3/4 max-w-full object-contain" src="https://ik.imagekit.io/6txj3mofs/front.png?updatedAt=1750340542946" alt="">
             </div>
         </div>
     </main>

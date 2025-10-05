@@ -436,7 +436,7 @@ namespace Freelancing.Controllers
                     ViewBag.EmailNotConfirmed = true;
                     ViewBag.ResendConfirmationUrl = Url.Action("ResendEmailConfirmation", new { userId = userForCheck.Id });
                     ViewBag.CancelRegistrationUrl = Url.Action("CancelRegistration", new { userId = userForCheck.Id });
-                    ModelState.AddModelError("", "Please confirm your email address before logging in.");
+                    /*ModelState.AddModelError("", "Please confirm your email address before logging in.");*/
                     return View(model);
                 }
 
