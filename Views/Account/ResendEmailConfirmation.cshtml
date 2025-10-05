@@ -91,13 +91,27 @@
                     {
                         <div class="space-y-4">
                             <div class="p-4 mb-4 text-sm text-blue-800 border border-blue-300 rounded-lg bg-blue-50" role="alert">
-                                <p class="font-medium">Send a new confirmation email to:</p>
-                                <p class="mt-1"><strong>@Model.Email</strong></p>
+                                <p class="font-medium">Resend confirmation email</p>
                             </div>
 
                             <form asp-action="ResendEmailConfirmation" method="post" class="space-y-4">
                                 <input type="hidden" asp-for="UserId" />
-                                <input type="hidden" asp-for="Email" />
+
+                                <!-- Make email editable -->
+                                <div>
+                                    <label asp-for="Email" class="block mb-2 text-sm font-medium text-gray-900">Email Address</label>
+                                    <div class="relative">
+                                        <div class="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none">
+                                            <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 16">
+                                                <path d="m10.036 8.278 9.258-7.79A1.979 1.979 0 0 0 18 0H2A1.987 1.987 0 0 0 .641.541l9.395 7.737Z" />
+                                                <path d="M11.241 9.817c-.36.275-.801.425-1.255.427-.428 0-.845-.138-1.187-.395L0 2.6V14a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V2.5l-8.759 7.317Z" />
+                                            </svg>
+                                        </div>
+                                        <input asp-for="Email" type="email" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5" placeholder="Enter your email address" required>
+                                    </div>
+                                    <span asp-validation-for="Email" class="text-red-600 text-sm"></span>
+                                    <p class="text-xs text-gray-500 mt-1">You can update your email address if there was a mistake during registration.</p>
+                                </div>
 
                                 @if (ViewData.ModelState.ErrorCount > 0)
                                 {
@@ -111,20 +125,21 @@
                                 }
 
                                 <button type="submit" class="w-full text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm py-2.5 focus:outline-none">
-                                    Resend Confirmation Email
+                                    Send Confirmation Email
                                 </button>
                             </form>
 
                             <div class="text-center mt-4">
                                 <p class="text-sm text-gray-600 mb-2">Don't want to wait?</p>
-                                <a asp-controller="Account" asp-action="CancelRegistration" asp-route-userId="@Model.UserId" class="text-sm font-light text-red-600 hover:text-red-800">Cancel Registration</a>
+                                <a asp-controller="Account" asp-action="CancelRegistration" asp-route-userId="@Model.UserId" class="text-sm font-light text-red-600 hover:text-red-800 underline">Cancel Registration</a>
                             </div>
+                        </div>
+
+                        <div class="text-center mt-4">
+                            <a asp-controller="Account" asp-action="Login" class="text-sm font-light text-blue-600 hover:text-blue-800">Back to Login</a>
                         </div>
                     }
 
-                    <div class="text-center mt-4">
-                        <a asp-controller="Account" asp-action="Login" class="text-sm font-light text-blue-600 hover:text-blue-800">Back to Login</a>
-                    </div>
                 </div>
             </div>
             <div class="flex items-center justify-center">

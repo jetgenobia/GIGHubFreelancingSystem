@@ -240,6 +240,37 @@ namespace Freelancing.Controllers
                 return View(model);
             }
 
+            // Check if email has changed
+            if (user.Email != model.Email)
+            {
+                // Validate the new email format
+                if (!IsValidEmail(model.Email))
+                {
+                    ModelState.AddModelError("Email", "Please enter a valid email address.");
+                    return View(model);
+                }
+
+                // Check if new email is already in use by another user
+                var existingUser = await _userManager.FindByEmailAsync(model.Email);
+                if (existingUser != null && existingUser.Id != user.Id)
+                {
+                    ModelState.AddModelError("Email", "This email address is already registered.");
+                    return View(model);
+                }
+
+                // Update the user's email
+                user.Email = model.Email;
+                user.NormalizedEmail = model.Email.ToUpperInvariant();
+                user.EmailConfirmed = false; // Reset confirmation status
+
+                var updateResult = await _userManager.UpdateAsync(user);
+                if (!updateResult.Succeeded)
+                {
+                    ModelState.AddModelError("", "Failed to update email address.");
+                    return View(model);
+                }
+            }
+
             try
             {
                 // Generate new email confirmation token
@@ -249,10 +280,10 @@ namespace Freelancing.Controllers
                     new { userId = user.Id, token = encodedToken },
                     Request.Scheme);
 
-                // Send new confirmation email
+                // Send new confirmation email to the (possibly updated) email address
                 await _emailService.SendEmailConfirmationAsync(user.Email!, callbackUrl!);
 
-                ViewBag.Message = "A new confirmation email has been sent. Please check your email and follow the instructions.";
+                ViewBag.Message = "A confirmation email has been sent to your email address. Please check your email and follow the instructions.";
             }
             catch (Exception)
             {
@@ -260,6 +291,23 @@ namespace Freelancing.Controllers
             }
 
             return View(model);
+        }
+
+        // Helper method for email validation
+        private static bool IsValidEmail(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                return false;
+
+            try
+            {
+                var addr = new System.Net.Mail.MailAddress(email);
+                return addr.Address == email;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         [HttpGet]
