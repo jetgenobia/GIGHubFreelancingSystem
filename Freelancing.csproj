@@ -14,6 +14,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <None Include="wwwroot\models\smart_hiring_model.pkl" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="DotNetEnv" Version="3.0.0" />
 		<PackageReference Include="Google.Cloud.Storage.V1" Version="4.13.0" />
 		<PackageReference Include="Google.Cloud.Vision.V1" Version="3.7.0" />
@@ -40,7 +44,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Content Update="flask-api\feature_columns.json">
+		<Content Update="wwwroot\models\feature_columns.json">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
 	</ItemGroup>
