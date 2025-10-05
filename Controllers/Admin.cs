@@ -2,6 +2,7 @@
 using Freelancing.Models.Entities;
 using Freelancing.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -17,6 +18,8 @@ namespace Freelancing.Controllers
         private readonly INotificationService _notificationService;
         private readonly ILogger<Admin> _logger;
         private readonly IGoogleCloudStorageService _googleCloudStorageService;
+        private readonly ILocalRandomForestService _mlService;
+        private readonly IWebHostEnvironment _webHostEnvironment;
 
         public Admin(
             ApplicationDbContext context,
@@ -24,7 +27,9 @@ namespace Freelancing.Controllers
             IIdentityVerificationService verificationService,
             INotificationService notificationService,
             IGoogleCloudStorageService googleCloudStorageService,
-            ILogger<Admin> logger)
+            ILogger<Admin> logger,
+            ILocalRandomForestService mlService,
+            IWebHostEnvironment webHostEnvironment)
         {
             _context = context;
             _encryptionService = encryptionService;
@@ -32,6 +37,8 @@ namespace Freelancing.Controllers
             _notificationService = notificationService;
             _googleCloudStorageService = googleCloudStorageService;
             _logger = logger;
+            _mlService = mlService;
+            _webHostEnvironment = webHostEnvironment;
         }
 
         /*[HttpGet("admin/setup-cors")]
@@ -47,6 +54,57 @@ namespace Freelancing.Controllers
                 return BadRequest($"Error: {ex.Message}");
             }
         }*/
+
+        [HttpGet]
+        public IActionResult MLTraining()
+        {
+            return View();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetModelStatus()
+        {
+            try
+            {
+                var isAvailable = _mlService.IsAvailable;
+                var modelPath = Path.Combine(_webHostEnvironment.WebRootPath, "models", "smart_hiring_model.zip");
+                var modelExists = System.IO.File.Exists(modelPath);
+
+                return Json(new
+                {
+                    success = true,
+                    isAvailable = isAvailable && modelExists,
+                    modelPath = modelExists ? "smart_hiring_model.zip" : "Not found"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking model status");
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> TrainMLModel()
+        {
+            try
+            {
+                _logger.LogInformation("Admin initiated ML model training");
+                var modelPath = await _mlService.TrainModelAsync();
+
+                return Json(new
+                {
+                    success = true,
+                    message = $"Model trained successfully and saved to: {Path.GetFileName(modelPath)}"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to train ML model via admin interface");
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
         public IActionResult Reports()
         {
             return View();

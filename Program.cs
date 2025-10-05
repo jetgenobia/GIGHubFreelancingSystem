@@ -410,8 +410,7 @@ static void RegisterApplicationServices(IServiceCollection services)
     // Smart Hiring Services
     services.AddScoped<ISmartHiringFeatureService, SmartHiringFeatureService>();
     services.AddScoped<ISmartHiringService, SmartHiringService>();
-    services.AddSingleton<ILocalRandomForestService, LocalRandomForestService>();
-    services.AddHttpClient<LocalRandomForestService>();
+    services.AddScoped<ILocalRandomForestService, LocalRandomForestService>();
 
     // Background services
     services.AddHostedService<UserCleanupHostedService>();

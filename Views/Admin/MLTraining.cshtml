@@ -1,0 +1,120 @@
+﻿@{
+    ViewData["Title"] = "ML Model Training";
+    Layout = null;
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3>ML Model Training</h3>
+                </div>
+                <div class="card-body">
+                    <div id="training-status" class="alert alert-info" style="display: none;">
+                        <div class="d-flex align-items-center">
+                            <div class="spinner-border spinner-border-sm me-2" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <span id="status-text">Training in progress...</span>
+                        </div>
+                    </div>
+                    
+                    <div id="training-result" style="display: none;"></div>
+                    
+                    <button id="train-button" class="btn btn-primary">
+                        <i class="fas fa-brain me-2"></i>Train ML Model
+                    </button>
+                    
+                    <div class="mt-3">
+                        <h5>Model Information</h5>
+                        <p><strong>Current Model:</strong> <span id="model-status">Loading...</span></p>
+                        <p><strong>Training Data:</strong> Uses real project outcomes and sample data</p>
+                        <p><strong>Algorithm:</strong> SDCA Logistic Regression</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const trainButton = document.getElementById('train-button');
+    const trainingStatus = document.getElementById('training-status');
+    const trainingResult = document.getElementById('training-result');
+    const statusText = document.getElementById('status-text');
+    const modelStatus = document.getElementById('model-status');
+    
+    // Check initial model status
+    checkModelStatus();
+    
+    trainButton.addEventListener('click', function() {
+        trainModel();
+    });
+    
+    async function checkModelStatus() {
+        try {
+            const response = await fetch('/Admin/GetModelStatus');
+            const data = await response.json();
+            modelStatus.textContent = data.isAvailable ? 
+                `✅ Model loaded (${data.modelPath})` : 
+                '❌ No trained model available';
+        } catch (error) {
+            modelStatus.textContent = '❓ Unknown';
+        }
+    }
+    
+    async function trainModel() {
+        trainButton.disabled = true;
+        trainingStatus.style.display = 'block';
+        trainingResult.style.display = 'none';
+        statusText.textContent = 'Training in progress...';
+        
+        try {
+            const response = await fetch('/Admin/TrainMLModel', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('[name="__RequestVerificationToken"]')?.value || ''
+                }
+            });
+            
+            const result = await response.json();
+            
+            trainingStatus.style.display = 'none';
+            trainingResult.style.display = 'block';
+            
+            if (result.success) {
+                trainingResult.innerHTML = `
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Training Successful!</strong><br>
+                        ${result.message}
+                    </div>
+                `;
+                checkModelStatus(); // Refresh model status
+            } else {
+                trainingResult.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        <strong>Training Failed:</strong><br>
+                        ${result.message}
+                    </div>
+                `;
+            }
+        } catch (error) {
+            trainingStatus.style.display = 'none';
+            trainingResult.style.display = 'block';
+            trainingResult.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>Error:</strong> ${error.message}
+                </div>
+            `;
+        } finally {
+            trainButton.disabled = false;
+        }
+    }
+});
+</script>
