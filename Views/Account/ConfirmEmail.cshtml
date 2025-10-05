@@ -47,7 +47,7 @@
         <nav class="flex items-center justify-between h-24 lg:px-8" aria-label="Global">
             <div class="flex lg:flex-1">
                 <a class="-m-1.5 p-2" asp-area="" asp-controller="Home" asp-action="Index">
-                    <span class="sr-only">GigHub</span>
+                    <span class="sr-only">Your Company</span>
                     <img class="h-20 w-auto" src="https://ik.imagekit.io/6txj3mofs/GIGHub%20(2).png?updatedAt=1749718355580" alt="">
                 </a>
             </div>
@@ -55,69 +55,79 @@
     </header>
 
     <main class="relative px-9 mt-6">
-        <div class="flex justify-center items-center min-h-screen">
-            <div class="w-full max-w-md p-6 bg-white border border-gray-200 rounded-lg shadow">
-                @if (!string.IsNullOrEmpty(ViewBag.Message as string))
-                {
-                    <div class="mb-5 text-center">
-                        <h5 class="mb-2 text-2xl font-bold text-gray-900">Email Confirmed!</h5>
-                        <div class="w-full flex items-center justify-center mb-4">
-                            <img class="w-20 h-20" src="https://ik.imagekit.io/6txj3mofs/CHECK.png?updatedAt=1754207749128" />
-                        </div>
-                        <p class="font-light text-green-600">@ViewBag.Message</p>
-                    </div>
-
-                    @if (ViewBag.ShowLoginButton == true)
+        <div class="grid grid-cols-1 gap-8 md:grid-cols-2 items-center">
+            <div class="flex justify-center">
+                <div class="w-full max-w-md p-6 bg-white border border-gray-200 rounded-lg shadow">
+                    @if (!string.IsNullOrEmpty(ViewBag.Message as string))
                     {
-                        <div class="mt-5 text-center">
-                            <a asp-controller="Account" asp-action="Login" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 focus:outline-none">Login Now</a>
+                        <div class="mb-5 text-center">
+                            <h5 class="mb-2 text-2xl font-bold text-gray-900">Email Confirmed!</h5>
+                            <div class="w-full flex items-center justify-center mb-4">
+                                <img class="w-20 h-20" src="https://ik.imagekit.io/6txj3mofs/CHECK.png?updatedAt=1754207749128" />
+                            </div>
+                            <p class="font-light text-green-600">@ViewBag.Message</p>
+                        </div>
+
+                        @if (ViewBag.ShowLoginButton == true)
+                        {
+                            <div class="mt-5 text-center">
+                                <a asp-controller="Account" asp-action="Login" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 focus:outline-none">Login Now</a>
+                            </div>
+                        }
+                    }
+                    else if (!string.IsNullOrEmpty(ViewBag.Error as string))
+                    {
+                        <div class="mb-5 text-center">
+                            <h5 class="mb-2 text-2xl font-bold text-gray-900">Email Confirmation</h5>
+                            <div class="w-full flex items-center justify-center mb-4">
+                                <svg class="w-20 h-20 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <p class="font-light text-red-600 mb-4">@ViewBag.Error</p>
+                        </div>
+
+                        @if (ViewBag.ShowResendOption == true)
+                        {
+                            <div class="p-4 mb-4 text-sm text-blue-800 border border-blue-300 rounded-lg bg-blue-50" role="alert">
+                                <p class="font-medium">What would you like to do?</p>
+                            </div>
+
+                            <div class="space-y-3">
+                                <a href="/Account/ResendEmailConfirmation?userId=@ViewBag.UserId" class="w-full text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-block focus:outline-none">
+                                    Send New Confirmation Email
+                                </a>
+                                <a href="/Account/CancelRegistration?userId=@ViewBag.UserId" class="w-full text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-block focus:outline-none">
+                                    Cancel Registration
+                                </a>
+                            </div>
+                        }
+
+                        <div class="text-center mt-4">
+                            <a asp-controller="Account" asp-action="Login" class="text-sm font-light text-blue-600 hover:text-blue-800">Back to Login</a>
                         </div>
                     }
-                }
-                else if (!string.IsNullOrEmpty(ViewBag.Error as string))
-                {
-                    <div class="mb-5 text-center">
-                        <h5 class="mb-2 text-2xl font-bold text-gray-900">Email Confirmation</h5>
-                        <div class="w-full flex items-center justify-center mb-4">
-                            <svg class="w-20 h-20 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                            </svg>
-                        </div>
-                        <p class="font-light text-red-600 mb-4">@ViewBag.Error</p>
-                    </div>
-
-                    @if (ViewBag.ShowResendOption == true)
+                    else
                     {
-                        <div class="p-4 mb-4 text-sm text-blue-800 border border-blue-300 rounded-lg bg-blue-50" role="alert">
-                            <p class="font-medium">What would you like to do?</p>
+                        <div class="mb-5 text-center">
+                            <h5 class="mb-2 text-2xl font-bold text-gray-900">Invalid Link</h5>
+                            <div class="w-full flex items-center justify-center mb-4">
+                                <svg class="w-20 h-20 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <p class="font-light text-red-600">The email confirmation link is invalid or has expired.</p>
                         </div>
 
-                        <div class="space-y-3">
-                            <a href="/Account/ResendEmailConfirmation?userId=@ViewBag.UserId" class="w-full text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-block focus:outline-none">
-                                Send New Confirmation Email
-                            </a>
-                            <a href="/Account/CancelRegistration?userId=@ViewBag.UserId" class="w-full text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-block focus:outline-none">
-                                Cancel Registration
-                            </a>
+
+                        <div class="text-center mt-4">
+                            <a asp-controller="Account" asp-action="Login" class="text-sm font-light text-blue-600 hover:text-blue-800">Back to Login</a>
                         </div>
                     }
-                }
-                else
-                {
-                    <div class="mb-5 text-center">
-                        <h5 class="mb-2 text-2xl font-bold text-gray-900">Invalid Link</h5>
-                        <div class="w-full flex items-center justify-center mb-4">
-                            <svg class="w-20 h-20 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                            </svg>
-                        </div>
-                        <p class="font-light text-red-600">The email confirmation link is invalid or has expired.</p>
-                    </div>
-                }
-
-                <div class="text-center mt-4">
-                    <a asp-controller="Account" asp-action="Login" class="text-sm font-light text-blue-600 hover:text-blue-800">Back to Login</a>
                 </div>
+            </div>
+            <div class="flex items-center justify-center">
+                <img class="w-3/4 h-3/4 max-w-full object-contain" src="https://ik.imagekit.io/6txj3mofs/front.png?updatedAt=1750340542946" alt="">
             </div>
         </div>
     </main>
