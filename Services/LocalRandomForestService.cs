@@ -35,17 +35,17 @@ namespace Freelancing.Services
             _mlContext = new MLContext(seed: 0);
         }
 
-        public bool IsAvailable => _isInitialized;
+        public bool IsAvailable => _isInitialized && _predictionEngine != null;
 
         public async Task EnsureInitializedAsync()
         {
-            if (_isInitialized) return;
+            if (_isInitialized && _predictionEngine != null) return; // Only skip if both conditions are met
 
             await Task.Run(() =>
             {
                 lock (_initLock)
                 {
-                    if (_isInitialized) return;
+                    if (_isInitialized && _predictionEngine != null) return; // Double-check inside lock
 
                     try
                     {
@@ -62,15 +62,17 @@ namespace Freelancing.Services
                         else
                         {
                             _logger.LogWarning("ML.NET model file not found at: {ModelPath}. You can train a new model or use fallback scoring.", modelPath);
-                            // Still mark as initialized to use fallback
+                            // Mark as initialized to use fallback, but don't set prediction engine
                             _isInitialized = true;
+                            _predictionEngine = null;
                         }
                     }
                     catch (Exception ex)
                     {
                         _logger.LogError(ex, "Failed to load ML.NET model. Using fallback scoring.");
-                        // Still mark as initialized to use fallback
+                        // Mark as initialized to use fallback, but don't set prediction engine
                         _isInitialized = true;
+                        _predictionEngine = null;
                     }
                 }
             });
