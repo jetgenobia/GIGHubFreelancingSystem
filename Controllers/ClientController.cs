@@ -930,11 +930,12 @@ namespace Freelancing.Controllers
 
             ViewBag.TwoFactorEnabled = await _userManager.GetTwoFactorEnabledAsync(userAccount);
 
+            // ✅ FIX: Remove .ToString() from LINQ queries
             // Check for existing username/email
             var existingUserWithUsername = await dbContext.UserAccounts
-                .FirstOrDefaultAsync(u => u.UserName == viewModel.UserName && u.Id.ToString() != userId2);
+                .FirstOrDefaultAsync(u => u.UserName == viewModel.UserName && u.Id != userId2);
             var existingUserWithEmail = await dbContext.UserAccounts
-                .FirstOrDefaultAsync(u => u.Email == viewModel.Email && u.Id.ToString() != userId2);
+                .FirstOrDefaultAsync(u => u.Email == viewModel.Email && u.Id != userId2);
 
             if (existingUserWithEmail != null)
             {
@@ -948,6 +949,7 @@ namespace Freelancing.Controllers
                 return View(viewModel);
             }
 
+            // Rest of the method remains the same...
             // Track if any changes were made
             bool hasChanges = false;
             bool nameChanged = false;

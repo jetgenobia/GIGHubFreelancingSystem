@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
 using QRCoder;
 using System.Text;
 using System.Text.Encodings.Web;
@@ -21,17 +22,20 @@ namespace Freelancing.Controllers
         private readonly SignInManager<UserAccount> _signInManager;
         private readonly IEmailService _emailService;
         private readonly IConfiguration _configuration;
+        private readonly ApplicationDbContext _context;
 
         public AccountController(
             UserManager<UserAccount> userManager,
             SignInManager<UserAccount> signInManager,
             IEmailService emailService,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            ApplicationDbContext context)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _emailService = emailService;
             _configuration = configuration;
+            _context = context;
         }
 
         public IActionResult Index()
@@ -1014,6 +1018,76 @@ namespace Freelancing.Controllers
             var codes = await _userManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
             TempData["RecoveryCodes"] = string.Join(",", codes);
             return RedirectToAction("ManageRecoveryCodes");
+        }
+
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteAccount()
+        {
+            try
+            {
+                // Get the current user ID
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized();
+
+                // Get user account
+                var userAccount = await _userManager.FindByIdAsync(userId);
+                if (userAccount == null)
+                    return NotFound();
+
+                // Check for active/ongoing projects based on user's role
+                bool hasActiveItems = false;
+                string errorMessage = "Cannot delete account. You have active or ongoing projects. Please complete or cancel them first.";
+
+                if (User.IsInRole("Client"))
+                {
+                    // For clients, check if they have active projects
+                    hasActiveItems = await _context.Projects
+                        .AnyAsync(p => p.UserId == userId &&
+                                 (p.Status == "Active") &&
+                                 p.AcceptedBidId.HasValue);
+                }
+                else if (User.IsInRole("Freelancer"))
+                {
+                    // For freelancers, check if they have any accepted bids on active projects
+                    hasActiveItems = await _context.Biddings
+                        .AnyAsync(b => b.UserId == userId &&
+                                 b.IsAccepted &&
+                                 (b.Project.Status == "Active"));
+                }
+
+                if (hasActiveItems)
+                {
+                    TempData["Error"] = errorMessage;
+                    return RedirectToAction("AccountSettings");
+                }
+
+                // Perform soft delete
+                userAccount.IsDeleted = true;
+                userAccount.DeletedAt = DateTime.UtcNow;
+                userAccount.DeletionReason = "User requested account deletion";
+
+                // Update the user account
+                var result = await _userManager.UpdateAsync(userAccount);
+                if (!result.Succeeded)
+                {
+                    TempData["Error"] = "An error occurred while deleting your account. Please try again.";
+                    return RedirectToAction("AccountSettings");
+                }
+
+                // Sign out the user
+                await _signInManager.SignOutAsync();
+
+                // Redirect to a confirmation page
+                return RedirectToAction("AccountDeleted");
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = "An unexpected error occurred. Please try again later.";
+                return RedirectToAction("AccountSettings");
+            }
         }
 
         [HttpGet]
