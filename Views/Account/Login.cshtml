@@ -94,6 +94,16 @@
                             </div>
                             <input asp-for="Password" id="password-icon" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5" placeholder="" required>
                         </div>
+                        @if (ViewBag.EmailNotConfirmed == true)
+                        {
+                            <div class="alert alert-warning">
+                                <p>Please confirm your email address before logging in.</p>
+                                <p>
+                                    <a href="@ViewBag.ResendConfirmationUrl" class="btn btn-link">Resend confirmation email</a> or
+                                    <a href="@ViewBag.CancelRegistrationUrl" class="btn btn-link">cancel registration</a>
+                                </p>
+                            </div>
+                        }
                         @if (ViewData.ModelState.ErrorCount > 0)
                         {
                             <div class="mt-2 flex items-center p-4 mb-4 text-sm text-red-800 border border-red-300 rounded-lg bg-red-50" role="alert">

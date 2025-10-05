@@ -432,9 +432,11 @@ namespace Freelancing.Controllers
                 var userForCheck = await _userManager.FindByNameAsync(userNameToSignIn);
                 if (userForCheck != null && !await _userManager.IsEmailConfirmedAsync(userForCheck))
                 {
-                    ModelState.AddModelError("", "Please confirm your email address before logging in. " +
-                        $"<a href='{Url.Action("ResendEmailConfirmation", new { userId = userForCheck.Id })}'>Resend confirmation email</a> or " +
-                        $"<a href='{Url.Action("CancelRegistration", new { userId = userForCheck.Id })}'>cancel registration</a>.");
+                    // Instead of ModelState.AddModelError with HTML, use ViewBag
+                    ViewBag.EmailNotConfirmed = true;
+                    ViewBag.ResendConfirmationUrl = Url.Action("ResendEmailConfirmation", new { userId = userForCheck.Id });
+                    ViewBag.CancelRegistrationUrl = Url.Action("CancelRegistration", new { userId = userForCheck.Id });
+                    ModelState.AddModelError("", "Please confirm your email address before logging in.");
                     return View(model);
                 }
 
