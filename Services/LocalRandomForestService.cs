@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.ML;
 using Microsoft.ML.Data;
 
@@ -9,7 +9,8 @@ namespace Freelancing.Services
         Task<float> PredictAsync(Dictionary<string, object> features);
         bool IsAvailable { get; }
         Task EnsureInitializedAsync();
-        Task<string> TrainModelAsync(); // Add training method
+        Task<string> TrainModelAsync();
+        Task ReloadModelAsync(); // Add this new method
     }
 
     public class LocalRandomForestService : ILocalRandomForestService
@@ -77,20 +78,19 @@ namespace Freelancing.Services
 
         public async Task<float> PredictAsync(Dictionary<string, object> features)
         {
-            if (!_isInitialized)
-            {
-                await EnsureInitializedAsync();
-            }
+            // Always try to ensure we have the latest model
+            await EnsureInitializedAsync();
 
             try
             {
                 if (_predictionEngine != null)
                 {
+                    _logger.LogDebug("Using ML.NET model for prediction");
                     return await PredictWithMLNetAsync(features);
                 }
                 else
                 {
-                    _logger.LogDebug("Using fallback scoring - ML model not available");
+                    _logger.LogWarning("Using fallback scoring - ML model not available");
                     return CalculateFallbackScore(features);
                 }
             }
@@ -144,7 +144,44 @@ namespace Freelancing.Services
                 }
             });
         }
+        public async Task ReloadModelAsync()
+        {
+            await Task.Run(() =>
+            {
+                lock (_initLock)
+                {
+                    try
+                    {
+                        var modelPath = Path.Combine(_webHostEnvironment.WebRootPath, "models", "smart_hiring_model.zip");
 
+                        if (File.Exists(modelPath))
+                        {
+                            _logger.LogInformation("Reloading ML.NET model from: {ModelPath}", modelPath);
+
+                            // Dispose existing prediction engine
+                            _predictionEngine?.Dispose();
+
+                            // Load the new model
+                            _model = _mlContext.Model.Load(modelPath, out var modelInputSchema);
+                            _predictionEngine = _mlContext.Model.CreatePredictionEngine<SmartHiringInput, SmartHiringOutput>(_model);
+                            _isInitialized = true;
+
+                            _logger.LogInformation("ML.NET Random Forest model reloaded successfully");
+                        }
+                        else
+                        {
+                            _logger.LogWarning("ML.NET model file not found during reload: {ModelPath}", modelPath);
+                            _predictionEngine = null;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to reload ML.NET model");
+                        _predictionEngine = null;
+                    }
+                }
+            });
+        }
         public async Task<string> TrainModelAsync()
         {
             try
@@ -316,15 +353,16 @@ namespace Freelancing.Services
                 var modelPath = Path.Combine(modelsDir, "smart_hiring_model.zip");
                 _mlContext.Model.Save(model, dataView.Schema, modelPath);
 
-                // Update the current instance
+                // ✅ KEY FIX: Immediately load the trained model into the current instance
                 _model = model;
+                _predictionEngine?.Dispose(); // Dispose old engine if exists
                 _predictionEngine = _mlContext.Model.CreatePredictionEngine<SmartHiringInput, SmartHiringOutput>(_model);
                 _isInitialized = true;
 
                 // Final cleanup
                 GC.Collect();
 
-                _logger.LogInformation("Model trained and saved to: {ModelPath}", modelPath);
+                _logger.LogInformation("Model trained, saved, and loaded successfully: {ModelPath}", modelPath);
                 return modelPath;
             }
             catch (Exception ex)
