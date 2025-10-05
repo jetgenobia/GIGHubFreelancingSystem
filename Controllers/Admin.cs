@@ -85,7 +85,6 @@ namespace Freelancing.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> TrainMLModel()
         {
             try
