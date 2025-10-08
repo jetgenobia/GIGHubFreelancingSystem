@@ -114,9 +114,24 @@
                                                             <p class="mb-1 font-light text-gray-600">ID Number:</p>
                                                             <p class="mb-1">@Model.ExtractedIdNumber</p>
                                                             <p class="mb-1 font-light text-gray-600">Name:</p>
-                                                            <p class="mb-1">@Model.ExtractedIdName</p>
+                                                            <p class="mb-1">
+                                                                @{
+                                                                    string formattedName = Model.ExtractedIdName;
+                                                                    if (!string.IsNullOrEmpty(Model.ExtractedIdName) && Model.ExtractedIdName.Contains(','))
+                                                                    {
+                                                                        var parts = Model.ExtractedIdName.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                                                                        if (parts.Length == 2)
+                                                                        {
+                                                                            var lastName = parts[0].Trim();
+                                                                            var firstName = parts[1].Trim();
+                                                                            formattedName = $"{firstName} {lastName}";
+                                                                        }
+                                                                    }
+                                                                }
+    @formattedName
+                                                            </p>
                                                             <p class="mb-1 font-light text-gray-600">Expiry Date:</p>
-                                                            <p class="mb-1">@(Model.IdDocumentExpiryDate?.ToString("MMM dd, yyyy") ?? "No expiration date")</p>
+                                                            <p class="mb-1">@(Model.IdDocumentExpiryDate?.ToString("MMMM dd, yyyy") ?? "No expiration date")</p>
                                                         </div>
                                                     }
                                                 </div>

@@ -53,10 +53,12 @@ namespace Freelancing.Services
                     FaceConfidence = 0.0f
                 };
 
+                DateTime? extractedExpiryDate = null; // Variable to hold extracted expiry date
+
                 // Verify ID Document
                 if (model.IdDocumentImage != null)
                 {
-                    var (idVerified, idMessage, idConfidence, extractedName, extractedIdNumber) = await VerifyIdDocumentAsync(
+                    var (idVerified, idMessage, idConfidence, extractedName, extractedIdNumber, extractedExpiry) = await VerifyIdDocumentAsync(
                         model.IdDocumentImage,
                         model.IdDocumentType,
                         null, // No longer using manual input
@@ -69,6 +71,7 @@ namespace Freelancing.Services
                     result.IdDocumentConfidence = idConfidence;
                     result.ExtractedIdName = extractedName;
                     result.ExtractedIdNumber = extractedIdNumber;
+                    extractedExpiryDate = extractedExpiry; // Store the extracted expiry date
                 }
 
                 // Verify Live Face Capture
@@ -80,8 +83,8 @@ namespace Freelancing.Services
                     result.FaceConfidence = faceConfidence;
                 }
 
-                // Save verification data with encryption
-                await SaveVerificationDataAsync(model, userId, result);
+                // Save verification data with encryption, passing the extracted expiry date
+                await SaveVerificationDataAsync(model, userId, result, extractedExpiryDate);
 
                 return result;
             }
@@ -111,7 +114,7 @@ namespace Freelancing.Services
             bool idDocumentVerified,
             float idDocumentConfidence,
             string? extractedIdName,
-            string? storedIdDocumentImageBase64 = null) // new param
+            string? storedIdDocumentImageBase64 = null)
         {
             try
             {
@@ -156,11 +159,12 @@ namespace Freelancing.Services
                     IdDocumentExpiryDate = idDocumentExpiryDate,
                     IdDocumentHasNoExpiration = idDocumentHasNoExpiration,
                     LiveFaceImageData = liveFaceImageData,
-                    StoredIdDocumentImageData = storedIdDocumentImageBase64 // <-- pass session image here
+                    StoredIdDocumentImageData = storedIdDocumentImageBase64
                 };
 
-                // Save verification data with encryption (will handle stored base64)
-                await SaveVerificationDataAsync(model, userId, result);
+                // NEW: Pass the idDocumentExpiryDate as extractedExpiryDate since this comes from the controller
+                // which already processed the extracted expiry date
+                await SaveVerificationDataAsync(model, userId, result, idDocumentExpiryDate);
 
                 return result;
             }
@@ -179,7 +183,7 @@ namespace Freelancing.Services
             }
         }
 
-        public async Task<(bool verified, string message, float confidence, string? extractedIdName, string? extractedIdNumber)> VerifyIdDocumentAsync(
+        public async Task<(bool verified, string message, float confidence, string? extractedIdName, string? extractedIdNumber, DateTime? extractedExpiryDate)> VerifyIdDocumentAsync(
             IFormFile? documentImage,
             string idDocumentType,
             string? manualIdNumber,
@@ -203,7 +207,7 @@ namespace Freelancing.Services
                 }
                 else
                 {
-                    return (false, "No document image provided for verification.", 0.0f, null, null);
+                    return (false, "No document image provided for verification.", 0.0f, null, null, null);
                 }
 
                 var encryptedImage = _encryptionService.EncryptDocumentImage(imageBytes, userId);
@@ -218,22 +222,22 @@ namespace Freelancing.Services
                     {
                         requests = new[]
                         {
+                    new
+                    {
+                        image = new
+                        {
+                            content = Convert.ToBase64String(imageBytes)
+                        },
+                        features = new[]
+                        {
                             new
                             {
-                                image = new
-                                {
-                                    content = Convert.ToBase64String(imageBytes)
-                                },
-                                features = new[]
-                                {
-                                    new
-                                    {
-                                        type = "TEXT_DETECTION",
-                                        maxResults = 10
-                                    }
-                                }
+                                type = "TEXT_DETECTION",
+                                maxResults = 10
                             }
                         }
+                    }
+                }
                     };
 
                     var jsonContent = System.Text.Json.JsonSerializer.Serialize(requestBody);
@@ -270,8 +274,8 @@ namespace Freelancing.Services
                         var hasDatePattern = System.Text.RegularExpressions.Regex.IsMatch(extractedText, @"\d{1,2}[/-]\d{1,2}[/-]\d{2,4}");
 
                         // Log the OCR results for debugging
-                        _logger.LogInformation("OCR Results for {DocumentType}: Name='{ExtractedName}', ID='{ExtractedId}'",
-                            idDocumentType, ocrResult?.Name, ocrResult?.IdNumber);
+                        _logger.LogInformation("OCR Results for {DocumentType}: Name='{ExtractedName}', ID='{ExtractedId}', ExpiryDate='{ExtractedExpiry}'",
+                            idDocumentType, ocrResult?.Name, ocrResult?.IdNumber, ocrResult?.ExpiryDate);
 
                         // ID documents need at least numbers and letters
                         if (hasNumbers && hasLetters && ocrResult != null)
@@ -298,7 +302,7 @@ namespace Freelancing.Services
                                 if (!nameMatch)
                                 {
                                     _logger.LogWarning("Name mismatch for user {UserId}. Extracted: '{ExtractedName}'", userId, ocrResult.Name);
-                                    return (false, nameMatchMessage, 0.0f, ocrResult.Name, ocrResult.IdNumber);
+                                    return (false, nameMatchMessage, 0.0f, ocrResult.Name, ocrResult.IdNumber, ocrResult.ExpiryDate);
                                 }
                                 else
                                 {
@@ -307,26 +311,26 @@ namespace Freelancing.Services
                                 }
                             }
 
-                            return (true, message, confidence, ocrResult.Name, ocrResult.IdNumber);
+                            return (true, message, confidence, ocrResult.Name, ocrResult.IdNumber, ocrResult.ExpiryDate);
                         }
 
-                        return (false, "Unable to extract required information from ID document. Please ensure the image is clear and contains readable text.", 0.0f, null, null);
+                        return (false, "Unable to extract required information from ID document. Please ensure the image is clear and contains readable text.", 0.0f, null, null, null);
                     }
                     else
                     {
                         _logger.LogError("Google Vision API error: {StatusCode} - {Content}", response.StatusCode, responseContent);
-                        return (false, "Error processing ID document with Google Vision API.", 0.0f, null, null);
+                        return (false, "Error processing ID document with Google Vision API.", 0.0f, null, null, null);
                     }
                 }
                 else
                 {
-                    return (false, "Google Cloud Vision API key not configured.", 0.0f, null, null);
+                    return (false, "Google Cloud Vision API key not configured.", 0.0f, null, null, null);
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error verifying ID document for user {UserId}", userId);
-                return (false, "Error processing ID document. Please try again.", 0.0f, null, null);
+                return (false, "Error processing ID document. Please try again.", 0.0f, null, null, null);
             }
         }
 
@@ -424,7 +428,10 @@ namespace Freelancing.Services
             }
         }
 
-        private async Task SaveVerificationDataAsync(IdentityVerificationViewModel model, string userId, VerificationResultViewModel result)
+        private async Task SaveVerificationDataAsync(IdentityVerificationViewModel model,
+            string userId,
+            VerificationResultViewModel result,
+            DateTime? extractedExpiryDate = null)
         {
             // Create or update verification record
             var verification = await _context.IdentityVerifications
@@ -437,8 +444,8 @@ namespace Freelancing.Services
                     Id = Guid.NewGuid(),
                     UserAccountId = userId,
                     Status = "PENDING",
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
+                    CreatedAt = DateTime.UtcNow.ToLocalTime(),
+                    UpdatedAt = DateTime.UtcNow.ToLocalTime(),
                     CreatedBy = userId,
                     UpdatedBy = userId
                 };
@@ -455,9 +462,8 @@ namespace Freelancing.Services
                     ? _encryptionService.EncryptIdentityData(result.ExtractedIdNumber, userId)
                     : null;
 
-                verification.IdDocumentExpiryDate = model.IdDocumentHasNoExpiration
-                    ? DateTime.UtcNow.AddYears(100)
-                    : model.IdDocumentExpiryDate;
+                // UPDATED: Use extracted expiry date with priority over manual input
+                verification.IdDocumentExpiryDate = GetEffectiveExpiryDate(model, extractedExpiryDate);
                 verification.IdDocumentVerified = result.IdDocumentVerified;
                 verification.IdDocumentConfidence = result.IdDocumentConfidence;
             }
@@ -481,9 +487,8 @@ namespace Freelancing.Services
                         ? _encryptionService.EncryptIdentityData(result.ExtractedIdNumber, userId)
                         : null;
 
-                    verification.IdDocumentExpiryDate = model.IdDocumentHasNoExpiration
-                        ? DateTime.UtcNow.AddYears(100)
-                        : model.IdDocumentExpiryDate;
+                    // UPDATED: Use extracted expiry date with priority over manual input
+                    verification.IdDocumentExpiryDate = GetEffectiveExpiryDate(model, extractedExpiryDate);
                     verification.IdDocumentVerified = result.IdDocumentVerified;
                     verification.IdDocumentConfidence = result.IdDocumentConfidence;
                 }
@@ -500,9 +505,9 @@ namespace Freelancing.Services
                 verification.EncryptedIdDocumentNumber = !string.IsNullOrEmpty(result.ExtractedIdNumber)
                     ? _encryptionService.EncryptIdentityData(result.ExtractedIdNumber, userId)
                     : null;
-                verification.IdDocumentExpiryDate = model.IdDocumentHasNoExpiration
-                    ? DateTime.UtcNow.AddYears(100)
-                    : model.IdDocumentExpiryDate;
+
+                // UPDATED: Use extracted expiry date with priority over manual input
+                verification.IdDocumentExpiryDate = GetEffectiveExpiryDate(model, extractedExpiryDate);
                 verification.IdDocumentVerified = result.IdDocumentVerified;
                 verification.IdDocumentConfidence = result.IdDocumentConfidence;
             }
@@ -531,10 +536,28 @@ namespace Freelancing.Services
                 verification.RejectionReason = null;
             }
 
-            verification.UpdatedAt = DateTime.UtcNow;
+            verification.UpdatedAt = DateTime.UtcNow.ToLocalTime();
             verification.UpdatedBy = userId;
 
             await _context.SaveChangesAsync();
+        }
+
+        private DateTime? GetEffectiveExpiryDate(IdentityVerificationViewModel model, DateTime? extractedExpiryDate)
+        {
+            // For National ID, always return null (they don't expire)
+            if (string.Equals(model.IdDocumentType, "National ID", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            // If marked as no expiration, return far future date
+            if (model.IdDocumentHasNoExpiration)
+            {
+                return DateTime.UtcNow.ToLocalTime().AddYears(100);
+            }
+
+            // Priority: extracted date from OCR > manually entered date
+            return extractedExpiryDate ?? model.IdDocumentExpiryDate;
         }
 
         private async Task<byte[]> GetImageBytesAsync(IFormFile file)
@@ -603,15 +626,15 @@ namespace Freelancing.Services
                 return false;
 
             verification.Status = status;
-            verification.UpdatedAt = DateTime.UtcNow;
+            verification.UpdatedAt = DateTime.UtcNow.ToLocalTime();
 
             if (status == "APPROVED")
             {
-                verification.VerifiedAt = DateTime.UtcNow;
+                verification.VerifiedAt = DateTime.UtcNow.ToLocalTime();
             }
             else if (status == "REJECTED")
             {
-                verification.RejectedAt = DateTime.UtcNow;
+                verification.RejectedAt = DateTime.UtcNow.ToLocalTime();
                 verification.RejectionReason = reason;
             }
 
@@ -624,6 +647,7 @@ namespace Freelancing.Services
         {
             public string IdNumber { get; set; }
             public string Name { get; set; }
+            public DateTime? ExpiryDate { get; set; }
         }
 
         private IdOcrResult ParseNationalId(string ocrText)
@@ -674,6 +698,9 @@ namespace Freelancing.Services
 
             result.Name = string.Join(" ", nameParts).Trim();
 
+            // National IDs don't have expiry dates
+            result.ExpiryDate = null;
+
             _logger.LogInformation("Final parsed name: {FullName}", result.Name);
 
             return result;
@@ -687,26 +714,379 @@ namespace Freelancing.Services
             var idNumberMatch = Regex.Match(ocrText, @"License No\.?\s*([A-Z0-9\-]+)");
             result.IdNumber = idNumberMatch.Success ? idNumberMatch.Groups[1].Value.Trim() : null;
 
-            // Name: Dela Cruz, Juan Pedro Garcia (all uppercase, comma separated)
-            var nameMatch = Regex.Match(ocrText, @"([A-Z\s]+,[A-Z\s]+)");
-            result.Name = nameMatch.Success ? nameMatch.Groups[1].Value.Trim() : null;
+            // Improved name extraction for Philippine driver's license
+            // Look for the pattern after "Last Name, First Name, Middle Name" header
+            var namePatterns = new[]
+            {
+        // Pattern 1: Look for name after the header, before "Nationality"
+        @"Last\s+Name,?\s*First\s+Name,?\s*Middle\s+Name\s*\n\s*([A-Z\s,]+?)(?:\s*\n\s*Nationality|\s*Nationality)",
+        
+        // Pattern 2: Direct comma-separated name pattern with length limits
+        @"^([A-Z]+,\s*[A-Z]+(?:\s+[A-Z]+)?)(?:\s*\n|\s*$)",
+        
+        // Pattern 3: Look for capitalized words in comma format, but limit to reasonable length
+        @"([A-Z]{2,}(?:\s+[A-Z]{2,})*,\s*[A-Z]{2,}(?:\s+[A-Z]{2,})*?)(?=\s*(?:Nationality|Address|License|PHL|\n\s*PHL))"
+    };
+
+            foreach (var pattern in namePatterns)
+            {
+                var match = Regex.Match(ocrText, pattern, RegexOptions.IgnoreCase | RegexOptions.Multiline);
+                if (match.Success)
+                {
+                    var extractedName = match.Groups[1].Value.Trim();
+
+                    // Clean the extracted name
+                    extractedName = CleanDriversLicenseName(extractedName);
+
+                    // Validate the name (should not contain department words)
+                    if (IsValidDriversLicenseName(extractedName))
+                    {
+                        result.Name = extractedName;
+                        break;
+                    }
+                }
+            }
+
+            // Fallback: If no pattern worked, try to extract manually by looking for comma-separated format
+            if (string.IsNullOrEmpty(result.Name))
+            {
+                var lines = ocrText.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var line in lines)
+                {
+                    var trimmedLine = line.Trim();
+
+                    // Look for comma-separated names that don't contain department words
+                    if (trimmedLine.Contains(',') && IsValidDriversLicenseName(trimmedLine))
+                    {
+                        var cleanedName = CleanDriversLicenseName(trimmedLine);
+                        if (!string.IsNullOrEmpty(cleanedName))
+                        {
+                            result.Name = cleanedName;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Extract expiry date for driver's license
+            var expiryPatterns = new[]
+            {
+        @"Exp(?:iry|iration)?\s*Date\s*:?\s*(\d{4}[/-]\d{1,2}[/-]\d{1,2})",
+        @"(\d{4}[/-]\d{1,2}[/-]\d{1,2})", // YYYY/MM/DD format common in PH licenses
+        @"(\d{1,2}[/-]\d{1,2}[/-]\d{4})" // MM/DD/YYYY format
+    };
+
+            foreach (var pattern in expiryPatterns)
+            {
+                var matches = Regex.Matches(ocrText, pattern, RegexOptions.IgnoreCase);
+                foreach (Match match in matches)
+                {
+                    var dateString = match.Groups[1].Value;
+                    if (DateTime.TryParseExact(dateString, new[] { "yyyy/MM/dd", "yyyy-MM-dd", "MM/dd/yyyy", "M/d/yyyy", "MM-dd-yyyy", "M-d-yyyy" }, null, System.Globalization.DateTimeStyles.None, out var expiryDate))
+                    {
+                        // Only use future dates as expiry dates
+                        if (expiryDate > DateTime.Today)
+                        {
+                            result.ExpiryDate = expiryDate;
+                            break;
+                        }
+                    }
+                }
+                if (result.ExpiryDate.HasValue) break;
+            }
 
             return result;
+        }
+
+        // Helper method to clean driver's license names
+        private string CleanDriversLicenseName(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return "";
+
+            // Remove common OCR artifacts and extra characters
+            name = Regex.Replace(name, @"[^\w\s,]", ""); // Keep only letters, spaces, and commas
+            name = Regex.Replace(name, @"\s+", " "); // Replace multiple spaces with single space
+            name = name.Trim();
+
+            // Remove department-related words that might have been captured
+            var departmentWords = new[]
+            {
+        "DEPARTMENT", "DEPT", "TRANSPORTATION", "LAND", "OFFICE", "REPUBLIC",
+        "PHILIPPINES", "ANTEPORTATION", "ANSP", "LTO", "GOVERNMENT"
+    };
+
+            var words = name.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
+            var cleanWords = words.Where(word =>
+                !departmentWords.Contains(word.ToUpperInvariant()) &&
+                word.Length > 1 && // Remove single letters
+                !Regex.IsMatch(word, @"^\d+$") // Remove pure numbers
+            ).ToArray();
+
+            // Reconstruct name maintaining comma separation if it was there originally
+            if (name.Contains(','))
+            {
+                var commaIndex = Array.FindIndex(cleanWords, w => name.IndexOf(w) > name.IndexOf(','));
+                if (commaIndex > 0)
+                {
+                    var lastName = string.Join(" ", cleanWords.Take(commaIndex));
+                    var firstName = string.Join(" ", cleanWords.Skip(commaIndex));
+                    return $"{lastName}, {firstName}".Trim();
+                }
+            }
+
+            return string.Join(" ", cleanWords);
+        }
+
+        // Helper method to validate if extracted text is a valid driver's license name
+        private bool IsValidDriversLicenseName(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return false;
+
+            // Must contain letters
+            if (!name.Any(char.IsLetter)) return false;
+
+            // Should not contain department/office words
+            var invalidWords = new[]
+            {
+        "DEPARTMENT", "TRANSPORTATION", "LAND", "OFFICE", "REPUBLIC",
+        "PHILIPPINES", "ANTEPORTATION", "LICENSE", "DRIVER", "GOVT"
+    };
+
+            var upperName = name.ToUpperInvariant();
+            if (invalidWords.Any(word => upperName.Contains(word))) return false;
+
+            // Should be reasonable length (names shouldn't be too long)
+            if (name.Length > 50) return false;
+
+            // If it contains comma, should have reasonable format
+            if (name.Contains(','))
+            {
+                var parts = name.Split(',');
+                if (parts.Length > 2 || parts.Any(p => p.Trim().Length < 2)) return false;
+            }
+
+            return true;
         }
 
         private IdOcrResult ParsePassport(string ocrText)
         {
             var result = new IdOcrResult();
 
-            // Passport number: Usually starts with P followed by numbers
-            var idNumberMatch = Regex.Match(ocrText, @"(?:Passport\s*No\.?|P)\s*([A-Z0-9]+)");
-            result.IdNumber = idNumberMatch.Success ? idNumberMatch.Groups[1].Value.Trim() : null;
+            // Split lines for more accurate parsing
+            var lines = ocrText.Split('\n').Select(l => l.Trim()).ToList();
 
-            // Name extraction for passport - typically "Surname, Given names"
-            var nameMatch = Regex.Match(ocrText, @"([A-Z\s]+,[A-Z\s]+)");
-            result.Name = nameMatch.Success ? nameMatch.Groups[1].Value.Trim() : null;
+            // Philippine passport number: P followed by 8 digits and a letter (e.g., P9261295C)
+            var idNumberPatterns = new[]
+            {
+        @"P\d{7}[A-Z]",           // P9261295C format
+        @"Passport\s*no\s*[:\.]?\s*(P\d{7}[A-Z])",
+        @"Pasaporte\s*blg/Passport\s*no\s*[:\.]?\s*(P\d{7}[A-Z])",
+        @"\b(P\d{7}[A-Z])\b"     // Standalone passport number
+    };
+
+            foreach (var pattern in idNumberPatterns)
+            {
+                var match = Regex.Match(ocrText, pattern, RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    result.IdNumber = match.Groups.Count > 1 ? match.Groups[1].Value.Trim() : match.Value.Trim();
+                    break;
+                }
+            }
+
+            // Name extraction for Philippine passport
+            string lastName = "", givenNames = "", middleName = "";
+
+            for (int i = 0; i < lines.Count; i++)
+            {
+                var line = lines[i];
+
+                // Look for "Apelyido/Surname" followed by the surname
+                if (Regex.IsMatch(line, @"Apelyido/Surname", RegexOptions.IgnoreCase))
+                {
+                    if (i + 1 < lines.Count && !string.IsNullOrWhiteSpace(lines[i + 1]))
+                    {
+                        lastName = CleanPassportName(lines[i + 1]);
+                    }
+                }
+
+                // Look for "Pangalan/Given names" followed by the given names
+                if (Regex.IsMatch(line, @"Pangalan/Given names", RegexOptions.IgnoreCase))
+                {
+                    if (i + 1 < lines.Count && !string.IsNullOrWhiteSpace(lines[i + 1]))
+                    {
+                        givenNames = CleanPassportName(lines[i + 1]);
+                    }
+                }
+
+                // Look for "Panggitnang apelyido/Middle name" followed by the middle name
+                if (Regex.IsMatch(line, @"Panggitnang apelyido/Middle name", RegexOptions.IgnoreCase))
+                {
+                    if (i + 1 < lines.Count && !string.IsNullOrWhiteSpace(lines[i + 1]))
+                    {
+                        middleName = CleanPassportName(lines[i + 1]);
+                    }
+                }
+            }
+
+            // If structured extraction didn't work, try alternative patterns
+            if (string.IsNullOrEmpty(lastName) && string.IsNullOrEmpty(givenNames))
+            {
+                // Try to extract from MRZ (Machine Readable Zone) format
+                var mrzMatch = Regex.Match(ocrText, @"P<PHL([A-Z]+)<<([A-Z]+)<+", RegexOptions.IgnoreCase);
+                if (mrzMatch.Success)
+                {
+                    lastName = mrzMatch.Groups[1].Value;
+                    givenNames = mrzMatch.Groups[2].Value;
+                }
+                else
+                {
+                    // Fallback: Look for capitalized names near passport-specific keywords
+                    var namePatterns = new[]
+                    {
+        @"([A-Z]{3,}(?:\s+[A-Z]{3,})*)\s*\n\s*([A-Z]{3,}(?:\s+[A-Z]{3,})*)", // First capitalized word(s) followed by second capitalized word(s)
+        @"([A-Z]{3,})\s*\n\s*([A-Z]{3,}(?:\s+[A-Z]{3,})*)"                   // Single surname followed by given names
+    };
+
+                    foreach (var pattern in namePatterns)
+                    {
+                        var match = Regex.Match(ocrText, pattern, RegexOptions.Multiline);
+                        if (match.Success && IsValidPassportName(match.Groups[1].Value))
+                        {
+                            // Determine which is surname and which is given name based on context
+                            if (string.IsNullOrEmpty(lastName))
+                            {
+                                lastName = match.Groups[1].Value.Trim();
+                                if (match.Groups.Count > 2)
+                                    givenNames = match.Groups[2].Value.Trim();
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Construct full name in Philippine format (Given Middle Last)
+            var nameParts = new List<string>();
+            if (!string.IsNullOrEmpty(givenNames)) nameParts.Add(givenNames);
+            if (!string.IsNullOrEmpty(middleName)) nameParts.Add(middleName);
+            if (!string.IsNullOrEmpty(lastName)) nameParts.Add(lastName);
+
+            result.Name = string.Join(" ", nameParts).Trim();
+
+            // If we still don't have a name in the correct format, but we have lastName and givenNames
+            // Create the comma-separated format for consistency with other documents
+            if (string.IsNullOrEmpty(result.Name) && !string.IsNullOrEmpty(lastName) && !string.IsNullOrEmpty(givenNames))
+            {
+                result.Name = $"{lastName}, {givenNames}";
+            }
+
+            // Extract expiry date for Philippine passport
+            var expiryPatterns = new[]
+            {
+        @"Petsa\s*ng\s*pagkawalang\s*bisa/Valid\s*until\s*[:\.]?\s*(\d{1,2}\s+[A-Z]{3}\s+\d{4})", // "13 MAR 2035"
+        @"Valid\s*until\s*[:\.]?\s*(\d{1,2}\s+[A-Z]{3}\s+\d{4})",
+        @"(\d{1,2}\s+MAR\s+\d{4})", // Specific format like "13 MAR 2035"
+        @"(\d{1,2}\s+[A-Z]{3}\s+\d{4})", // General format "DD MMM YYYY"
+        @"(\d{1,2}[/-]\d{1,2}[/-]\d{4})" // Fallback numeric format
+    };
+
+            foreach (var pattern in expiryPatterns)
+            {
+                var matches = Regex.Matches(ocrText, pattern, RegexOptions.IgnoreCase);
+                foreach (Match match in matches)
+                {
+                    var dateString = match.Groups[1].Value.Trim();
+
+                    // Try different date formats
+                    var dateFormats = new[]
+                    {
+                "d MMM yyyy",    // "13 MAR 2035"
+                "dd MMM yyyy",   // "13 MAR 2035"
+                "d/M/yyyy",      // "13/3/2035"
+                "dd/MM/yyyy",    // "13/03/2035"
+                "MM/dd/yyyy",    // "03/13/2035"
+                "d-M-yyyy",      // "13-3-2035"
+                "dd-MM-yyyy",    // "13-03-2035"
+                "MM-dd-yyyy"     // "03-13-2035"
+            };
+
+                    if (DateTime.TryParseExact(dateString, dateFormats, null, System.Globalization.DateTimeStyles.None, out var expiryDate))
+                    {
+                        // Only use future dates as expiry dates
+                        if (expiryDate > DateTime.Today)
+                        {
+                            result.ExpiryDate = expiryDate;
+                            break;
+                        }
+                    }
+                }
+                if (result.ExpiryDate.HasValue) break;
+            }
+
+            // Log the extracted information for debugging
+            _logger.LogInformation("Passport parsing results - Number: '{IdNumber}', Name: '{Name}', Expiry: '{ExpiryDate}'",
+                result.IdNumber, result.Name, result.ExpiryDate);
 
             return result;
+        }
+
+        // Helper method to clean passport names
+        private string CleanPassportName(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return "";
+
+            // Remove common OCR artifacts and extra characters
+            name = Regex.Replace(name, @"[^\w\s]", ""); // Keep only letters, spaces
+            name = Regex.Replace(name, @"\s+", " "); // Replace multiple spaces with single space
+            name = name.Trim().ToUpperInvariant();
+
+            // Remove common passport header words that might be captured
+            var headerWords = new[]
+            {
+        "REPUBLIKA", "PILIPINAS", "REPUBLIC", "PHILIPPINES", "PASSPORT", "PASAPORTE",
+        "APELYIDO", "SURNAME", "PANGALAN", "GIVEN", "NAMES", "PANGGITNANG",
+        "MIDDLE", "NAME", "TYPE", "KODIGO", "COUNTRY", "CODE"
+    };
+
+            var words = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var cleanWords = words.Where(word =>
+                !headerWords.Contains(word) &&
+                word.Length > 1 && // Remove single letters
+                !Regex.IsMatch(word, @"^\d+$") // Remove pure numbers
+            ).ToArray();
+
+            return string.Join(" ", cleanWords);
+        }
+
+        // Helper method to validate if extracted text is a valid passport name
+        private bool IsValidPassportName(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return false;
+
+            // Must contain letters
+            if (!name.Any(char.IsLetter)) return false;
+
+            // Should not contain passport header words
+            var invalidWords = new[]
+            {
+        "REPUBLIKA", "PILIPINAS", "REPUBLIC", "PHILIPPINES", "PASSPORT", "PASAPORTE",
+        "TYPE", "KODIGO", "COUNTRY", "CODE", "PETSA", "DATE", "BIRTH", "KASARIAN",
+        "SEX", "LUGAR", "PLACE", "PAGKAWALANG", "VALID", "UNTIL", "AUTHORITY"
+    };
+
+            var upperName = name.ToUpperInvariant();
+            if (invalidWords.Any(word => upperName.Contains(word))) return false;
+
+            // Should be reasonable length (names shouldn't be too long or too short)
+            if (name.Length > 50 || name.Length < 3) return false;
+
+            // Should not be mostly numbers
+            var letterCount = name.Count(char.IsLetter);
+            var totalCount = name.Replace(" ", "").Length;
+            if (letterCount < totalCount * 0.7) return false; // At least 70% letters
+
+            return true;
         }
 
         private IdOcrResult ParseGenericId(string ocrText)
@@ -716,10 +1096,10 @@ namespace Freelancing.Services
             // Generic ID number extraction - look for common patterns
             var idPatterns = new[]
             {
-                @"\b\d{4}-\d{4}-\d{4}-\d{4}\b", // ####-####-####-####
-                @"\b[A-Z]\d{2}-\d{2}-\d{5}\b",  // N##-##-#####
-                @"\b[A-Z0-9]{8,12}\b"           // Alphanumeric 8-12 chars
-            };
+        @"\b\d{4}-\d{4}-\d{4}-\d{4}\b", // ####-####-####-####
+        @"\b[A-Z]\d{2}-\d{2}-\d{5}\b",  // N##-##-#####
+        @"\b[A-Z0-9]{8,12}\b"           // Alphanumeric 8-12 chars
+    };
 
             foreach (var pattern in idPatterns)
             {
@@ -734,9 +1114,9 @@ namespace Freelancing.Services
             // Generic name extraction - look for comma-separated names or capitalized words
             var namePatterns = new[]
             {
-                @"([A-Z][a-z]+\s*,\s*[A-Z][a-z\s]+)", // "Surname, Given names"
-                @"([A-Z][A-Z\s]+,[A-Z\s]+)"          // "SURNAME, GIVEN NAMES"
-            };
+        @"([A-Z][a-z]+\s*,\s*[A-Z][a-z\s]+)", // "Surname, Given names"
+        @"([A-Z][A-Z\s]+,[A-Z\s]+)"          // "SURNAME, GIVEN NAMES"
+    };
 
             foreach (var pattern in namePatterns)
             {
@@ -746,6 +1126,32 @@ namespace Freelancing.Services
                     result.Name = match.Groups[1].Value.Trim();
                     break;
                 }
+            }
+
+            // Try to extract expiry date for generic IDs
+            var expiryPatterns = new[]
+            {
+        @"Exp(?:iry|ires?)?\s*:?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})",
+        @"Valid\s*Until\s*:?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})",
+        @"(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})" // Generic date pattern
+    };
+
+            foreach (var pattern in expiryPatterns)
+            {
+                var matches = Regex.Matches(ocrText, pattern, RegexOptions.IgnoreCase);
+                foreach (Match match in matches)
+                {
+                    var dateString = match.Groups[1].Value;
+                    if (DateTime.TryParseExact(dateString, new[] { "MM/dd/yyyy", "M/d/yyyy", "MM-dd-yyyy", "M-d-yyyy", "dd/MM/yyyy", "d/M/yyyy" }, null, System.Globalization.DateTimeStyles.None, out var expiryDate))
+                    {
+                        if (expiryDate > DateTime.Today)
+                        {
+                            result.ExpiryDate = expiryDate;
+                            break;
+                        }
+                    }
+                }
+                if (result.ExpiryDate.HasValue) break;
             }
 
             return result;

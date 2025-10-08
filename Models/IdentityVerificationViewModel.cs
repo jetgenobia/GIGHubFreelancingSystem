@@ -19,27 +19,57 @@ namespace Freelancing.Models
         public IFormFile? IdDocumentImage { get; set; }
 
         [DataType(DataType.Date)]
-        public DateTime? IdDocumentExpiryDate { get; set; } = DateTime.Today; // Default to today, nullable
+        public DateTime? IdDocumentExpiryDate { get; set; }
 
-        public bool IdDocumentHasNoExpiration { get; set; } // Checkbox for IDs without expiration
+        public bool IdDocumentHasNoExpiration { get; set; }
 
         // Hidden field to preserve extracted ID name
         public string? ExtractedIdName { get; set; }
 
+        // NEW: Property to hold extracted expiration date from OCR
+        public DateTime? ExtractedExpiryDate { get; set; }
+
         // Custom validation for expiry date and file upload
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
-            // Validate expiry date requirement
-            if (!IdDocumentHasNoExpiration && !IdDocumentExpiryDate.HasValue)
+            // For National ID, automatically set no expiration - validation passes
+            if (string.Equals(IdDocumentType, "National ID", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(IdDocumentType, "NATIONAL_ID", StringComparison.OrdinalIgnoreCase))
             {
-                yield return new ValidationResult("Expiry date is required when document has expiration.", new[] { nameof(IdDocumentExpiryDate) });
+                // National IDs don't expire, so we skip expiry validation
+                yield break;
             }
 
-            // Note: File upload validation is handled in the controller for better session handling
-            // This provides client-side validation as fallback
-            if (string.IsNullOrEmpty(ExtractedIdNumber) && IdDocumentImage == null)
+            // For other document types, we now rely on extracted expiry dates from OCR
+            // If we have extracted data (returning user), we don't need to validate expiry date manually
+            // The expiry date should either be extracted or the document should be marked as no expiration
+
+            // Only validate if we don't have extracted data yet (new submission)
+            if (string.IsNullOrEmpty(ExtractedIdNumber))
             {
-                yield return new ValidationResult("Please upload your ID document.", new[] { nameof(IdDocumentImage) });
+                // This is a new submission - expiry date will be extracted from the uploaded document
+                // No need to validate expiry date manually since OCR will handle it
+
+                // File upload validation for new submissions
+                if (IdDocumentImage == null)
+                {
+                    yield return new ValidationResult("Please upload your ID document.", new[] { nameof(IdDocumentImage) });
+                }
+            }
+            else
+            {
+                // This is a returning user with extracted data
+                // At this point, either:
+                // 1. ExtractedExpiryDate has a value (expiry date was successfully extracted)
+                // 2. ExtractedExpiryDate is null but IdDocumentHasNoExpiration is true (document has no expiry)
+                // 3. ExtractedExpiryDate is null and IdDocumentHasNoExpiration is false (expiry not detected - acceptable)
+
+                // We don't need to validate expiry date for returning users since:
+                // - The expiry date is either extracted automatically or
+                // - The document type doesn't require expiry validation or  
+                // - The system will handle missing expiry dates through manual verification
+
+                // No expiry date validation needed here
             }
         }
     }
@@ -80,6 +110,7 @@ namespace Freelancing.Models
 
         [DataType(DataType.Date)]
         public DateTime? IdDocumentExpiryDate { get; set; } = DateTime.Today; // Default to today, nullable
+        public DateTime? ExtractedExpiryDate { get; set; }
 
         public bool IdDocumentHasNoExpiration { get; set; } // Checkbox for IDs without expiration
 
