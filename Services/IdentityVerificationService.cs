@@ -623,8 +623,8 @@ namespace Freelancing.Services
                     Id = Guid.NewGuid(),
                     UserAccountId = userId,
                     Status = "PENDING",
-                    CreatedAt = DateTime.UtcNow.ToLocalTime(),
-                    UpdatedAt = DateTime.UtcNow.ToLocalTime(),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
                     CreatedBy = userId,
                     UpdatedBy = userId
                 };
@@ -715,7 +715,7 @@ namespace Freelancing.Services
                 verification.RejectionReason = null;
             }
 
-            verification.UpdatedAt = DateTime.UtcNow.ToLocalTime();
+            verification.UpdatedAt = DateTime.UtcNow;
             verification.UpdatedBy = userId;
 
             await _context.SaveChangesAsync();
@@ -732,7 +732,7 @@ namespace Freelancing.Services
             // If marked as no expiration, return far future date
             if (model.IdDocumentHasNoExpiration)
             {
-                return DateTime.UtcNow.ToLocalTime().AddYears(100);
+                return DateTime.UtcNow.AddYears(100);
             }
 
             // Priority: extracted date from OCR > manually entered date
@@ -805,15 +805,15 @@ namespace Freelancing.Services
                 return false;
 
             verification.Status = status;
-            verification.UpdatedAt = DateTime.UtcNow.ToLocalTime();
+            verification.UpdatedAt = DateTime.UtcNow;
 
             if (status == "APPROVED")
             {
-                verification.VerifiedAt = DateTime.UtcNow.ToLocalTime();
+                verification.VerifiedAt = DateTime.UtcNow;
             }
             else if (status == "REJECTED")
             {
-                verification.RejectedAt = DateTime.UtcNow.ToLocalTime();
+                verification.RejectedAt = DateTime.UtcNow;
                 verification.RejectionReason = reason;
             }
 
