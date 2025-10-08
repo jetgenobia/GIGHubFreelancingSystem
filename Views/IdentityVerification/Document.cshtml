@@ -4,6 +4,52 @@
     Layout = User.IsInRole("Client") ? "_LayoutClient" : "_LayoutFreelancer";
 }
 
+<style>
+    /* Ensure modal is properly responsive */
+    #documentCameraModal {
+        touch-action: manipulation;
+    }
+
+    /* Prevent body scroll when modal is open */
+    body.modal-open {
+        overflow: hidden;
+    }
+
+    /* Responsive camera container for documents - smaller size */
+    .document-camera-responsive {
+        width: 100%;
+        max-width: 480px;
+        aspect-ratio: 4/3;
+    }
+
+    /* Better button spacing on mobile */
+    @@media (max-width: 640px) {
+        .document-camera-responsive
+
+    {
+        max-width: 100%;
+    }
+
+    #documentCameraModal .btn {
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+    }
+
+    #documentCameraModal .fas {
+        font-size: 1rem;
+    }
+
+    }
+
+    /* Document guide overlay - rectangle */
+    .document-guide {
+        border: 4px solid rgba(255, 255, 255, 0.9);
+        border-radius: 8px;
+        background: transparent;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    }
+</style>
+
 <div class="p-4 sm:ml-64">
     <div class="pt-2 mt-20">
         <div class="mt-1">
@@ -65,12 +111,101 @@
                                                     </ul>
                                                 </div>
                                             }
+                                            @if (!string.IsNullOrEmpty(ViewBag.ValidationWarning as string))
+                                            {
+                                                <div class="mt-2 flex items-start p-4 mb-4 text-sm text-amber-800 border border-amber-300 rounded-lg bg-amber-50" role="alert">
+                                                    <svg class="shrink-0 inline w-5 h-5 me-3 mt-0.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
+                                                    </svg>
+                                                    <div>
+                                                        <span class="font-medium">Document Processing Warning</span>
+                                                        <div class="mt-1">
+                                                            @Html.Raw(ViewBag.ValidationWarning)
+                                                        </div>
+                                                        <div class="mt-3 text-xs">
+                                                            <strong>Tips for better results:</strong>
+                                                            <ul class="list-disc list-inside mt-1 space-y-1">
+                                                                <li>Ensure good lighting - avoid shadows and glare</li>
+                                                                <li>Place document on a flat, contrasting surface</li>
+                                                                <li>Make sure all text is clearly visible and not cut off</li>
+                                                                <li>Hold camera steady and capture the entire document</li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+
+                                            @if (!string.IsNullOrEmpty(ViewBag.ProcessingError as string))
+                                            {
+                                                <div class="mt-2 flex items-start p-4 mb-4 text-sm text-red-800 border border-red-300 rounded-lg bg-red-50" role="alert">
+                                                    <svg class="shrink-0 inline w-5 h-5 me-3 mt-0.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
+                                                    </svg>
+                                                    <div>
+                                                        <span class="font-medium">Processing Error</span>
+                                                        <div class="mt-1">
+                                                            @Html.Raw(ViewBag.ProcessingError)
+                                                        </div>
+                                                        <div class="mt-3">
+                                                            <button type="button" class="text-sm bg-red-100 hover:bg-red-200 text-red-800 px-3 py-1 rounded border border-red-300 transition-colors" onclick="$('#openDocumentCamera').click()">
+                                                                Try Camera Again
+                                                            </button>
+                                                            <span class="text-xs text-red-600 ml-2">or upload a different image</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+
+                                            <!-- Add this right after your ValidationWarning and ProcessingError sections -->
+                                            @* @if (!string.IsNullOrEmpty(Model.ExtractedIdNumber) && ViewBag.ValidationWarning != null && ViewBag.ValidationWarning.ToString().Contains("Document type mismatch"))
+                                            {
+                                                <div class="mt-2 flex items-start p-4 mb-4 text-sm text-blue-800 border border-blue-300 rounded-lg bg-blue-50" role="alert">
+                                                    <svg class="shrink-0 inline w-5 h-5 me-3 mt-0.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
+                                                    </svg>
+                                                    <div>
+                                                        <span class="font-medium">Quick Fix Available</span>
+                                                        <div class="mt-1">
+                                                            <strong>Extracted ID Number:</strong> @Model.ExtractedIdNumber
+                                                        </div>
+                                                        <div class="mt-3 space-y-2">
+                                                            @{
+                                                                var detectedType = "";
+                                                                if (System.Text.RegularExpressions.Regex.IsMatch(Model.ExtractedIdNumber, @"^\d{4}-\d{4}-\d{4}-\d{4}$"))
+                                                                {
+                                                                    detectedType = "National ID";
+                                                                }
+                                                                else if (System.Text.RegularExpressions.Regex.IsMatch(Model.ExtractedIdNumber, @"^[A-Z]\d{2}-\d{2}-\d{5}$"))
+                                                                {
+                                                                    detectedType = "Driver's License";
+                                                                }
+                                                                else if (System.Text.RegularExpressions.Regex.IsMatch(Model.ExtractedIdNumber, @"^P\d{7}[A-Z]$"))
+                                                                {
+                                                                    detectedType = "Passport";
+                                                                }
+                                                            }
+
+                                                            @if (!string.IsNullOrEmpty(detectedType))
+                                                            {
+                                                                <button type="button" class="text-white bg-[#41b8d5] focus:ring-4 focus:ring-[#6ce5e8] font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 focus:outline-none"
+                                                                        onclick="selectRadio('@detectedType')">
+                                                                    Change to @detectedType
+                                                                </button>
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            } *@
 
                                             <!-- Hidden fields to preserve extracted data -->
                                             @Html.HiddenFor(m => m.ExtractedIdNumber)
                                             @Html.HiddenFor(m => m.ExtractedIdName)
                                             @Html.HiddenFor(m => m.ExtractedExpiryDate)
                                             @Html.HiddenFor(m => m.IdDocumentHasNoExpiration)
+                                            @Html.HiddenFor(m => m.OriginalIdType)
+
+                                            <!-- Hidden field for camera-captured image data -->
+                                            <input type="hidden" id="documentImageData" name="DocumentImageData" />
 
                                             <!-- Document Verification Section -->
                                             <div class="mb-5">
@@ -78,16 +213,22 @@
                                                     <h3 class="text-3xl font-bold text-gray-800 mb-1">
                                                         ID Document Information
                                                     </h3>
-                                                    <p class="text-sm text-gray-600 mt-2">
+                                                    @* <p class="text-sm text-gray-600 mt-2">
                                                         @if (!string.IsNullOrEmpty(Model.ExtractedIdNumber))
                                                         {
-                                                            <text>Your ID information has been extracted. You can update details or upload a new document if needed.</text>
+                                                            <span class="text-green-600">Your ID information has been extracted successfully.</span>
+                                                            <text> You can update details or upload a new document if needed.</text>
+                                                        }
+                                                        else if ((ViewBag.HasStoredImage as bool?) == true)
+                                                        {
+                                                            <span class="text-amber-600">Your document image was saved, but automatic text extraction had issues.</span>
+                                                            <text> Please try uploading a clearer image for better results.</text>
                                                         }
                                                         else
                                                         {
                                                             <text>Your ID number will be automatically extracted from the uploaded document</text>
                                                         }
-                                                    </p>
+                                                    </p> *@
                                                 </div>
 
                                                 <div class="card">
@@ -172,8 +313,15 @@
                                                                             <span class="text-gray-400">(Optional)</span>
                                                                         </label>
                                                                         <input asp-for="IdDocumentImage" type="file" class="mt-3 form-control block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer focus:outline-none" aria-describedby="file_input_help" accept="image/*">
-                                                                        <button type="button" class="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mt-1">Open Camera</button>
-                                                                        <p class="mt-1 text-sm text-gray-500" id="file_input_help">Upload/take a new document or leave empty to use the existing one (Max: 10MB)</p>
+
+                                                                        <!-- Camera and Upload buttons -->
+                                                                        <div class="flex gap-2 mt-2">
+                                                                            <button type="button" id="openDocumentCamera" class="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5">
+                                                                                <i class="fas fa-camera me-2"></i>Take Photo
+                                                                            </button>
+                                                                        </div>
+
+                                                                        <p class="mt-1 text-sm text-gray-500" id="file_input_help">Upload OR take a new, clear, high-resolution image of your ID document. (Max: 10MB)</p>
 
                                                                         <!-- Document Preview - Moved below upload instructions -->
                                                                         <div class="mt-4">
@@ -231,7 +379,7 @@
                                                                                                                 }
                                                                                                             }
                                                                                                         }
-        @displayName
+                                                                                                        @displayName
                                                                                                     </span>
                                                                                                 </div>
                                                                                                 <div>ID: <span class="font-medium">@Model.ExtractedIdNumber</span></div>
@@ -268,9 +416,16 @@
                                                                     {
                                                                         <!-- Show required file upload for new submissions -->
                                                                         <label asp-for="IdDocumentImage" class="form-label ml-2 font-light mb-3">Upload ID Document <span class="text-red-500">*</span></label>
-                                                                        <input asp-for="IdDocumentImage" type="file" class="mt-3 form-control block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer focus:outline-none" aria-describedby="file_input_help" accept="image/*" required>
-                                                                        <button type="button" class="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mt-1">Open Camera</button>
-                                                                        <p class="mt-1 text-sm text-gray-500" id="file_input_help">Upload/take a clear, high-resolution image of your ID document. (Max: 10MB)</p>
+                                                                        <input asp-for="IdDocumentImage" type="file" class="mt-3 form-control block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer focus:outline-none" aria-describedby="file_input_help" accept="image/*">
+
+                                                                        <!-- Camera and Upload buttons -->
+                                                                        <div class="flex gap-2 mt-2">
+                                                                            <button type="button" id="openDocumentCamera" class="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5">
+                                                                                <i class="fas fa-camera me-2"></i>Take Photo
+                                                                            </button>
+                                                                        </div>
+
+                                                                        <p class="mt-1 text-sm text-gray-500" id="file_input_help">Upload OR take a clear, high-resolution image of your ID document. (Max: 10MB)</p>
 
                                                                         <!-- New Image Preview -->
                                                                         <div id="newImagePreview" class="mt-3" style="display: none;">
@@ -310,6 +465,92 @@
     </div>
 </div>
 
+<!-- Document Camera Modal - Smaller Size -->
+<div id="documentCameraModal" data-modal-backdrop="static" class="fixed inset-0 backdrop-blur-sm bg-black/50 z-50 hidden">
+    <div class="flex items-center justify-center min-h-full p-2 overflow-y-auto">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg my-2 max-h-[calc(100vh-1rem)] overflow-hidden flex flex-col">
+            <!-- Modal Header - Smaller -->
+            <div class="bg-gradient-to-r from-[#62cff4] to-[#2c67f2] px-4 py-3 text-white flex-shrink-0">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-bold">
+                        <i class="fas fa-id-card me-2"></i>Capture ID Document
+                    </h3>
+                    <button onclick="closeDocumentCameraModal()" class="text-white hover:text-gray-200 text-xl font-bold transition-colors">
+                        &times;
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Body - Compact -->
+            <div class="p-3 flex-1 overflow-y-auto">
+                <!-- Document Capture Instructions - Compact -->
+                <div class="mb-3 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
+                    <div class="flex items-start">
+                        <i class="fas fa-info-circle text-blue-600 me-2 mt-0.5 text-sm"></i>
+                        <div class="text-xs text-blue-700">
+                            <strong>Tips:</strong> Place ID on flat surface, ensure good lighting, avoid shadows or glare.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Document Camera Container - Smaller -->
+                <div class="flex justify-center items-center mb-4">
+                    <div id="documentCameraContainer" class="relative border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-100 w-full max-w-[400px] aspect-[4/3]" style="display: none;">
+                        <video id="documentVideo" autoplay muted class="absolute inset-0 w-full h-full object-cover" style="z-index: 1;"></video>
+                        <canvas id="documentCanvas" style="display: none;"></canvas>
+
+                        <!-- Captured document image -->
+                        <img id="modalDocumentImage" class="absolute inset-0 w-full h-full object-cover" style="display: none; z-index: 10;" />
+
+                        @*                         <!-- Document frame guide overlay - Simple Rectangle like Verify.cshtml -->
+                        <div id="documentOverlay" class="absolute inset-0 pointer-events-none" style="z-index: 5;">
+                            <!-- Rectangle outline guide (similar to face outline but rectangular) -->
+                            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-72 h-44 border-4 border-white rounded-lg opacity-80"></div>
+
+                            <!-- Optional: Add instruction text -->
+                            <div class="absolute top-1/4 left-1/2 transform -translate-x-1/2 text-white text-sm bg-black/50 px-3 py-1 rounded">
+                                Position ID here
+                            </div>
+                        </div> *@
+                    </div>
+
+                    <!-- Document camera placeholder - Smaller -->
+                    <div id="documentCameraPlaceholder" class="w-full max-w-[400px] aspect-[4/3] bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-center text-gray-500">
+                        <div class="flex flex-col items-center mt-20">
+                            <i class="fas fa-id-card text-3xl mb-3 mt-15"></i>
+                            <p class="text-sm">Click "Start Camera" to capture your ID</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Document Camera Controls - Compact -->
+                <div class="text-center space-y-2">
+                    <div class="flex flex-wrap justify-center gap-2">
+                        <button type="button" id="startDocumentCamera" class="inline-flex items-center justify-center px-4 py-2 text-white bg-gradient-to-br from-[#62cff4] to-[#2c67f2] hover:bg-gradient-to-bl focus:ring-4 focus:outline-none font-medium rounded-lg text-sm transition-all duration-200 transform hover:scale-105 shadow-lg">
+                            <i class="fas fa-camera me-2"></i>Start Camera
+                        </button>
+                        <button type="button" id="captureDocument" class="btn btn-success" style="display: none;">
+                            <i class="fas fa-camera me-2"></i>Capture
+                        </button>
+                    </div>
+
+                    <!-- Success controls for captured document - Compact -->
+                    <div id="documentCaptureSuccessControls" style="display: none;">
+                        <div class="flex flex-wrap justify-center gap-2">
+                            <button type="button" id="useDocumentPhoto" class="btn btn-primary">
+                                <i class="fas fa-check me-2"></i>Use Photo
+                            </button>
+                            <button type="button" id="retakeDocumentPhoto" class="btn btn-outline-secondary">
+                                <i class="fas fa-redo me-2"></i>Retake
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Image Modal -->
 <div id="imageModal" class="fixed inset-0 backdrop-blur-sm bg-black/30 z-50 hidden flex items-center justify-center">
     <div class="bg-white rounded-lg p-4 max-w-2xl max-h-2xl overflow-auto">
@@ -322,18 +563,412 @@
 </div>
 
 @section Scripts {
+    <script src="~/js/identity-verification.js"></script>
     <script>
+        // Document Camera Class - specialized for ID document capture
+        class DocumentCamera {
+            constructor() {
+                this.video = null;
+                this.canvas = null;
+                this.stream = null;
+                this.isCameraActive = false;
+                this.isStarting = false;
+                this.tracks = [];
+            }
+
+            initializeElements() {
+                this.video = document.getElementById('documentVideo');
+                this.canvas = document.getElementById('documentCanvas');
+                this.cameraContainer = document.getElementById('documentCameraContainer');
+                this.startCameraBtn = document.getElementById('startDocumentCamera');
+                this.capturePhotoBtn = document.getElementById('captureDocument');
+                this.documentImageData = document.getElementById('documentImageData');
+                this.modalImage = document.getElementById('modalDocumentImage');
+            }
+
+            bindEvents() {
+                if (this.startCameraBtn) {
+                    this.startCameraBtn.addEventListener('click', () => this.startCamera());
+                }
+                if (this.capturePhotoBtn) {
+                    this.capturePhotoBtn.addEventListener('click', () => this.captureDocument());
+                }
+
+                // Bind modal control events
+                document.getElementById('useDocumentPhoto')?.addEventListener('click', () => this.useDocumentPhoto());
+                document.getElementById('retakeDocumentPhoto')?.addEventListener('click', () => this.retakeDocumentPhoto());
+            }
+
+            async startCamera() {
+                if (this.isStarting) return;
+                this.isStarting = true;
+
+                try {
+                    this.stopCamera();
+                    await new Promise(resolve => setTimeout(resolve, 300));
+
+                    // Use back camera with higher resolution for document capture
+                    this.stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            width: { ideal: 1920, min: 1280 },
+                            height: { ideal: 1080, min: 720 },
+                            facingMode: { ideal: 'environment', exact: 'environment' }
+                        }
+                    }).catch(async () => {
+                        // Fallback to front camera if back camera fails
+                        return await navigator.mediaDevices.getUserMedia({
+                            video: {
+                                width: { ideal: 1280, min: 640 },
+                                height: { ideal: 720, min: 480 },
+                                facingMode: 'user'
+                            }
+                        });
+                    });
+
+                    this.tracks = this.stream.getTracks();
+                    this.video.srcObject = this.stream;
+
+                    await this.playVideoWithRetry();
+                    await this.waitForVideoReady();
+
+                    this.isCameraActive = true;
+                    this.updateUIForCameraActive();
+
+                } catch (error) {
+                    this.handleCameraError(error);
+                    this.resetCameraUI();
+                } finally {
+                    this.isStarting = false;
+                }
+            }
+
+            async playVideoWithRetry() {
+                let attempts = 0;
+                const maxAttempts = 3;
+
+                while (attempts < maxAttempts) {
+                    try {
+                        await this.video.play();
+                        return;
+                    } catch (error) {
+                        attempts++;
+                        if (error.name === 'AbortError' && attempts < maxAttempts) {
+                            await new Promise(resolve => setTimeout(resolve, 300));
+                            continue;
+                        } else if (attempts >= maxAttempts) {
+                            throw error;
+                        }
+                    }
+                }
+            }
+
+            async waitForVideoReady() {
+                return new Promise((resolve, reject) => {
+                    let attempts = 0;
+                    const maxAttempts = 30;
+
+                    const checkReady = () => {
+                        attempts++;
+                        if (this.video.videoWidth > 0 && this.video.videoHeight > 0) {
+                            resolve();
+                        } else if (attempts >= maxAttempts) {
+                            reject(new Error('Video dimensions timeout'));
+                        } else {
+                            setTimeout(checkReady, 100);
+                        }
+                    };
+
+                    checkReady();
+                });
+            }
+
+            captureDocument() {
+                if (!this.isCameraActive) {
+                    this.showError('Camera is not active. Please start the camera first.');
+                    return;
+                }
+
+                if (!this.stream || !this.stream.active) {
+                    this.showError('Camera stream is not active. Please restart the camera.');
+                    return;
+                }
+
+                if (!this.video.videoWidth || !this.video.videoHeight) {
+                    setTimeout(() => {
+                        this.attemptCapture();
+                    }, 500);
+                    return;
+                }
+
+                this.attemptCapture();
+            }
+
+            attemptCapture() {
+                try {
+                    if (this.capturePhotoBtn) {
+                        this.capturePhotoBtn.disabled = true;
+                        this.capturePhotoBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Capturing...';
+                    }
+
+                    // Use higher quality capture for documents
+                    this.canvas.width = this.video.videoWidth || 1280;
+                    this.canvas.height = this.video.videoHeight || 720;
+
+                    const context = this.canvas.getContext('2d');
+                    context.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
+
+                    // Higher quality JPEG for document clarity
+                    const imageData = this.canvas.toDataURL('image/jpeg', 0.9);
+
+                    if (imageData.length < 1000) {
+                        throw new Error('Captured image data is too small');
+                    }
+
+                    // Store the captured image data
+                    if (this.documentImageData) {
+                        this.documentImageData.value = imageData;
+                    }
+
+                    this.showCapturedDocument(imageData);
+                    this.updateUIForPhotoCapture();
+
+                    setTimeout(() => {
+                        this.stopCamera();
+                    }, 50);
+
+                } catch (error) {
+                    console.error('Document capture error:', error);
+                    this.showError('Failed to capture document. Please try again.');
+
+                    if (this.capturePhotoBtn) {
+                        this.capturePhotoBtn.disabled = false;
+                        this.capturePhotoBtn.innerHTML = '<i class="fas fa-camera me-2"></i>Capture';
+                    }
+                }
+            }
+
+            showCapturedDocument(imageData) {
+                if (this.modalImage) {
+                    this.modalImage.src = imageData;
+                    this.modalImage.style.display = 'block';
+                }
+
+                // Hide video and overlay
+                if (this.video) {
+                    this.video.style.display = 'none';
+                }
+
+                const overlay = document.getElementById('documentOverlay');
+                if (overlay) {
+                    overlay.style.display = 'none';
+                }
+            }
+
+                    showProcessingFeedback(hasExtractedData, hasImageData) {
+            const fileError = document.getElementById('fileError');
+
+            if (hasImageData && !hasExtractedData) {
+                fileError.innerHTML = '<div class="text-amber-600"><strong>⚠️ Processing Notice:</strong> Your document was captured but text extraction may need improvement. You can continue or try capturing again with better lighting.</div>';
+                fileError.style.display = 'block';
+
+                // Auto-hide after 8 seconds
+                setTimeout(() => {
+                    fileError.style.display = 'none';
+                }, 8000);
+            } else if (hasExtractedData) {
+                fileError.innerHTML = '<div class="text-green-600"><strong>✅ Success:</strong> Document information extracted successfully!</div>';
+                fileError.style.display = 'block';
+
+                // Auto-hide after 3 seconds
+                setTimeout(() => {
+                    fileError.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+                    useDocumentPhoto() {
+            console.log('=== useDocumentPhoto() START ===');
+
+            const imageData = this.documentImageData?.value;
+            console.log('Step 1: Camera imageData length:', imageData?.length || 0);
+
+            if (!imageData) {
+                alert('No captured image data found.');
+                return;
+            }
+
+            // CRITICAL: Set the main form's hidden field value
+            const mainHiddenField = document.getElementById('documentImageData');
+            console.log('Step 2: Main hidden field found:', !!mainHiddenField);
+
+            if (mainHiddenField) {
+                mainHiddenField.value = imageData;
+                this.showProcessingFeedback(false, true);
+
+                console.log('Step 3: ✅ Set main form hidden field, length:', imageData.length);
+
+                // Add visual confirmation
+                const fileError = document.getElementById('fileError');
+                if (fileError) {
+                    fileError.innerHTML = '<span style="color: green;">Photo captured successfully!</span>';
+                    fileError.style.display = 'block';
+                    setTimeout(() => {
+                        fileError.style.display = 'none';
+                    }, 3000);
+                }
+            } else {
+                console.error('Step 3: ❌ Main hidden field NOT found!');
+                alert('Error: Hidden field not found');
+                return;
+            }
+
+            // Show the captured image in the main form
+            const newImagePreview = document.getElementById('newImagePreview');
+            const newImage = document.getElementById('newImage');
+
+            if (newImagePreview && newImage) {
+                console.log('Step 4: ✅ Updating preview image');
+                newImage.src = imageData;
+                newImagePreview.style.display = 'block';
+            }
+
+            // Clear the file input since we're using camera data
+            const fileInput = document.querySelector('input[type="file"]');
+            if (fileInput) {
+                fileInput.value = '';
+                console.log('Step 5: ✅ Cleared file input');
+            }
+
+            console.log('=== useDocumentPhoto() COMPLETE ===');
+            closeDocumentCameraModal();
+        }
+
+            retakeDocumentPhoto() {
+                // Clear the captured data
+                if (this.documentImageData) {
+                    this.documentImageData.value = '';
+                }
+
+                this.stopCamera();
+                this.resetModalToInitialState();
+            }
+
+            updateUIForCameraActive() {
+                if (this.startCameraBtn) this.startCameraBtn.style.display = 'none';
+                if (this.capturePhotoBtn) {
+                    this.capturePhotoBtn.style.display = 'inline-block';
+                    this.capturePhotoBtn.disabled = false;
+                }
+                if (this.cameraContainer) this.cameraContainer.style.display = 'block';
+
+                const placeholder = document.getElementById('documentCameraPlaceholder');
+                if (placeholder) placeholder.style.display = 'none';
+
+                const overlay = document.getElementById('documentOverlay');
+                if (overlay) overlay.style.display = 'flex';
+            }
+
+            updateUIForPhotoCapture() {
+                if (this.capturePhotoBtn) this.capturePhotoBtn.style.display = 'none';
+
+                const successControls = document.getElementById('documentCaptureSuccessControls');
+                if (successControls) successControls.style.display = 'block';
+            }
+
+            resetCameraUI() {
+                if (this.startCameraBtn) this.startCameraBtn.style.display = 'inline-block';
+                if (this.capturePhotoBtn) this.capturePhotoBtn.style.display = 'none';
+                if (this.cameraContainer) this.cameraContainer.style.display = 'none';
+
+                const placeholder = document.getElementById('documentCameraPlaceholder');
+                if (placeholder) placeholder.style.display = 'block';
+
+                this.isCameraActive = false;
+            }
+
+            stopCamera() {
+                if (this.tracks && this.tracks.length > 0) {
+                    this.tracks.forEach(track => {
+                        if (track && track.readyState === 'live') {
+                            track.stop();
+                        }
+                    });
+                    this.tracks = [];
+                }
+
+                if (this.stream) {
+                    const streamTracks = this.stream.getTracks();
+                    streamTracks.forEach(track => {
+                        if (track.readyState === 'live') {
+                            track.stop();
+                        }
+                    });
+                    this.stream = null;
+                }
+
+                if (this.video) {
+                    this.video.pause();
+                    this.video.currentTime = 0;
+
+                    if (this.video.srcObject) {
+                        const videoStream = this.video.srcObject;
+                        if (videoStream && videoStream.getTracks) {
+                            videoStream.getTracks().forEach(track => {
+                                track.stop();
+                            });
+                        }
+                        this.video.srcObject = null;
+                    }
+
+                    this.video.src = '';
+                    this.video.removeAttribute('src');
+                    this.video.load();
+                }
+
+                this.isCameraActive = false;
+            }
+
+            handleCameraError(error) {
+                let errorMessage = '';
+
+                switch (error.name) {
+                    case 'NotAllowedError':
+                        errorMessage = 'Camera access denied. Please allow camera permissions and try again.';
+                        break;
+                    case 'NotFoundError':
+                        errorMessage = 'No camera found on your device.';
+                        break;
+                    case 'NotReadableError':
+                        errorMessage = 'Camera is in use by another application.';
+                        break;
+                    case 'AbortError':
+                        return;
+                    default:
+                        errorMessage = 'Camera access failed. Please try again.';
+                }
+
+                this.showError(errorMessage);
+            }
+
+            showError(message) {
+                alert(message);
+                console.error('Document camera error:', message);
+            }
+        }
+
         $(document).ready(function() {
             console.log('Document ready - initializing form');
 
-            // Debug information - IMPROVED: More detailed logging
+            // Initialize the document camera
+            const documentCamera = new DocumentCamera();
+            documentCamera.initializeElements();
+            documentCamera.bindEvents();
+            window.documentCamera = documentCamera;
+
+            // Debug information
             console.log('Has extracted data:', '@((ViewBag.HasExtractedData as bool?) == true)');
             console.log('Has stored image:', '@((ViewBag.HasStoredImage as bool?) == true)');
-            console.log('Extracted ID Number:', '@Model.ExtractedIdNumber');
-            console.log('Extracted ID Name:', '@Model.ExtractedIdName');
-            console.log('Extracted Expiry Date:', '@Model.ExtractedExpiryDate');
-            console.log('ID Document Type:', '@Model.IdDocumentType');
-            console.log('Raw ID Document Type (HTML encoded):', '@Html.Raw(Html.Encode(Model.IdDocumentType ?? ""))');
+            console.log('Has validation warning:', '@(!string.IsNullOrEmpty(ViewBag.ValidationWarning as string))');
 
             // Initialize form state based on model data
             initializeFormState();
@@ -350,21 +985,249 @@
                 return handleFormSubmission(e);
             });
 
-            // FIX: Add event handler for radio button changes to update the visual selection
+            // Enhanced radio button changes with validation warning handling
             $('input[name="IdDocumentType"]').on('change', function() {
                 var selectedValue = $(this).val();
+                var originalValue = $('#OriginalIdType').val();
+
                 console.log('Radio button changed to:', selectedValue);
+                console.log('Original value was:', originalValue);
+
                 selectRadio(selectedValue);
+
+                // NEW: Enhanced ID type change handling with validation warning consideration
+                handleIdTypeChange(originalValue, selectedValue);
+            });
+
+            // Camera modal events
+            $('#openDocumentCamera').on('click', function() {
+                openDocumentCameraModal();
             });
         });
 
-        // IMPROVED: Enhanced initialization function with better error handling
-                function initializeFormState() {
+        // NEW: Enhanced function to handle ID type changes with validation warnings
+        function handleIdTypeChange(originalValue, selectedValue) {
+            var hasValidationWarning = '@(!string.IsNullOrEmpty(ViewBag.ValidationWarning as string))'.toLowerCase() === 'true';
+            var hasExtractedData = '@((ViewBag.HasExtractedData as bool?) == true)'.toLowerCase() === 'true';
+
+            console.log('Validation warning exists:', hasValidationWarning);
+            console.log('Has extracted data:', hasExtractedData);
+
+            // Check if this is a meaningful change (not just initialization)
+            var isSignificantChange = originalValue && originalValue !== '' && originalValue !== selectedValue;
+
+            if (isSignificantChange || (hasValidationWarning && hasExtractedData)) {
+                console.log('🔄 ID type change detected or validation warning exists - treating as fresh form');
+
+                showIdTypeChangeWarning(originalValue || 'previous selection', selectedValue);
+                clearFormState();
+
+                // Force fresh form state by clearing extracted data visibility
+                hideExtractedInformation();
+
+                // Update the upload label to required
+                updateUploadLabelToRequired(selectedValue);
+
+                // Clear any existing validation warnings since we're starting fresh
+                hideValidationWarnings();
+
+            } else {
+                hideIdTypeChangeWarning();
+            }
+        }
+
+        // NEW: Function to hide extracted information when treating as fresh form
+        function hideExtractedInformation() {
+            $('.mb-7:has(.form-label:contains("Extracted Information"))').hide();
+            console.log('Hidden extracted information section');
+        }
+
+        // NEW: Function to update upload label to required
+        function updateUploadLabelToRequired(idType) {
+            var uploadLabel = $('label[for="IdDocumentImage"]');
+            if (uploadLabel.length > 0) {
+                uploadLabel.html(`Upload ${idType} Document <span class="text-red-500">*</span>`);
+                console.log('Updated upload label to required for:', idType);
+            }
+
+            // Also update the help text
+            var helpText = $('#file_input_help');
+            if (helpText.length > 0) {
+                helpText.text(`Upload OR take a clear, high-resolution image of your ${idType} document. (Max: 10MB)`);
+            }
+        }
+
+        // NEW: Function to hide validation warnings
+        function hideValidationWarnings() {
+            $('[role="alert"]:has(.font-medium:contains("Document Processing Warning"))').hide();
+            $('[role="alert"]:has(.font-medium:contains("Processing Error"))').hide();
+            console.log('Hidden validation warnings');
+        }
+
+        $('input[name="IdDocumentType"]').on('change', function() {
+            var selectedValue = $(this).val();
+            var originalValue = $('#OriginalIdType').val();
+
+            console.log('Radio button changed to:', selectedValue);
+            console.log('Original value was:', originalValue);
+
+            selectRadio(selectedValue);
+
+            // NEW: Handle ID type changes - show warning and clear form state
+            if (originalValue && originalValue !== '' && originalValue !== selectedValue) {
+                showIdTypeChangeWarning(originalValue, selectedValue);
+                clearFormState();
+            } else {
+                hideIdTypeChangeWarning();
+            }
+        });
+
+        // NEW: Function to show ID type change warning
+        function showIdTypeChangeWarning(oldType, newType) {
+            var hasValidationWarning = '@(!string.IsNullOrEmpty(ViewBag.ValidationWarning as string))'.toLowerCase() === 'true';
+
+            var warningMessage = hasValidationWarning ?
+                `Document type updated to match detected type: ${newType}` :
+                `ID Type Changed: ${oldType} → ${newType}`;
+
+            var detailMessage = hasValidationWarning ?
+                `Great! You've selected the correct document type. Please upload a new ${newType} document to proceed.` :
+                `You'll need to upload your ${newType} document as this is treated as a fresh submission.`;
+
+            var warningHtml = `
+                <div id="idTypeChangeWarning" class="mt-3 p-4 ${hasValidationWarning ? 'bg-blue-50 border-blue-200' : 'bg-yellow-50 border-yellow-200'} border rounded-lg">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 ${hasValidationWarning ? 'text-blue-600' : 'text-yellow-600'} mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            ${hasValidationWarning ?
+                                '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />' :
+                                '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />'
+                            }
+                        </svg>
+                        <div class="text-sm ${hasValidationWarning ? 'text-blue-800' : 'text-yellow-800'}">
+                            <strong>${warningMessage}</strong>
+                            <br>
+                            <span class="text-xs mt-1 block">${detailMessage}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Remove existing warning
+            $('#idTypeChangeWarning').remove();
+
+            // Add new warning after the radio buttons
+            $('.space-y-4').after(warningHtml);
+        }
+
+        function hideIdTypeChangeWarning() {
+            $('#idTypeChangeWarning').remove();
+        }
+
+        // Enhanced function to clear form state when ID type changes
+        function clearFormState() {
+            // Clear extracted data displays
+            $('.mb-7:has(.form-label:contains("Extracted Information"))').hide();
+
+            // Clear file input
+            $('input[type="file"]').val('');
+
+            // Clear camera data
+            $('#documentImageData').val('');
+
+            // Hide image previews
+            $('#newImagePreview').hide();
+            $('#existingImagePreview').hide();
+
+            // Clear any error messages
+            $('#fileError').hide();
+
+            // Force form to show as fresh state (no extracted data)
+            var hasExtractedDataElement = $('[data-has-extracted-data]');
+            if (hasExtractedDataElement.length > 0) {
+                hasExtractedDataElement.attr('data-has-extracted-data', 'false');
+            }
+
+            console.log('Form state cleared due to ID type change');
+        }
+
+        // Enhanced form submission handler
+        function handleFormSubmission(e) {
+            console.log('=== FORM SUBMISSION START ===');
+            $('#fileError').hide();
+
+            var selectedIdType = $('input[name="IdDocumentType"]:checked').val();
+            var originalIdType = $('#OriginalIdType').val();
+            var hasIdTypeChanged = originalIdType && originalIdType !== '' && originalIdType !== selectedIdType;
+            var hasValidationWarning = '@(!string.IsNullOrEmpty(ViewBag.ValidationWarning as string))'.toLowerCase() === 'true';
+            var hasExtractedData = '@((ViewBag.HasExtractedData as bool?) == true)'.toLowerCase() === 'true';
+
+            console.log('Selected ID Type:', selectedIdType);
+            console.log('Original ID Type:', originalIdType);
+            console.log('ID Type Changed:', hasIdTypeChanged);
+            console.log('Has Validation Warning:', hasValidationWarning);
+            console.log('Has Extracted Data:', hasExtractedData);
+
+            if (!selectedIdType) {
+                e.preventDefault();
+                alert('Please select an ID document type before proceeding.');
+                return false;
+            }
+
+            var fileInput = $('input[type="file"]')[0];
+            var hasNewFile = fileInput.files && fileInput.files.length > 0;
+            var hiddenFieldValue = $('#documentImageData').val();
+            var hasCameraData = hiddenFieldValue && hiddenFieldValue.length > 1000;
+            var hasStoredImage = '@((ViewBag.HasStoredImage as bool?) == true)'.toLowerCase() === 'true';
+
+            console.log('Has new file:', hasNewFile);
+            console.log('Has camera data:', hasCameraData);
+            console.log('Has stored image:', hasStoredImage);
+
+            // NEW: Enhanced validation logic
+            var requiresNewUpload = false;
+            var validationMessage = '';
+
+            if (hasIdTypeChanged) {
+                // ID type changed - always require new upload
+                requiresNewUpload = true;
+                validationMessage = `ID type changed to ${selectedIdType}. Please upload your ${selectedIdType} document or capture it using the camera.`;
+            } else if (hasValidationWarning && hasExtractedData) {
+                // There's a validation warning (like document type mismatch) - require new upload even if ID type wasn't explicitly changed
+                requiresNewUpload = true;
+                validationMessage = `Please upload your ${selectedIdType} document or capture it using the camera to resolve the validation issue.`;
+            } else if (!hasExtractedData && !hasStoredImage) {
+                // Fresh form - require upload
+                requiresNewUpload = true;
+                validationMessage = 'Please select a file to upload or capture a photo using the camera.';
+            }
+
+            if (requiresNewUpload && !hasNewFile && !hasCameraData) {
+                console.log('❌ VALIDATION FAILED - NEW UPLOAD REQUIRED');
+                e.preventDefault();
+                $('#fileError').html(validationMessage).show();
+                return false;
+            }
+
+            // Show appropriate loading message
+            var loadingMessage = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+
+            if (hasIdTypeChanged) {
+                loadingMessage = '<i class="fas fa-spinner fa-spin me-2"></i>Processing New Document Type...';
+            } else if (hasValidationWarning) {
+                loadingMessage = '<i class="fas fa-spinner fa-spin me-2"></i>Reprocessing Document...';
+            }
+
+            $('#nextBtn').prop('disabled', true).html(loadingMessage);
+
+            console.log('✅ VALIDATION PASSED - SUBMITTING FORM');
+            return true;
+        }
+
+        function initializeFormState() {
             var selectedIdType = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.IdDocumentType ?? ""));
             console.log('Attempting to initialize with ID type:', selectedIdType);
 
             if (selectedIdType && selectedIdType !== '') {
-                // First, try to find the exact match
                 var radioButton = $('input[name="IdDocumentType"][value="' + selectedIdType + '"]');
                 console.log('Found radio button with exact match:', radioButton.length > 0);
 
@@ -373,7 +1236,6 @@
                     radioButton.prop('checked', true);
                     selectRadio(selectedIdType);
                 } else {
-                    // If exact match fails, try case-insensitive search
                     console.log('Exact match failed, trying case-insensitive search');
                     $('input[name="IdDocumentType"]').each(function() {
                         var radioValue = $(this).val();
@@ -381,12 +1243,19 @@
                             console.log('Found case-insensitive match:', radioValue);
                             $(this).prop('checked', true);
                             selectRadio(radioValue);
-                            return false; // break the loop
+                            return false;
                         }
                     });
                 }
             } else {
                 console.log('No ID type to initialize');
+            }
+
+            // NEW: Check if we should show validation warning state on load
+            var hasValidationWarning = '@(!string.IsNullOrEmpty(ViewBag.ValidationWarning as string))'.toLowerCase() === 'true';
+            if (hasValidationWarning) {
+                console.log('Form loaded with validation warning - may need fresh upload');
+                // The form will be handled by the enhanced submission validation
             }
         }
 
@@ -395,6 +1264,12 @@
             var fileError = $('#fileError');
             var newImagePreview = $('#newImagePreview');
             var newImage = $('#newImage');
+            var documentImageData = $('#documentImageData');
+
+            // Clear camera data when file is selected
+            if (documentImageData) {
+                documentImageData.val('');
+            }
 
             // Reset error message and hide preview
             fileError.hide();
@@ -406,7 +1281,7 @@
                 // Check file size (10MB limit)
                 if (file.size > 10 * 1024 * 1024) {
                     fileError.text('File size must be less than 10MB').show();
-                    fileInput.value = ''; // Clear the file input
+                    fileInput.value = '';
                     return false;
                 }
 
@@ -414,7 +1289,7 @@
                 var allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp'];
                 if (!allowedTypes.includes(file.type)) {
                     fileError.text('Please upload a valid image file (JPEG, PNG, GIF, BMP)').show();
-                    fileInput.value = ''; // Clear the file input
+                    fileInput.value = '';
                     return false;
                 }
 
@@ -429,173 +1304,163 @@
             }
         }
 
-        function handleFormSubmission(e) {
-            // Clear any previous error messages
-            $('#fileError').hide();
-
-            // Validate that an ID type is selected
-            var selectedIdType = $('input[name="IdDocumentType"]:checked').val();
-            if (!selectedIdType) {
-                e.preventDefault();
-                alert('Please select an ID document type before proceeding.');
-                return false;
-            }
-
-            // Check validation logic
-            var hasExtractedData = '@((ViewBag.HasExtractedData as bool?) == true)'.toLowerCase() === 'true';
-            var hasStoredImage = '@((ViewBag.HasStoredImage as bool?) == true)'.toLowerCase() === 'true';
-            var fileInput = $('input[type="file"]')[0];
-            var hasNewFile = fileInput.files && fileInput.files.length > 0;
-
-            console.log('Form validation - HasExtractedData:', hasExtractedData, 'HasStoredImage:', hasStoredImage, 'HasNewFile:', hasNewFile);
-
-            // Validation logic for file upload
-            if (!hasExtractedData || (!hasStoredImage && !hasNewFile)) {
-                // New user or returning user without stored image - file upload is required
-                if (!hasNewFile) {
-                    e.preventDefault();
-                    $('#fileError').text('Please select a file to upload').show();
-                    return false;
-                }
-            }
-
-            // If there's a new file, validate it
-            if (hasNewFile) {
-                var file = fileInput.files[0];
-
-                // Check file size again
-                if (file.size > 10 * 1024 * 1024) {
-                    e.preventDefault();
-                    $('#fileError').text('File size must be less than 10MB').show();
-                    return false;
-                }
-
-                // Check file type again
-                var allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp'];
-                if (!allowedTypes.includes(file.type)) {
-                    e.preventDefault();
-                    $('#fileError').text('Please upload a valid image file (JPEG, PNG, GIF, BMP)').show();
-                    return false;
-                }
-            }
-
-            // Show loading state
-            $('#nextBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Processing...');
-
-            console.log('Form validation passed, submitting form');
-            return true;
-        }
-
-        // IMPROVED: Enhanced radio selection function with better logging and error handling
         function selectRadio(value) {
-            console.log('Selecting radio with value:', value);
+             console.log('Selecting radio with value:', value);
 
-            // Uncheck all radio buttons and remove active styling
-            $('input[name="IdDocumentType"]').prop('checked', false);
-            $('.space-y-4 > div').removeClass('bg-[#6ce5e8] border-[#6ce5e8]').addClass('bg-gray-100');
+             $('input[name="IdDocumentType"]').prop('checked', false);
+             $('.space-y-4 > div').removeClass('bg-[#6ce5e8] border-[#6ce5e8]').addClass('bg-gray-100');
 
-            // Find and check the selected radio button
-            var targetRadio = $('input[name="IdDocumentType"][value="' + value + '"]');
-            console.log('Found target radio button:', targetRadio.length > 0);
+             var targetRadio = $('input[name="IdDocumentType"][value="' + value + '"]');
+             console.log('Found target radio button:', targetRadio.length > 0);
 
-            if (targetRadio.length > 0) {
-                // Check the radio button
-                targetRadio.prop('checked', true);
+             if (targetRadio.length > 0) {
+                 targetRadio.prop('checked', true);
+                 var containerDiv = targetRadio.closest('div');
+                 containerDiv.removeClass('bg-gray-100').addClass('bg-[#6ce5e8] border-[#6ce5e8]');
+                 console.log('Successfully selected radio:', value);
+             } else {
+                 console.error('Could not find radio button with value:', value);
+             }
+         }
 
-                // Apply active styling to the container div
-                var containerDiv = targetRadio.closest('div');
-                containerDiv.removeClass('bg-gray-100').addClass('bg-[#6ce5e8] border-[#6ce5e8]');
+        // Document Camera Modal Functions
+        function openDocumentCameraModal() {
+            document.body.classList.add('modal-open');
+            document.getElementById('documentCameraModal').classList.remove('hidden');
+            resetModalToInitialState();
+        }
 
-                console.log('Successfully selected radio:', value);
-            } else {
-                console.error('Could not find radio button with value:', value);
-                console.log('Available radio values:');
-                $('input[name="IdDocumentType"]').each(function() {
-                    console.log('  -', $(this).val());
-                });
+        function closeDocumentCameraModal() {
+            document.body.classList.remove('modal-open');
+
+            // Stop camera
+            if (window.documentCamera) {
+                window.documentCamera.stopCamera();
+            }
+
+            // Hide modal
+            document.getElementById('documentCameraModal').classList.add('hidden');
+        }
+
+        function resetModalToInitialState() {
+            const uiElements = [
+                { id: 'documentCameraPlaceholder', show: true },
+                { id: 'documentCameraContainer', show: false },
+                { id: 'startDocumentCamera', show: true },
+                { id: 'captureDocument', show: false },
+                { id: 'modalDocumentImage', show: false },
+                { id: 'documentCaptureSuccessControls', show: false },
+                { id: 'documentVideo', show: true },
+                { id: 'documentOverlay', show: true }
+            ];
+
+            uiElements.forEach(({ id, show }) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.style.display = show ? (id === 'startDocumentCamera' ? 'inline-block' : (id === 'documentOverlay' ? 'flex' : 'block')) : 'none';
+                }
+            });
+
+            const modalImage = document.getElementById('modalDocumentImage');
+            if (modalImage) {
+                modalImage.src = '';
+            }
+
+            const captureBtn = document.getElementById('captureDocument');
+            if (captureBtn) {
+                captureBtn.disabled = false;
+                captureBtn.innerHTML = '<i class="fas fa-camera me-2"></i>Capture';
             }
         }
 
-        // Function to show image modal
+        // Image modal functions (for previewing existing images)
         function showImageModal(imageSrc, title) {
             document.getElementById('modalImage').src = imageSrc;
             document.getElementById('modalTitle').textContent = title;
-            document.getElementById('modalImage').style.display = 'block';
             document.getElementById('imageModal').classList.remove('hidden');
         }
 
-        // Function to show document preview modal
         function showDocumentPreview() {
             console.log('Attempting to show document preview');
 
-            // Check if stored image data is available from ViewBag
             var storedImageData = '@Html.Raw(ViewBag.StoredImageData)';
             var storedImageContentType = '@Html.Raw(ViewBag.StoredImageContentType)';
 
-            console.log('StoredImageData available:', !!storedImageData);
-            console.log('StoredImageContentType:', storedImageContentType);
-
-            // Try ViewBag data first
             if (storedImageData && storedImageData !== '' && storedImageContentType && storedImageContentType !== '') {
                 try {
-                    showModalWithImageData('data:' + storedImageContentType + ';base64,' + storedImageData, 'Previously Uploaded Document');
+                    showImageModal('data:' + storedImageContentType + ';base64,' + storedImageData, 'Previously Uploaded Document');
                     return;
                 } catch (error) {
                     console.error('Error using ViewBag data:', error);
                 }
             }
 
-            // Fallback: Try to get image data from existing img element on the page
             var existingImg = document.querySelector('#existingImagePreview img');
             if (existingImg && existingImg.src && existingImg.src.startsWith('data:')) {
                 try {
-                    showModalWithImageData(existingImg.src, 'Previously Uploaded Document');
+                    showImageModal(existingImg.src, 'Previously Uploaded Document');
                     return;
                 } catch (error) {
                     console.error('Error using existing img data:', error);
                 }
             }
 
-            // If no actual image data, show informational message
             alert('Document has been processed but image preview is not available. Your extracted ID information is shown above.');
             console.log('No image data available for preview');
         }
 
-        // Helper function to show modal with image data
-        function showModalWithImageData(imageSrc, title) {
-            var modalImage = document.getElementById('modalImage');
-            var modalTitle = document.getElementById('modalTitle');
-            var imageModal = document.getElementById('imageModal');
-
-            if (modalImage && modalTitle && imageModal) {
-                modalImage.style.display = 'block';
-                modalTitle.textContent = title;
-                modalImage.src = imageSrc;
-                imageModal.classList.remove('hidden');
-                console.log('Modal opened successfully with image data');
-            } else {
-                console.error('Modal elements not found');
-                alert('Cannot show image preview: Modal elements not found');
-            }
-        }
-
-        // Function to close image modal
         function closeImageModal() {
             document.getElementById('imageModal').classList.add('hidden');
         }
 
-        // Close modal when clicking outside
-        document.getElementById('imageModal').addEventListener('click', function(e) {
+        // Event handlers
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const documentModal = document.getElementById('documentCameraModal');
+                const imageModal = document.getElementById('imageModal');
+
+                if (documentModal && !documentModal.classList.contains('hidden')) {
+                    closeDocumentCameraModal();
+                } else if (imageModal && !imageModal.classList.contains('hidden')) {
+                    closeImageModal();
+                }
+            }
+        });
+
+        // Close modals when clicking outside
+        document.getElementById('documentCameraModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeDocumentCameraModal();
+            }
+        });
+
+        document.getElementById('imageModal')?.addEventListener('click', function(e) {
             if (e.target === this) {
                 closeImageModal();
             }
         });
 
-        // Close modal with Escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeImageModal();
+        // Cleanup on page events
+        window.addEventListener('blur', function() {
+            if (window.documentCamera) {
+                window.documentCamera.stopCamera();
             }
         });
+
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden && window.documentCamera) {
+                window.documentCamera.stopCamera();
+            }
+        });
+
+                // TEST FUNCTION - Call this from browser console to check hidden field
+        window.debugHiddenField = function() {
+            const hiddenField = document.getElementById('documentImageData');
+            console.log('Hidden field exists:', !!hiddenField);
+            console.log('Hidden field value length:', hiddenField?.value?.length || 0);
+            console.log('Hidden field name attribute:', hiddenField?.name);
+            console.log('Hidden field id attribute:', hiddenField?.id);
+            return hiddenField;
+        };
     </script>
 }
