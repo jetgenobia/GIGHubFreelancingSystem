@@ -44,6 +44,9 @@ namespace Freelancing.Controllers
                     model.ExtractedIdNumber = documentData.ExtractedIdNumber;
                     model.IdDocumentExpiryDate = documentData.IdDocumentExpiryDate;
                     model.IdDocumentHasNoExpiration = documentData.IdDocumentHasNoExpiration;
+                    model.ExtractedExpiryDate = documentData.ExtractedExpiryDate;
+                    // FIX 1: Restore ExtractedIdName to model as well, not just ViewBag
+                    model.ExtractedIdName = documentData.ExtractedIdName;
 
                     // Always set ViewBag data if image exists in session
                     if (!string.IsNullOrEmpty(documentData.IdDocumentImageData))
@@ -104,6 +107,12 @@ namespace Freelancing.Controllers
                         model.ExtractedIdNumber = existingDocumentData.ExtractedIdNumber;
                     }
 
+                    // FIX 1: Also restore ExtractedIdName to model
+                    if (string.IsNullOrEmpty(model.ExtractedIdName) && !string.IsNullOrEmpty(existingDocumentData.ExtractedIdName))
+                    {
+                        model.ExtractedIdName = existingDocumentData.ExtractedIdName;
+                    }
+
                     // Always restore ViewBag data
                     if (!string.IsNullOrEmpty(existingDocumentData.IdDocumentImageData))
                     {
@@ -151,10 +160,35 @@ namespace Freelancing.Controllers
                     return RedirectToAction("Login", "Account");
                 }
 
+                // Handle automatic expiration date logic based on document type
                 DateTime? expiryDate = null;
-                if (!model.IdDocumentHasNoExpiration && model.IdDocumentExpiryDate.HasValue)
+                bool hasNoExpiration = false;
+
+                // FIX 2: Improved logic for National ID handling
+                if (string.Equals(model.IdDocumentType, "National ID", StringComparison.OrdinalIgnoreCase))
                 {
-                    expiryDate = model.IdDocumentExpiryDate.Value;
+                    // National IDs don't have expiration dates
+                    expiryDate = null;
+                    hasNoExpiration = true;
+                }
+                else
+                {
+                    // For other document types, use extracted date or manual input
+                    if (model.ExtractedExpiryDate.HasValue)
+                    {
+                        expiryDate = model.ExtractedExpiryDate.Value;
+                        hasNoExpiration = false;
+                    }
+                    else if (!model.IdDocumentHasNoExpiration && model.IdDocumentExpiryDate.HasValue)
+                    {
+                        expiryDate = model.IdDocumentExpiryDate.Value;
+                        hasNoExpiration = false;
+                    }
+                    else if (model.IdDocumentHasNoExpiration)
+                    {
+                        expiryDate = null;
+                        hasNoExpiration = true;
+                    }
                 }
 
                 DocumentVerificationData documentData;
@@ -167,14 +201,20 @@ namespace Freelancing.Controllers
                     bool hasFormChanges =
                         documentData.IdDocumentType != model.IdDocumentType ||
                         documentData.IdDocumentExpiryDate != expiryDate ||
-                        documentData.IdDocumentHasNoExpiration != model.IdDocumentHasNoExpiration;
+                        documentData.IdDocumentHasNoExpiration != hasNoExpiration;
 
                     if (hasFormChanges || hasNewUpload)
                     {
                         // Update form data
                         documentData.IdDocumentType = model.IdDocumentType;
                         documentData.IdDocumentExpiryDate = expiryDate;
-                        documentData.IdDocumentHasNoExpiration = model.IdDocumentHasNoExpiration;
+                        documentData.IdDocumentHasNoExpiration = hasNoExpiration;
+
+                        // FIX 2: Clear extracted expiry date when changing to National ID
+                        if (string.Equals(model.IdDocumentType, "National ID", StringComparison.OrdinalIgnoreCase))
+                        {
+                            documentData.ExtractedExpiryDate = null;
+                        }
 
                         if (hasNewUpload)
                         {
@@ -194,7 +234,7 @@ namespace Freelancing.Controllers
                                     model.IdDocumentType,
                                     null,
                                     expiryDate,
-                                    model.IdDocumentHasNoExpiration,
+                                    hasNoExpiration,
                                     userId
                                 );
 
@@ -204,9 +244,25 @@ namespace Freelancing.Controllers
                                 documentData.IdDocumentConfidence = documentResult.confidence;
                                 documentData.IdDocumentMessage = documentResult.message;
 
+                                if (documentResult.extractedExpiryDate.HasValue)
+                                {
+                                    documentData.ExtractedExpiryDate = documentResult.extractedExpiryDate;
+                                    // If we extracted an expiry date and it's not a national ID, use it
+                                    if (!string.Equals(model.IdDocumentType, "National ID", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        documentData.IdDocumentExpiryDate = documentResult.extractedExpiryDate;
+                                        documentData.IdDocumentHasNoExpiration = false;
+                                    }
+                                }
+                                else if (string.Equals(model.IdDocumentType, "National ID", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    // FIX 2: Ensure National ID has no expiry date
+                                    documentData.ExtractedExpiryDate = null;
+                                }
+
                                 _logger.LogInformation(
-                                    "New document uploaded and processed for returning user {UserId}. Extracted name: {ExtractedName}, Extracted ID: {ExtractedId}",
-                                    userId, documentResult.extractedIdName, documentResult.extractedIdNumber);
+                                    "New document uploaded and processed for returning user {UserId}. Extracted name: {ExtractedName}, Extracted ID: {ExtractedId}, Extracted Expiry: {ExtractedExpiry}",
+                                    userId, documentResult.extractedIdName, documentResult.extractedIdNumber, documentResult.extractedExpiryDate);
                             }
                             catch (Exception ex)
                             {
@@ -217,6 +273,11 @@ namespace Freelancing.Controllers
                         else
                         {
                             // Form data changed but no new image - preserve existing extraction data
+                            // FIX 2: But clear expiry date if changing to National ID
+                            if (string.Equals(model.IdDocumentType, "National ID", StringComparison.OrdinalIgnoreCase))
+                            {
+                                documentData.ExtractedExpiryDate = null;
+                            }
                             documentData.IdDocumentMessage = "Document data updated, using existing document image";
                         }
 
@@ -234,7 +295,7 @@ namespace Freelancing.Controllers
                         IdDocumentType = model.IdDocumentType,
                         ExtractedIdNumber = null,
                         IdDocumentExpiryDate = expiryDate,
-                        IdDocumentHasNoExpiration = model.IdDocumentHasNoExpiration,
+                        IdDocumentHasNoExpiration = hasNoExpiration,
                         IdDocumentVerified = false,
                         IdDocumentConfidence = 0.0f,
                         IdDocumentMessage = "Pending verification",
@@ -268,9 +329,21 @@ namespace Freelancing.Controllers
                         documentData.IdDocumentConfidence = documentResult.confidence;
                         documentData.IdDocumentMessage = documentResult.message;
 
+                        // Add the missing extracted expiry date assignment
+                        if (documentResult.extractedExpiryDate.HasValue)
+                        {
+                            documentData.ExtractedExpiryDate = documentResult.extractedExpiryDate;
+                            // If we extracted an expiry date and it's not a national ID, use it
+                            if (!string.Equals(model.IdDocumentType, "National ID", StringComparison.OrdinalIgnoreCase))
+                            {
+                                documentData.IdDocumentExpiryDate = documentResult.extractedExpiryDate;
+                                documentData.IdDocumentHasNoExpiration = false;
+                            }
+                        }
+
                         _logger.LogInformation(
-                            "Document verification completed for new user {UserId}. Extracted name: {ExtractedName}, Extracted ID: {ExtractedId}",
-                            userId, documentResult.extractedIdName, documentResult.extractedIdNumber);
+                            "Document verification completed for new user {UserId}. Extracted name: {ExtractedName}, Extracted ID: {ExtractedId}, Extracted Expiry: {ExtractedExpiry}",
+                            userId, documentResult.extractedIdName, documentResult.extractedIdNumber, documentResult.extractedExpiryDate);
                     }
                     catch (Exception ex)
                     {
@@ -417,7 +490,7 @@ namespace Freelancing.Controllers
                     documentData.IdDocumentVerified,
                     documentData.IdDocumentConfidence,
                     documentData.ExtractedIdName,
-                    documentData.IdDocumentImageData // <-- pass the session-stored base64 image here
+                    documentData.IdDocumentImageData
                 );
 
                 if (result.Success)
@@ -562,5 +635,8 @@ namespace Freelancing.Controllers
 
         [JsonPropertyName("extractedIdName")]
         public string? ExtractedIdName { get; set; }
+
+        [JsonPropertyName("extractedExpiryDate")]
+        public DateTime? ExtractedExpiryDate { get; set; }
     }
 }

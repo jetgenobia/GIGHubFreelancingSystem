@@ -21,7 +21,7 @@ namespace Freelancing.Services
             string? extractedIdName,
             string? storedIdDocumentImageBase64 = null); // <-- new optional parameter
 
-        Task<(bool verified, string message, float confidence, string? extractedIdName, string? extractedIdNumber)> VerifyIdDocumentAsync(
+        Task<(bool verified, string message, float confidence, string? extractedIdName, string? extractedIdNumber, DateTime? extractedExpiryDate)> VerifyIdDocumentAsync(
             IFormFile? documentImage,
             string idDocumentType,
             string? idDocumentNumber,

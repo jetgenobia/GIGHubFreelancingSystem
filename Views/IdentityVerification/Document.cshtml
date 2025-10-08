@@ -69,6 +69,8 @@
                                             <!-- Hidden fields to preserve extracted data -->
                                             @Html.HiddenFor(m => m.ExtractedIdNumber)
                                             @Html.HiddenFor(m => m.ExtractedIdName)
+                                            @Html.HiddenFor(m => m.ExtractedExpiryDate)
+                                            @Html.HiddenFor(m => m.IdDocumentHasNoExpiration)
 
                                             <!-- Document Verification Section -->
                                             <div class="mb-5">
@@ -107,40 +109,57 @@
                                                                             <label for="radio-national" class="py-4 text-sm font-medium text-gray-900 cursor-pointer">National ID</label>
                                                                             <input id="radio-national" type="radio" value="National ID" name="IdDocumentType" asp-for="IdDocumentType" required class="w-4 h-4 text-[#41b8d5] bg-gray-100 border-gray-400 focus:ring-[#41b8d5] focus:ring-2" checked="@(Model.IdDocumentType == "National ID")" />
                                                                         </div>
-                                                                        <div class="flex items-center justify-between ps-4 pe-4 bg-gray-100 text-gray-900 text-sm rounded-lg hover:bg-[#6ce5e8] transition-colors cursor-pointer @(Model.IdDocumentType == "OTHERS" ? "bg-[#6ce5e8] border-[#6ce5e8]" : "")" onclick="selectRadio('OTHERS')">
-                                                                            <label for="radio-others" class="py-4 text-sm font-medium text-gray-900 cursor-pointer">Others</label>
-                                                                            <input id="radio-others" type="radio" value="OTHERS" name="IdDocumentType" asp-for="IdDocumentType" required class="w-4 h-4 text-[#41b8d5] bg-gray-100 border-gray-400 focus:ring-[#41b8d5] focus:ring-2" checked="@(Model.IdDocumentType == "OTHERS")" />
-                                                                        </div>
                                                                     </div>
                                                                     <span asp-validation-for="IdDocumentType" class="text-danger"></span>
                                                                 </div>
 
-                                                                <!-- Display extracted ID number if available (read-only) -->
+                                                                <!-- Display extracted information if available (read-only) -->
                                                                 @if (!string.IsNullOrEmpty(Model.ExtractedIdNumber))
                                                                 {
                                                                     <div class="mb-7">
-                                                                        <label class="form-label ml-2 font-light mb-3">ID Number</label>
+                                                                        <label class="form-label ml-2 font-light mb-3">Extracted Information</label>
+
+                                                                        <!-- ID Number -->
                                                                         <div class="mt-3 p-2.5 bg-gray-50 border border-gray-300 text-gray-700 text-sm rounded-lg w-full">
-                                                                            @Model.ExtractedIdNumber
+                                                                            <strong>ID Number:</strong> @Model.ExtractedIdNumber
                                                                         </div>
+
+                                                                        <!-- ID Name -->
                                                                         @if (!string.IsNullOrEmpty(Model.ExtractedIdName))
                                                                         {
-                                                                            <div class="mt-2 p-2.5 bg-blue-50 border border-blue-200 text-blue-700 text-sm rounded-lg w-full">
-                                                                                <strong>Name:</strong> @Model.ExtractedIdName
+                                                                            <div class="mt-2 p-2.5 bg-gray-50 border border-gray-300 text-gray-700 text-sm rounded-lg w-full">
+                                                                                <strong>Name:</strong> @{
+                                                                                string formattedName = Model.ExtractedIdName;
+                                                                                if (Model.ExtractedIdName.Contains(','))
+                                                                                {
+                                                                                    var parts = Model.ExtractedIdName.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                                                                                    if (parts.Length == 2)
+                                                                                    {
+                                                                                        var lastName = parts[0].Trim();
+                                                                                        var firstName = parts[1].Trim();
+                                                                                        formattedName = $"{firstName} {lastName}";
+                                                                                    }
+                                                                                }
+                                                                            }
+    @formattedName
+                                                                        </div>
+                                                                    }
+
+                                                                        <!-- Expiry Date -->
+                                                                        @if (Model.ExtractedExpiryDate.HasValue)
+                                                                        {
+                                                                            <div class="mt-2 p-2.5 bg-gray-50 border border-gray-300 text-gray-700 text-sm rounded-lg w-full">
+                                                                                <strong>Expiry Date:</strong> @Model.ExtractedExpiryDate.Value.ToString("MMMM dd, yyyy")
+                                                                            </div>
+                                                                        }
+                                                                        else if (string.Equals(Model.IdDocumentType, "National ID", StringComparison.OrdinalIgnoreCase))
+                                                                        {
+                                                                            <div class="mt-2 p-2.5 bg-gray-50 border border-gray-300 text-gray-700 text-sm rounded-lg w-full">
+                                                                                <strong>Expiry Date:</strong> No expiration (National ID)
                                                                             </div>
                                                                         }
                                                                     </div>
                                                                 }
-
-                                                                <div class="mb-7">
-                                                                    <label asp-for="IdDocumentExpiryDate" class="form-label ml-2 font-light mb-3">Expiry Date <span class="text-red-500" id="expiryRequired" style="@(Model.IdDocumentHasNoExpiration ? "display:none;" : "")">*</span></label>
-                                                                    <input asp-for="IdDocumentExpiryDate" type="date" class="mt-3 form-control border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:ring-2 block w-full p-2.5" disabled="@(Model.IdDocumentHasNoExpiration)" />
-                                                                    <span asp-validation-for="IdDocumentExpiryDate" class="text-danger"></span>
-                                                                    <div class="flex items-center mt-2">
-                                                                        <input asp-for="IdDocumentHasNoExpiration" id="noExpirationCheckbox" type="checkbox" class="w-4 h-4 text-[#41b8d5] bg-gray-100 border-gray-300 rounded-sm focus:ring-[#41b8d5] focus:ring-2">
-                                                                        <label for="noExpirationCheckbox" class="ms-2 text-sm font-light text-gray-900">My ID document has no expiration date</label>
-                                                                    </div>
-                                                                </div>
                                                             </div>
 
                                                             <div class="col-md-6">
@@ -153,7 +172,8 @@
                                                                             <span class="text-gray-400">(Optional)</span>
                                                                         </label>
                                                                         <input asp-for="IdDocumentImage" type="file" class="mt-3 form-control block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer focus:outline-none" aria-describedby="file_input_help" accept="image/*">
-                                                                        <p class="mt-1 text-sm text-gray-500" id="file_input_help">Upload a new document or leave empty to use the existing one (Max: 10MB)</p>
+                                                                        <button type="button" class="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mt-1">Open Camera</button>
+                                                                        <p class="mt-1 text-sm text-gray-500" id="file_input_help">Upload/take a new document or leave empty to use the existing one (Max: 10MB)</p>
 
                                                                         <!-- Document Preview - Moved below upload instructions -->
                                                                         <div class="mt-4">
@@ -196,7 +216,21 @@
 
                                                                                             <!-- Personal Details -->
                                                                                             <div class="absolute top-12 left-6 right-1 text-xs text-gray-700">
-                                                                                                <div>Name: <span class="font-medium">@(Model.ExtractedIdName ?? "EXTRACTED NAME")</span></div>
+                                                                                                <div>
+                                                                                                    Name: <span class="font-medium">
+                                                                                                        @{
+                                                                                                            string displayName = Model.ExtractedIdName ?? "EXTRACTED NAME";
+                                                                                                            if (!string.IsNullOrEmpty(Model.ExtractedIdName) && Model.ExtractedIdName.Contains(','))
+                                                                                                            {
+                                                                                                                var parts = Model.ExtractedIdName.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                                                                                                                if (parts.Length == 2)
+                                                                                                                {
+                                                                                                                    var lastName = parts[0].Trim();
+                                                                                                                    var firstName = parts[1].Trim();
+                                                                                                                    displayName = $"{firstName} {lastName}";
+                                                                                                                }
+                                                                                                            }
+                                                                                                        }@displayName</span></div>
                                                                                                 <div>ID: <span class="font-medium">@Model.ExtractedIdNumber</span></div>
                                                                                             </div>
 
@@ -232,7 +266,8 @@
                                                                         <!-- Show required file upload for new submissions -->
                                                                         <label asp-for="IdDocumentImage" class="form-label ml-2 font-light mb-3">Upload ID Document <span class="text-red-500">*</span></label>
                                                                         <input asp-for="IdDocumentImage" type="file" class="mt-3 form-control block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer focus:outline-none" aria-describedby="file_input_help" accept="image/*" required>
-                                                                        <p class="mt-1 text-sm text-gray-500" id="file_input_help">Upload a clear, high-resolution image of your ID document. (Max: 10MB)</p>
+                                                                        <button type="button" class="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mt-1">Open Camera</button>
+                                                                        <p class="mt-1 text-sm text-gray-500" id="file_input_help">Upload/take a clear, high-resolution image of your ID document. (Max: 10MB)</p>
 
                                                                         <!-- New Image Preview -->
                                                                         <div id="newImagePreview" class="mt-3" style="display: none;">
@@ -287,29 +322,18 @@
     <script>
         $(document).ready(function() {
             console.log('Document ready - initializing form');
-            
-            // Debug information
+
+            // Debug information - IMPROVED: More detailed logging
             console.log('Has extracted data:', '@((ViewBag.HasExtractedData as bool?) == true)');
             console.log('Has stored image:', '@((ViewBag.HasStoredImage as bool?) == true)');
             console.log('Extracted ID Number:', '@Model.ExtractedIdNumber');
             console.log('Extracted ID Name:', '@Model.ExtractedIdName');
+            console.log('Extracted Expiry Date:', '@Model.ExtractedExpiryDate');
             console.log('ID Document Type:', '@Model.IdDocumentType');
+            console.log('Raw ID Document Type (HTML encoded):', '@Html.Raw(Html.Encode(Model.IdDocumentType ?? ""))');
 
             // Initialize form state based on model data
             initializeFormState();
-
-            // Handle "No Expiration Date" checkbox
-            $('#noExpirationCheckbox').on('change', function() {
-                var expiryDateInput = $('#IdDocumentExpiryDate');
-                var expiryRequired = $('#expiryRequired');
-                if (this.checked) {
-                    expiryDateInput.prop('disabled', true).val('').removeAttr('required');
-                    expiryRequired.hide();
-                } else {
-                    expiryDateInput.prop('disabled', false).val('@DateTime.Today.ToString("yyyy-MM-dd")').attr('required', 'required');
-                    expiryRequired.show();
-                }
-            });
 
             // File validation and preview
             $('input[type="file"]').on('change', function() {
@@ -322,29 +346,44 @@
                 console.log('Form submission started');
                 return handleFormSubmission(e);
             });
+
+            // FIX: Add event handler for radio button changes to update the visual selection
+            $('input[name="IdDocumentType"]').on('change', function() {
+                var selectedValue = $(this).val();
+                console.log('Radio button changed to:', selectedValue);
+                selectRadio(selectedValue);
+            });
         });
 
-        function initializeFormState() {
-            // Set the selected ID document type and apply styling
-            var selectedIdType = '@Model.IdDocumentType';
-            if (selectedIdType) {
-                console.log('Setting selected ID type:', selectedIdType);
-                $('input[name="IdDocumentType"][value="' + selectedIdType + '"]').prop('checked', true);
-                selectRadio(selectedIdType);
-            }
+        // IMPROVED: Enhanced initialization function with better error handling
+                function initializeFormState() {
+            var selectedIdType = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.IdDocumentType ?? ""));
+            console.log('Attempting to initialize with ID type:', selectedIdType);
 
-            // Set the expiry date if available
-            var expiryDate = '@(Model.IdDocumentExpiryDate?.ToString("yyyy-MM-dd") ?? "")';
-            if (expiryDate) {
-                $('#IdDocumentExpiryDate').val(expiryDate);
-            }
+            if (selectedIdType && selectedIdType !== '') {
+                // First, try to find the exact match
+                var radioButton = $('input[name="IdDocumentType"][value="' + selectedIdType + '"]');
+                console.log('Found radio button with exact match:', radioButton.length > 0);
 
-            // Handle no expiration checkbox state
-            var hasNoExpiration = @Model.IdDocumentHasNoExpiration.ToString().ToLower();
-            if (hasNoExpiration) {
-                $('#noExpirationCheckbox').prop('checked', true);
-                $('#IdDocumentExpiryDate').prop('disabled', true).val('').removeAttr('required');
-                $('#expiryRequired').hide();
+                if (radioButton.length > 0) {
+                    console.log('Setting selected ID type:', selectedIdType);
+                    radioButton.prop('checked', true);
+                    selectRadio(selectedIdType);
+                } else {
+                    // If exact match fails, try case-insensitive search
+                    console.log('Exact match failed, trying case-insensitive search');
+                    $('input[name="IdDocumentType"]').each(function() {
+                        var radioValue = $(this).val();
+                        if (radioValue && radioValue.toLowerCase() === selectedIdType.toLowerCase()) {
+                            console.log('Found case-insensitive match:', radioValue);
+                            $(this).prop('checked', true);
+                            selectRadio(radioValue);
+                            return false; // break the loop
+                        }
+                    });
+                }
+            } else {
+                console.log('No ID type to initialize');
             }
         }
 
@@ -360,7 +399,7 @@
 
             if (file) {
                 console.log('File selected:', file.name, 'Size:', file.size, 'Type:', file.type);
-                
+
                 // Check file size (10MB limit)
                 if (file.size > 10 * 1024 * 1024) {
                     fileError.text('File size must be less than 10MB').show();
@@ -444,17 +483,34 @@
             return true;
         }
 
-        // Function to handle radio button selection with visual feedback
+        // IMPROVED: Enhanced radio selection function with better logging and error handling
         function selectRadio(value) {
-            console.log('Selecting radio:', value);
-            
+            console.log('Selecting radio with value:', value);
+
             // Uncheck all radio buttons and remove active styling
             $('input[name="IdDocumentType"]').prop('checked', false);
             $('.space-y-4 > div').removeClass('bg-[#6ce5e8] border-[#6ce5e8]').addClass('bg-gray-100');
 
-            // Check the selected radio button and add active styling
-            $(`input[value="${value}"]`).prop('checked', true);
-            $(`input[value="${value}"]`).closest('div').removeClass('bg-gray-100').addClass('bg-[#6ce5e8] border-[#6ce5e8]');
+            // Find and check the selected radio button
+            var targetRadio = $('input[name="IdDocumentType"][value="' + value + '"]');
+            console.log('Found target radio button:', targetRadio.length > 0);
+
+            if (targetRadio.length > 0) {
+                // Check the radio button
+                targetRadio.prop('checked', true);
+
+                // Apply active styling to the container div
+                var containerDiv = targetRadio.closest('div');
+                containerDiv.removeClass('bg-gray-100').addClass('bg-[#6ce5e8] border-[#6ce5e8]');
+
+                console.log('Successfully selected radio:', value);
+            } else {
+                console.error('Could not find radio button with value:', value);
+                console.log('Available radio values:');
+                $('input[name="IdDocumentType"]').each(function() {
+                    console.log('  -', $(this).val());
+                });
+            }
         }
 
         // Function to show image modal
@@ -468,7 +524,7 @@
         // Function to show document preview modal
         function showDocumentPreview() {
             console.log('Attempting to show document preview');
-            
+
             // Check if stored image data is available from ViewBag
             var storedImageData = '@Html.Raw(ViewBag.StoredImageData)';
             var storedImageContentType = '@Html.Raw(ViewBag.StoredImageContentType)';
