@@ -729,14 +729,31 @@ namespace Freelancing.Services
                 return null;
             }
 
-            // If marked as no expiration, return far future date
+            // If marked as no expiration, return far future date (ensure UTC kind)
             if (model.IdDocumentHasNoExpiration)
             {
                 return DateTime.UtcNow.AddYears(100);
             }
 
             // Priority: extracted date from OCR > manually entered date
-            return extractedExpiryDate ?? model.IdDocumentExpiryDate;
+            var candidate = extractedExpiryDate ?? model.IdDocumentExpiryDate;
+
+            if (!candidate.HasValue)
+                return null;
+
+            // PostgreSQL + Npgsql expects DateTime.Kind==Utc for timestamptz.
+            // Convert or specify UTC kind to avoid "Cannot write DateTime with Kind=Unspecified" errors.
+            var dt = candidate.Value;
+
+            if (dt.Kind == DateTimeKind.Utc)
+                return dt;
+
+            if (dt.Kind == DateTimeKind.Local)
+                return dt.ToUniversalTime();
+
+            // dt.Kind == Unspecified: preserve the same UTC moment by specifying kind as UTC.
+            // This avoids Npgsql rejecting the value. We treat unspecified as a date/time value and mark it UTC.
+            return DateTime.SpecifyKind(dt, DateTimeKind.Utc);
         }
 
         private async Task<byte[]> GetImageBytesAsync(IFormFile file)
@@ -1249,7 +1266,7 @@ namespace Freelancing.Services
             // Should not contain passport header words
             var invalidWords = new[]
             {
-        "REPUBLIKA", "PILIPINAS", "REPUBLIC", "PHILIPPINES", "PASSPORT", "PASAPORTE",
+        "REPUBLIKA", "PILIPPINAS", "REPUBLIC", "PHILIPPINES", "PASSPORT", "PASAPORTE",
         "TYPE", "KODIGO", "COUNTRY", "CODE", "PETSA", "DATE", "BIRTH", "KASARIAN",
         "SEX", "LUGAR", "PLACE", "PAGKAWALANG", "VALID", "UNTIL", "AUTHORITY"
     };
