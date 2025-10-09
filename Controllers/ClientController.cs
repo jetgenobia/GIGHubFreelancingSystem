@@ -879,8 +879,10 @@ namespace Freelancing.Controllers
             var identityVerification = await dbContext.IdentityVerifications
                 .FirstOrDefaultAsync(iv => iv.UserAccountId == userId);
             var isVerified = identityVerification?.Status == "APPROVED";
+            var isPending = identityVerification?.Status == "PENDING";
 
             ViewBag.IsVerified = isVerified;
+            ViewBag.IsPending = isPending;
 
             var twoFactorEnabled = await _userManager.GetTwoFactorEnabledAsync(userAccount);
             ViewBag.TwoFactorEnabled = twoFactorEnabled;
