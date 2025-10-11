@@ -29,6 +29,9 @@ namespace Freelancing.Models
         // NEW: Property to hold extracted expiration date from OCR
         public DateTime? ExtractedExpiryDate { get; set; }
 
+        public string? OriginalIdType { get; set; }
+        public bool ReprocessDocument { get; set; }
+
         // Custom validation for expiry date and file upload
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
@@ -36,40 +39,57 @@ namespace Freelancing.Models
             if (string.Equals(IdDocumentType, "National ID", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(IdDocumentType, "NATIONAL_ID", StringComparison.OrdinalIgnoreCase))
             {
-                // National IDs don't expire, so we skip expiry validation
                 yield break;
             }
 
-            // For other document types, we now rely on extracted expiry dates from OCR
-            // If we have extracted data (returning user), we don't need to validate expiry date manually
-            // The expiry date should either be extracted or the document should be marked as no expiration
+            bool hasIdTypeChanged = !string.IsNullOrEmpty(OriginalIdType) &&
+                               OriginalIdType != IdDocumentType;
 
-            // Only validate if we don't have extracted data yet (new submission)
-            if (string.IsNullOrEmpty(ExtractedIdNumber))
+            // NEW: If ID type changed, always require new image upload
+            if (hasIdTypeChanged)
             {
-                // This is a new submission - expiry date will be extracted from the uploaded document
-                // No need to validate expiry date manually since OCR will handle it
+                var cameraImageData = GetCameraImageData(validationContext);
+                bool hasCameraData = !string.IsNullOrEmpty(cameraImageData) && cameraImageData.Length > 1000;
 
-                // File upload validation for new submissions
-                if (IdDocumentImage == null)
+                if (IdDocumentImage == null && !hasCameraData)
                 {
-                    yield return new ValidationResult("Please upload your ID document.", new[] { nameof(IdDocumentImage) });
+                    yield return new ValidationResult(
+                        $"ID type changed to {IdDocumentType}. Please upload your {IdDocumentType} document or capture it using the camera.",
+                        new[] { nameof(IdDocumentImage) });
                 }
+                yield break; // Skip session check for ID type changes
             }
-            else
+
+            // CRITICAL FIX: Check session data first
+            var httpContext = validationContext.GetService(typeof(IHttpContextAccessor)) as IHttpContextAccessor;
+            var sessionData = httpContext?.HttpContext?.Session?.GetString("DocumentData");
+
+            // If user has session data, they're a returning user - skip file validation
+            if (!string.IsNullOrEmpty(sessionData))
             {
-                // This is a returning user with extracted data
-                // At this point, either:
-                // 1. ExtractedExpiryDate has a value (expiry date was successfully extracted)
-                // 2. ExtractedExpiryDate is null but IdDocumentHasNoExpiration is true (document has no expiry)
-                // 3. ExtractedExpiryDate is null and IdDocumentHasNoExpiration is false (expiry not detected - acceptable)
+                yield break; // Allow returning users to change other fields without new upload
+            }
 
-                // We don't need to validate expiry date for returning users since:
-                // - The expiry date is either extracted automatically or
-                // - The document type doesn't require expiry validation or  
-                // - The system will handle missing expiry dates through manual verification
+            // Only validate file upload for truly new users (no session data, no ID type change)
+            var cameraData = GetCameraImageData(validationContext);
+            bool hasCameraUpload = !string.IsNullOrEmpty(cameraData) && cameraData.Length > 1000;
 
-                // No expiry date validation needed here
+            if (IdDocumentImage == null && !hasCameraUpload)
+            {
+                yield return new ValidationResult("Please upload your ID document or capture it using the camera.",
+                    new[] { nameof(IdDocumentImage) });
+            }
+        }
+        private string GetCameraImageData(ValidationContext validationContext)
+        {
+            try
+            {
+                var httpContext = validationContext.GetService(typeof(IHttpContextAccessor)) as IHttpContextAccessor;
+                return httpContext?.HttpContext?.Request?.Form["DocumentImageData"].ToString() ?? "";
+            }
+            catch
+            {
+                return "";
             }
         }
     }

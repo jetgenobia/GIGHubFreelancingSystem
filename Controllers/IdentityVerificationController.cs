@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Freelancing.Models;
 using Freelancing.Services;
@@ -41,14 +41,18 @@ namespace Freelancing.Controllers
 
                     // Always restore the model from session data
                     model.IdDocumentType = documentData.IdDocumentType;
-                    model.ExtractedIdNumber = documentData.ExtractedIdNumber;
+
+                    // NEW: Set original ID type for change tracking
+                    model.OriginalIdType = documentData.IdDocumentType;
+
+                    // Rest of your existing code remains the same...
+                    model.ExtractedIdNumber = documentData.ExtractedIdNumber == "OCR_FAILED" ? null : documentData.ExtractedIdNumber;
+                    model.ExtractedIdName = documentData.ExtractedIdName == "OCR_FAILED" ? null : documentData.ExtractedIdName;
                     model.IdDocumentExpiryDate = documentData.IdDocumentExpiryDate;
                     model.IdDocumentHasNoExpiration = documentData.IdDocumentHasNoExpiration;
                     model.ExtractedExpiryDate = documentData.ExtractedExpiryDate;
-                    // FIX 1: Restore ExtractedIdName to model as well, not just ViewBag
-                    model.ExtractedIdName = documentData.ExtractedIdName;
 
-                    // Always set ViewBag data if image exists in session
+                    // Keep all your existing ViewBag logic...
                     if (!string.IsNullOrEmpty(documentData.IdDocumentImageData))
                     {
                         ViewBag.StoredImageData = documentData.IdDocumentImageData;
@@ -57,7 +61,7 @@ namespace Freelancing.Controllers
 
                         _logger.LogInformation(
                             "Document GET: Restored session data for user. Has extracted ID: {HasExtractedId}, Image data length: {ImageLength}",
-                            !string.IsNullOrEmpty(documentData.ExtractedIdNumber),
+                            !string.IsNullOrEmpty(documentData.ExtractedIdNumber) && documentData.ExtractedIdNumber != "OCR_FAILED",
                             documentData.IdDocumentImageData.Length);
                     }
                     else
@@ -66,9 +70,8 @@ namespace Freelancing.Controllers
                         _logger.LogInformation("Document GET: No image data found in session");
                     }
 
-                    // Set additional ViewBag properties for the view
-                    ViewBag.ExtractedIdName = documentData.ExtractedIdName;
-                    ViewBag.HasExtractedData = !string.IsNullOrEmpty(documentData.ExtractedIdNumber);
+                    ViewBag.ExtractedIdName = documentData.ExtractedIdName == "OCR_FAILED" ? null : documentData.ExtractedIdName;
+                    ViewBag.HasExtractedData = !string.IsNullOrEmpty(documentData.ExtractedIdNumber) && documentData.ExtractedIdNumber != "OCR_FAILED";
                 }
                 catch (Exception ex)
                 {
@@ -91,11 +94,71 @@ namespace Freelancing.Controllers
         [HttpPost]
         public async Task<IActionResult> Document(DocumentVerificationViewModel model)
         {
-            // Restore ViewBag data for validation failures
+            // ===== ENHANCED DEBUGGING - START =====
+            var userId = GetCurrentUserId();
+            _logger.LogCritical("=== DOCUMENT POST DEBUG START === User: {UserId}", userId);
+            _logger.LogCritical("Form received - IdDocumentType: {IdType}", model.IdDocumentType);
+            _logger.LogCritical("Original ID Type: {OriginalType}", model.OriginalIdType);
+
+            // NEW: Detect ID type changes
+            bool hasIdTypeChanged = !string.IsNullOrEmpty(model.OriginalIdType) &&
+                                   model.OriginalIdType != model.IdDocumentType;
+
+            _logger.LogCritical("ID Type Changed: {Changed} (from '{Original}' to '{New}')",
+                hasIdTypeChanged, model.OriginalIdType, model.IdDocumentType);
+
+            // NEW: If ID type changed, clear session data to treat as fresh form
+            if (hasIdTypeChanged)
+            {
+                _logger.LogCritical("🔄 ID TYPE CHANGED - CLEARING SESSION DATA TO TREAT AS FRESH FORM");
+                HttpContext.Session.Remove("DocumentData");
+
+                // Reset model to fresh state
+                model.ExtractedIdNumber = null;
+                model.ExtractedIdName = null;
+                model.ExtractedExpiryDate = null;
+
+                _logger.LogCritical("✅ Session cleared and form reset to fresh state");
+            }
+
+            // Debug all form fields
+            _logger.LogCritical("=== FORM DATA DEBUG ===");
+            foreach (var key in Request.Form.Keys)
+            {
+                var values = Request.Form[key];
+                if (key == "DocumentImageData")
+                {
+                    _logger.LogCritical("Form Key: {Key}, Value Length: {Length} chars", key, values.ToString().Length);
+                    _logger.LogCritical("DocumentImageData starts with: {Start}",
+                        values.ToString().Length > 50 ? values.ToString().Substring(0, 50) : values.ToString());
+                }
+                else
+                {
+                    _logger.LogCritical("Form Key: {Key}, Value: {Value}", key, values);
+                }
+            }
+
+            // Check for camera-captured image data with detailed logging
+            string cameraImageData = Request.Form["DocumentImageData"];
+            bool hasCameraData = !string.IsNullOrEmpty(cameraImageData) && cameraImageData.Length > 1000;
+
+            _logger.LogCritical("=== CAMERA DATA ANALYSIS ===");
+            _logger.LogCritical("Camera data exists: {Exists}", !string.IsNullOrEmpty(cameraImageData));
+            _logger.LogCritical("Camera data length: {Length}", cameraImageData?.Length ?? 0);
+            _logger.LogCritical("Camera data valid (>1000 chars): {Valid}", hasCameraData);
+
+            if (!string.IsNullOrEmpty(cameraImageData))
+            {
+                _logger.LogCritical("Camera data first 100 chars: {Preview}",
+                    cameraImageData.Length > 100 ? cameraImageData.Substring(0, 100) : cameraImageData);
+            }
+            // ===== ENHANCED DEBUGGING - END =====
+
+            // Restore ViewBag data for validation failures (only if ID type hasn't changed)
             var sessionData = HttpContext.Session.GetString("DocumentData");
             DocumentVerificationData existingDocumentData = null;
 
-            if (!string.IsNullOrEmpty(sessionData))
+            if (!hasIdTypeChanged && !string.IsNullOrEmpty(sessionData))
             {
                 try
                 {
@@ -107,7 +170,6 @@ namespace Freelancing.Controllers
                         model.ExtractedIdNumber = existingDocumentData.ExtractedIdNumber;
                     }
 
-                    // FIX 1: Also restore ExtractedIdName to model
                     if (string.IsNullOrEmpty(model.ExtractedIdName) && !string.IsNullOrEmpty(existingDocumentData.ExtractedIdName))
                     {
                         model.ExtractedIdName = existingDocumentData.ExtractedIdName;
@@ -131,30 +193,101 @@ namespace Freelancing.Controllers
                     ViewBag.HasExtractedData = false;
                 }
             }
+            else if (hasIdTypeChanged)
+            {
+                // Clear ViewBag data for fresh form state when ID type changed
+                ViewBag.HasStoredImage = false;
+                ViewBag.HasExtractedData = false;
+                ViewBag.StoredImageData = null;
+                ViewBag.StoredImageContentType = null;
+                ViewBag.ExtractedIdName = null;
+            }
 
-            // Enhanced validation logic
-            bool isReturningUser = !string.IsNullOrEmpty(model.ExtractedIdNumber) ||
-                                  (existingDocumentData != null && !string.IsNullOrEmpty(existingDocumentData.ExtractedIdNumber));
-            bool hasStoredImage = existingDocumentData != null && !string.IsNullOrEmpty(existingDocumentData.IdDocumentImageData);
+            // NEW: Enhanced validation logic that treats ID type changes as fresh forms
+            bool isReturningUser = !hasIdTypeChanged && // KEY CHANGE: Not returning user if ID type changed
+                                  (!string.IsNullOrEmpty(model.ExtractedIdNumber) ||
+                                   (existingDocumentData != null && !string.IsNullOrEmpty(existingDocumentData.ExtractedIdNumber)));
+
+            bool hasStoredImage = !hasIdTypeChanged && // KEY CHANGE: No stored image if ID type changed
+                                 existingDocumentData != null && !string.IsNullOrEmpty(existingDocumentData.IdDocumentImageData);
+
             bool hasNewUpload = model.IdDocumentImage != null && model.IdDocumentImage.Length > 0;
 
-            // Custom validation for file upload requirement
-            if (!isReturningUser || (!hasStoredImage && !hasNewUpload))
+            _logger.LogCritical("=== VALIDATION CONDITIONS ===");
+            _logger.LogCritical("Has ID type changed: {HasChanged}", hasIdTypeChanged);
+            _logger.LogCritical("Is returning user: {IsReturning}", isReturningUser);
+            _logger.LogCritical("Has stored image: {HasStored}", hasStoredImage);
+            _logger.LogCritical("Has new upload: {HasUpload}", hasNewUpload);
+            _logger.LogCritical("Has camera data: {HasCamera}", hasCameraData);
+
+            // FIXED: Only add validation error if there's no new upload AND no camera data
+            if (!isReturningUser && (!hasStoredImage && !hasNewUpload && !hasCameraData))
             {
-                if (!hasNewUpload)
+                if (hasIdTypeChanged)
                 {
-                    ModelState.AddModelError("IdDocumentImage", "Please upload your ID document.");
+                    _logger.LogCritical("=== VALIDATION FAILED - ID TYPE CHANGED, NO NEW IMAGE DATA ===");
+                    ModelState.AddModelError("IdDocumentImage", $"ID type changed to {model.IdDocumentType}. Please upload your {model.IdDocumentType} document or capture it using the camera.");
                 }
+                else
+                {
+                    _logger.LogCritical("=== VALIDATION FAILED - NEW USER NEEDS IMAGE ===");
+                    ModelState.AddModelError("IdDocumentImage", "Please upload your ID document or capture it using the camera.");
+                }
+            }
+            else if (hasIdTypeChanged && (hasNewUpload || hasCameraData))
+            {
+                _logger.LogCritical("=== ID TYPE CHANGED WITH NEW IMAGE - VALIDATION PASSED ===");
             }
 
             if (!ModelState.IsValid)
             {
+                // Preserve camera data when validation fails
+                if (hasCameraData && string.IsNullOrEmpty(sessionData))
+                {
+                    try
+                    {
+                        var tempDocumentData = new DocumentVerificationData
+                        {
+                            IdDocumentType = model.IdDocumentType,
+                            IdDocumentImageData = cameraImageData.Contains(',') ? cameraImageData.Split(',')[1] : cameraImageData,
+                            IdDocumentImageContentType = "image/jpeg",
+                            ExtractedIdNumber = null,
+                            ExtractedIdName = null,
+                            IdDocumentHasNoExpiration = model.IdDocumentHasNoExpiration,
+                            IdDocumentMessage = hasIdTypeChanged ?
+                                $"Image captured for {model.IdDocumentType}, awaiting processing" :
+                                "Image captured, awaiting processing"
+                        };
+
+                        HttpContext.Session.SetString("DocumentData", System.Text.Json.JsonSerializer.Serialize(tempDocumentData));
+
+                        // Set ViewBag for immediate display
+                        ViewBag.StoredImageData = tempDocumentData.IdDocumentImageData;
+                        ViewBag.StoredImageContentType = "image/jpeg";
+                        ViewBag.HasStoredImage = true;
+                        ViewBag.HasExtractedData = false;
+
+                        _logger.LogInformation("Preserved camera data in session during validation failure for user {UserId}", userId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to preserve camera data during validation failure");
+                    }
+                }
+
+                _logger.LogCritical("=== MODEL STATE INVALID - RETURNING VIEW ===");
+                foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    _logger.LogCritical("ModelState Error: {Error}", error.ErrorMessage);
+                }
                 return View(model);
             }
 
+            _logger.LogCritical("=== VALIDATION PASSED - CONTINUING PROCESSING ===");
+
+            // Continue with processing logic...
             try
             {
-                var userId = GetCurrentUserId();
                 if (string.IsNullOrEmpty(userId))
                 {
                     return RedirectToAction("Login", "Account");
@@ -164,16 +297,13 @@ namespace Freelancing.Controllers
                 DateTime? expiryDate = null;
                 bool hasNoExpiration = false;
 
-                // FIX 2: Improved logic for National ID handling
                 if (string.Equals(model.IdDocumentType, "National ID", StringComparison.OrdinalIgnoreCase))
                 {
-                    // National IDs don't have expiration dates
                     expiryDate = null;
                     hasNoExpiration = true;
                 }
                 else
                 {
-                    // For other document types, use extracted date or manual input
                     if (model.ExtractedExpiryDate.HasValue)
                     {
                         expiryDate = model.ExtractedExpiryDate.Value;
@@ -193,9 +323,10 @@ namespace Freelancing.Controllers
 
                 DocumentVerificationData documentData;
 
-                if (existingDocumentData != null)
+                // Since we treat ID type changes as fresh, we'll either process existing data or create new
+                if (!hasIdTypeChanged && existingDocumentData != null)
                 {
-                    // Update existing data
+                    // Process existing document data (no ID type change)
                     documentData = existingDocumentData;
 
                     bool hasFormChanges =
@@ -203,77 +334,158 @@ namespace Freelancing.Controllers
                         documentData.IdDocumentExpiryDate != expiryDate ||
                         documentData.IdDocumentHasNoExpiration != hasNoExpiration;
 
-                    if (hasFormChanges || hasNewUpload)
+                    _logger.LogCritical("Processing existing data - Has form changes: {HasFormChanges}", hasFormChanges);
+
+                    if (hasFormChanges || hasNewUpload || hasCameraData)
                     {
                         // Update form data
                         documentData.IdDocumentType = model.IdDocumentType;
                         documentData.IdDocumentExpiryDate = expiryDate;
                         documentData.IdDocumentHasNoExpiration = hasNoExpiration;
 
-                        // FIX 2: Clear extracted expiry date when changing to National ID
                         if (string.Equals(model.IdDocumentType, "National ID", StringComparison.OrdinalIgnoreCase))
                         {
                             documentData.ExtractedExpiryDate = null;
                         }
 
-                        if (hasNewUpload)
+                        // Handle new image uploads or camera captures
+                        if (hasNewUpload || hasCameraData)
                         {
-                            // Process new image
-                            using (var memoryStream = new MemoryStream())
+                            // Handle image data (file upload or camera capture)
+                            string imageData = null;
+                            string contentType = null;
+
+                            if (hasNewUpload)
                             {
-                                await model.IdDocumentImage.CopyToAsync(memoryStream);
-                                var imageBytes = memoryStream.ToArray();
-                                documentData.IdDocumentImageData = Convert.ToBase64String(imageBytes);
-                                documentData.IdDocumentImageContentType = model.IdDocumentImage.ContentType;
-                            }
-
-                            try
-                            {
-                                var documentResult = await _verificationService.VerifyIdDocumentAsync(
-                                    model.IdDocumentImage,
-                                    model.IdDocumentType,
-                                    null,
-                                    expiryDate,
-                                    hasNoExpiration,
-                                    userId
-                                );
-
-                                documentData.ExtractedIdName = documentResult.extractedIdName;
-                                documentData.ExtractedIdNumber = documentResult.extractedIdNumber;
-                                documentData.IdDocumentVerified = documentResult.verified;
-                                documentData.IdDocumentConfidence = documentResult.confidence;
-                                documentData.IdDocumentMessage = documentResult.message;
-
-                                if (documentResult.extractedExpiryDate.HasValue)
+                                // Use uploaded file
+                                using (var memoryStream = new MemoryStream())
                                 {
-                                    documentData.ExtractedExpiryDate = documentResult.extractedExpiryDate;
-                                    // If we extracted an expiry date and it's not a national ID, use it
-                                    if (!string.Equals(model.IdDocumentType, "National ID", StringComparison.OrdinalIgnoreCase))
+                                    await model.IdDocumentImage.CopyToAsync(memoryStream);
+                                    var imageBytes = memoryStream.ToArray();
+                                    imageData = Convert.ToBase64String(imageBytes);
+                                    contentType = model.IdDocumentImage.ContentType;
+                                }
+                            }
+                            else if (hasCameraData)
+                            {
+                                try
+                                {
+                                    // Extract base64 data from data URL and convert to bytes
+                                    var base64Data = cameraImageData.Split(',')[1];
+                                    imageData = base64Data;
+                                    contentType = "image/jpeg";
+
+                                    _logger.LogInformation("Camera data processed successfully, image size: {Size} bytes",
+                                        Convert.FromBase64String(base64Data).Length);
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogError(ex, "Error processing camera-captured image data");
+
+                                    if (!string.IsNullOrEmpty(cameraImageData))
                                     {
-                                        documentData.IdDocumentExpiryDate = documentResult.extractedExpiryDate;
-                                        documentData.IdDocumentHasNoExpiration = false;
+                                        try
+                                        {
+                                            imageData = cameraImageData.Split(',')[1];
+                                            contentType = "image/jpeg";
+                                            _logger.LogWarning("Using raw camera data after processing failed");
+                                        }
+                                        catch (Exception innerEx)
+                                        {
+                                            _logger.LogError(innerEx, "Failed to extract base64 data from camera input");
+                                            ModelState.AddModelError("", "Error processing captured image. Please try again.");
+                                            return View(model);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        ModelState.AddModelError("", "Error processing captured image. Please try again.");
+                                        return View(model);
                                     }
                                 }
-                                else if (string.Equals(model.IdDocumentType, "National ID", StringComparison.OrdinalIgnoreCase))
+                            }
+
+                            if (!string.IsNullOrEmpty(imageData))
+                            {
+                                documentData.IdDocumentImageData = imageData;
+                                documentData.IdDocumentImageContentType = contentType;
+
+                                try
                                 {
-                                    // FIX 2: Ensure National ID has no expiry date
-                                    documentData.ExtractedExpiryDate = null;
+                                    var documentResult = await _verificationService.VerifyIdDocumentAsync(
+                                        null, // No IFormFile
+                                        model.IdDocumentType,
+                                        null,
+                                        expiryDate,
+                                        model.IdDocumentHasNoExpiration,
+                                        userId,
+                                        Convert.FromBase64String(imageData)
+                                    );
+
+                                    documentData.ExtractedIdName = documentResult.extractedIdName;
+                                    documentData.ExtractedIdNumber = documentResult.extractedIdNumber;
+                                    documentData.IdDocumentVerified = documentResult.verified;
+                                    documentData.IdDocumentConfidence = documentResult.confidence;
+                                    documentData.IdDocumentMessage = documentResult.message;
+
+                                    var validationMessage = GetDocumentValidationMessage(
+                                        model.IdDocumentType,
+                                        documentResult.extractedIdNumber,
+                                        documentResult.extractedIdName,
+                                        documentResult.message
+                                    );
+
+                                    if (!string.Equals(validationMessage, documentResult.message, StringComparison.Ordinal))
+                                    {
+                                        ViewBag.ValidationWarning = validationMessage;
+                                        documentData.IdDocumentMessage = validationMessage;
+
+                                        if (validationMessage.Contains("Document type mismatch"))
+                                        {
+                                            documentData.IdDocumentVerified = false;
+                                            documentData.IdDocumentConfidence = 0.0f;
+                                        }
+                                    }
+                                    else if (!documentResult.verified || string.IsNullOrEmpty(documentResult.extractedIdNumber))
+                                    {
+                                        ViewBag.ValidationWarning = validationMessage;
+                                        documentData.IdDocumentMessage = validationMessage;
+                                    }
+
+                                    if (documentResult.extractedExpiryDate.HasValue)
+                                    {
+                                        documentData.ExtractedExpiryDate = documentResult.extractedExpiryDate;
+                                        if (!string.Equals(model.IdDocumentType, "National ID", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            documentData.IdDocumentExpiryDate = documentResult.extractedExpiryDate;
+                                            documentData.IdDocumentHasNoExpiration = false;
+                                        }
+                                    }
+
+                                    _logger.LogInformation(
+                                        "Document verification completed for user {UserId}. Source: {Source}, Extracted name: {ExtractedName}, Extracted ID: {ExtractedId}",
+                                        userId, hasCameraData ? "Camera" : "Upload", documentResult.extractedIdName, documentResult.extractedIdNumber);
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogError(ex, "Error during document verification for user {UserId}", userId);
+
+                                    documentData.ExtractedIdName = "OCR_FAILED";
+                                    documentData.ExtractedIdNumber = "OCR_FAILED";
+                                    documentData.IdDocumentMessage = "⚠️ We couldn't process your document automatically. This may be due to image quality, lighting, or document clarity. Please try uploading a clearer image or contact support for manual verification.";
+                                    documentData.IdDocumentVerified = false;
+                                    documentData.IdDocumentConfidence = 0.0f;
+
+                                    ViewBag.ProcessingError = documentData.IdDocumentMessage;
+                                    _logger.LogWarning("Stored image with OCR failure placeholders for user {UserId}", userId);
                                 }
 
-                                _logger.LogInformation(
-                                    "New document uploaded and processed for returning user {UserId}. Extracted name: {ExtractedName}, Extracted ID: {ExtractedId}, Extracted Expiry: {ExtractedExpiry}",
-                                    userId, documentResult.extractedIdName, documentResult.extractedIdNumber, documentResult.extractedExpiryDate);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(ex, "Error during document re-verification for user {UserId}", userId);
-                                documentData.IdDocumentMessage = "Document uploaded but extraction failed. Please verify manually.";
+                                HttpContext.Session.SetString("DocumentData", System.Text.Json.JsonSerializer.Serialize(documentData));
+                                _logger.LogInformation("Image stored in session for user {UserId}, image length: {Length}", userId, imageData.Length);
                             }
                         }
                         else
                         {
-                            // Form data changed but no new image - preserve existing extraction data
-                            // FIX 2: But clear expiry date if changing to National ID
                             if (string.Equals(model.IdDocumentType, "National ID", StringComparison.OrdinalIgnoreCase))
                             {
                                 documentData.ExtractedExpiryDate = null;
@@ -282,14 +494,31 @@ namespace Freelancing.Controllers
                         }
 
                         HttpContext.Session.SetString("DocumentData", System.Text.Json.JsonSerializer.Serialize(documentData));
-                        _logger.LogInformation(
-                            "Updated document data for returning user {UserId}. Has image: {HasImage}, Has extracted ID: {HasExtractedId}",
-                            userId, !string.IsNullOrEmpty(documentData.IdDocumentImageData), !string.IsNullOrEmpty(documentData.ExtractedIdNumber));
                     }
+
+                    if (!string.IsNullOrEmpty(ViewBag.ValidationWarning as string))
+                    {
+                        // Restore form data for user
+                        ViewBag.StoredImageData = documentData.IdDocumentImageData;
+                        ViewBag.StoredImageContentType = documentData.IdDocumentImageContentType;
+                        ViewBag.HasStoredImage = true;
+                        ViewBag.ExtractedIdName = documentData.ExtractedIdName;
+                        ViewBag.HasExtractedData = !string.IsNullOrEmpty(documentData.ExtractedIdNumber);
+
+                        model.ExtractedIdNumber = documentData.ExtractedIdNumber;
+                        model.ExtractedIdName = documentData.ExtractedIdName;
+                        model.ExtractedExpiryDate = documentData.ExtractedExpiryDate;
+
+                        return View(model);
+                    }
+
+                    return RedirectToAction("Verify");
                 }
                 else
                 {
-                    // Create new document data
+                    // Create new document data (either fresh form or ID type changed)
+                    _logger.LogCritical("Creating new document data - Fresh form or ID type changed");
+
                     documentData = new DocumentVerificationData
                     {
                         IdDocumentType = model.IdDocumentType,
@@ -298,63 +527,169 @@ namespace Freelancing.Controllers
                         IdDocumentHasNoExpiration = hasNoExpiration,
                         IdDocumentVerified = false,
                         IdDocumentConfidence = 0.0f,
-                        IdDocumentMessage = "Pending verification",
+                        IdDocumentMessage = hasIdTypeChanged ?
+                            $"Processing {model.IdDocumentType} document (ID type changed)" : "Pending verification",
                         IdDocumentImageData = null,
                         IdDocumentImageContentType = null
                     };
 
-                    // Process uploaded document
-                    using (var memoryStream = new MemoryStream())
+                    // Handle image data (file upload or camera capture)
+                    string imageData = null;
+                    string contentType = null;
+
+                    if (hasNewUpload)
                     {
-                        await model.IdDocumentImage.CopyToAsync(memoryStream);
-                        var imageBytes = memoryStream.ToArray();
-                        documentData.IdDocumentImageData = Convert.ToBase64String(imageBytes);
-                        documentData.IdDocumentImageContentType = model.IdDocumentImage.ContentType;
-                    }
-
-                    try
-                    {
-                        var documentResult = await _verificationService.VerifyIdDocumentAsync(
-                            model.IdDocumentImage,
-                            model.IdDocumentType,
-                            null,
-                            expiryDate,
-                            model.IdDocumentHasNoExpiration,
-                            userId
-                        );
-
-                        documentData.ExtractedIdName = documentResult.extractedIdName;
-                        documentData.ExtractedIdNumber = documentResult.extractedIdNumber;
-                        documentData.IdDocumentVerified = documentResult.verified;
-                        documentData.IdDocumentConfidence = documentResult.confidence;
-                        documentData.IdDocumentMessage = documentResult.message;
-
-                        // Add the missing extracted expiry date assignment
-                        if (documentResult.extractedExpiryDate.HasValue)
+                        using (var memoryStream = new MemoryStream())
                         {
-                            documentData.ExtractedExpiryDate = documentResult.extractedExpiryDate;
-                            // If we extracted an expiry date and it's not a national ID, use it
-                            if (!string.Equals(model.IdDocumentType, "National ID", StringComparison.OrdinalIgnoreCase))
+                            await model.IdDocumentImage.CopyToAsync(memoryStream);
+                            var imageBytes = memoryStream.ToArray();
+                            imageData = Convert.ToBase64String(imageBytes);
+                            contentType = model.IdDocumentImage.ContentType;
+                        }
+                    }
+                    else if (hasCameraData)
+                    {
+                        try
+                        {
+                            var base64Data = cameraImageData.Split(',')[1];
+                            imageData = base64Data;
+                            contentType = "image/jpeg";
+
+                            _logger.LogInformation("Camera data processed successfully for new user, image size: {Size} bytes",
+                                Convert.FromBase64String(base64Data).Length);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Error processing camera-captured image data for new user");
+
+                            if (!string.IsNullOrEmpty(cameraImageData))
                             {
-                                documentData.IdDocumentExpiryDate = documentResult.extractedExpiryDate;
-                                documentData.IdDocumentHasNoExpiration = false;
+                                try
+                                {
+                                    imageData = cameraImageData.Split(',')[1];
+                                    contentType = "image/jpeg";
+                                    _logger.LogWarning("Using raw camera data after processing failed for new user");
+                                }
+                                catch (Exception innerEx)
+                                {
+                                    _logger.LogError(innerEx, "Failed to extract base64 data from camera input for new user");
+                                    ModelState.AddModelError("", "Error processing captured image. Please try again.");
+                                    return View(model);
+                                }
+                            }
+                            else
+                            {
+                                ModelState.AddModelError("", "Error processing captured image. Please try again.");
+                                return View(model);
                             }
                         }
-
-                        _logger.LogInformation(
-                            "Document verification completed for new user {UserId}. Extracted name: {ExtractedName}, Extracted ID: {ExtractedId}, Extracted Expiry: {ExtractedExpiry}",
-                            userId, documentResult.extractedIdName, documentResult.extractedIdNumber, documentResult.extractedExpiryDate);
                     }
-                    catch (Exception ex)
+
+                    if (!string.IsNullOrEmpty(imageData))
                     {
-                        _logger.LogError(ex, "Error during document verification for user {UserId}", userId);
-                        documentData.IdDocumentMessage = "Document uploaded but extraction failed. Please verify manually.";
+                        documentData.IdDocumentImageData = imageData;
+                        documentData.IdDocumentImageContentType = contentType;
+
+                        try
+                        {
+                            var documentResult = await _verificationService.VerifyIdDocumentAsync(
+                                null, // No IFormFile
+                                model.IdDocumentType,
+                                null,
+                                expiryDate,
+                                model.IdDocumentHasNoExpiration,
+                                userId,
+                                Convert.FromBase64String(imageData)
+                            );
+
+                            documentData.ExtractedIdName = documentResult.extractedIdName;
+                            documentData.ExtractedIdNumber = documentResult.extractedIdNumber;
+                            documentData.IdDocumentVerified = documentResult.verified;
+                            documentData.IdDocumentConfidence = documentResult.confidence;
+                            documentData.IdDocumentMessage = documentResult.message;
+
+                            var validationMessage = GetDocumentValidationMessage(
+                                model.IdDocumentType,
+                                documentResult.extractedIdNumber,
+                                documentResult.extractedIdName,
+                                documentResult.message
+                            );
+
+                            if (!string.Equals(validationMessage, documentResult.message, StringComparison.Ordinal))
+                            {
+                                ViewBag.ValidationWarning = validationMessage;
+                                documentData.IdDocumentMessage = validationMessage;
+
+                                if (validationMessage.Contains("Document type mismatch"))
+                                {
+                                    documentData.IdDocumentVerified = false;
+                                    documentData.IdDocumentConfidence = 0.0f;
+                                }
+                            }
+                            else if (!documentResult.verified || string.IsNullOrEmpty(documentResult.extractedIdNumber))
+                            {
+                                ViewBag.ValidationWarning = validationMessage;
+                                documentData.IdDocumentMessage = validationMessage;
+                            }
+
+                            if (documentResult.extractedExpiryDate.HasValue)
+                            {
+                                documentData.ExtractedExpiryDate = documentResult.extractedExpiryDate;
+                                if (!string.Equals(model.IdDocumentType, "National ID", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    documentData.IdDocumentExpiryDate = documentResult.extractedExpiryDate;
+                                    documentData.IdDocumentHasNoExpiration = false;
+                                }
+                            }
+
+                            if (hasIdTypeChanged)
+                            {
+                                /*ViewBag.Message = $"✅ Document processed successfully with {model.IdDocumentType} settings!";*/
+                                _logger.LogInformation("Document processed after ID type change for user {UserId} to {NewType}",
+                                    userId, model.IdDocumentType);
+                            }
+
+                            _logger.LogInformation(
+                                "Document verification completed for user {UserId}. Source: {Source}, Extracted name: {ExtractedName}, Extracted ID: {ExtractedId}",
+                                userId, hasCameraData ? "Camera" : "Upload", documentResult.extractedIdName, documentResult.extractedIdNumber);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Error during document verification for user {UserId}", userId);
+
+                            documentData.ExtractedIdName = "OCR_FAILED";
+                            documentData.ExtractedIdNumber = "OCR_FAILED";
+                            documentData.IdDocumentMessage = "⚠️ We couldn't process your document automatically. This may be due to image quality, lighting, or document clarity. Please try uploading a clearer image or contact support for manual verification.";
+                            documentData.IdDocumentVerified = false;
+                            documentData.IdDocumentConfidence = 0.0f;
+
+                            ViewBag.ProcessingError = documentData.IdDocumentMessage;
+                            _logger.LogWarning("Stored image with OCR failure placeholders for user {UserId}", userId);
+                        }
+
+                        HttpContext.Session.SetString("DocumentData", System.Text.Json.JsonSerializer.Serialize(documentData));
+                        _logger.LogInformation("New document data stored in session for user {UserId}, image length: {Length}",
+                            userId, imageData.Length);
                     }
 
-                    HttpContext.Session.SetString("DocumentData", System.Text.Json.JsonSerializer.Serialize(documentData));
-                }
+                    if (!string.IsNullOrEmpty(ViewBag.ValidationWarning as string))
+                    {
+                        // Restore form data for user
+                        ViewBag.StoredImageData = documentData.IdDocumentImageData;
+                        ViewBag.StoredImageContentType = documentData.IdDocumentImageContentType;
+                        ViewBag.HasStoredImage = true;
+                        ViewBag.ExtractedIdName = documentData.ExtractedIdName;
+                        ViewBag.HasExtractedData = !string.IsNullOrEmpty(documentData.ExtractedIdNumber);
 
-                return RedirectToAction("Verify");
+                        model.ExtractedIdNumber = documentData.ExtractedIdNumber;
+                        model.ExtractedIdName = documentData.ExtractedIdName;
+                        model.ExtractedExpiryDate = documentData.ExtractedExpiryDate;
+
+                        return View(model);
+                    }
+
+                    return RedirectToAction("Verify");
+                }
             }
             catch (Exception ex)
             {
@@ -362,6 +697,100 @@ namespace Freelancing.Controllers
                 ModelState.AddModelError("", "An error occurred during document verification. Please try again.");
                 return View(model);
             }
+        }
+
+        private string GetDocumentValidationMessage(string selectedDocumentType, string extractedIdNumber, string extractedIdName, string message)
+        {
+            // PRIORITY 1: Check for document type mismatch FIRST - even if other extraction failed
+            // This handles cases where we can extract SOME text but it doesn't match the selected type
+            if (!string.IsNullOrEmpty(extractedIdNumber))
+            {
+                var detectedDocumentType = DetectDocumentTypeFromIdNumber(extractedIdNumber);
+                if (!string.IsNullOrEmpty(detectedDocumentType) &&
+                    !string.Equals(detectedDocumentType, selectedDocumentType, StringComparison.OrdinalIgnoreCase))
+                {
+                    return $"<strong>Document type mismatch detected!</strong><br/>The uploaded document appears to be a <strong>{detectedDocumentType}</strong>, but you selected <strong>{selectedDocumentType}</strong>.<br/>Please either:<br/>• Select the correct document type (<strong>{detectedDocumentType}</strong>), or<br/>• Upload the correct document type ({selectedDocumentType})";
+                }
+            }
+
+            // PRIORITY 2: Check if we extracted SOMETHING but it doesn't match any known pattern
+            // This handles cases where OCR works but the extracted ID doesn't match any expected format
+            if (!string.IsNullOrEmpty(extractedIdNumber) && !string.IsNullOrEmpty(extractedIdName))
+            {
+                // If we have both but no detected type, it might be unclear text or wrong document type
+                var detectedType = DetectDocumentTypeFromIdNumber(extractedIdNumber);
+                if (string.IsNullOrEmpty(detectedType))
+                {
+                    return $"<strong>Unclear document type detected.</strong><br/>We extracted information from your document, but the ID format doesn't match standard {selectedDocumentType} patterns.<br/>Please ensure you're uploading the correct document type or try a clearer image.";
+                }
+            }
+
+            // PRIORITY 3: Check if no text was detected at all
+            if (string.IsNullOrEmpty(extractedIdNumber) && string.IsNullOrEmpty(extractedIdName))
+            {
+                return "No readable text was detected in your document. Please ensure the image is clear, well-lit, and all text is visible. Try taking another photo with better lighting.";
+            }
+
+            // PRIORITY 4: Check for partial extraction issues
+            if (!string.IsNullOrEmpty(extractedIdNumber) && string.IsNullOrEmpty(extractedIdName))
+            {
+                return "Only partial information could be extracted. Your ID number was detected, but the name is unclear. Please try uploading a clearer image or ensure all text is visible.";
+            }
+
+            if (string.IsNullOrEmpty(extractedIdNumber) && !string.IsNullOrEmpty(extractedIdName))
+            {
+                return "Only partial information could be extracted. Your name was detected, but the ID number is unclear. Please try uploading a clearer image of your document.";
+            }
+
+            // PRIORITY 5: Return original message if no specific issues detected
+            return message;
+        }
+
+        private string DetectDocumentTypeFromIdNumber(string idNumber)
+        {
+            if (string.IsNullOrEmpty(idNumber)) return null;
+
+            // Clean the ID number for better matching
+            var cleanedId = idNumber.Trim().ToUpperInvariant();
+
+            // Philippine National ID patterns - most restrictive first
+            if (System.Text.RegularExpressions.Regex.IsMatch(cleanedId, @"^\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}$"))
+            {
+                return "National ID"; // ####-####-####-#### or #### #### #### ####
+            }
+
+            // Driver's License patterns
+            if (System.Text.RegularExpressions.Regex.IsMatch(cleanedId, @"^[A-Z]\d{2}[-\s]?\d{2}[-\s]?\d{5}$"))
+            {
+                return "Driver's License"; // N##-##-##### or N## ## #####
+            }
+
+            // Passport patterns
+            if (System.Text.RegularExpressions.Regex.IsMatch(cleanedId, @"^P\d{7}[A-Z]?$"))
+            {
+                return "Passport"; // P#######A or P#######
+            }
+
+            // Additional flexible patterns for partial matches
+            // Check for partial National ID (might have OCR errors)
+            if (System.Text.RegularExpressions.Regex.IsMatch(cleanedId, @"^\d{4}.*\d{4}.*\d{4}.*\d{4}$"))
+            {
+                return "National ID"; // Flexible National ID pattern
+            }
+
+            // Check for partial Driver's License
+            if (System.Text.RegularExpressions.Regex.IsMatch(cleanedId, @"^[A-Z]\d{2}.*\d{2}.*\d{5}$"))
+            {
+                return "Driver's License"; // Flexible Driver's License pattern
+            }
+
+            // Check for partial Passport
+            if (cleanedId.StartsWith("P") && System.Text.RegularExpressions.Regex.IsMatch(cleanedId, @"^P\d{7,8}[A-Z]?$"))
+            {
+                return "Passport"; // Flexible Passport pattern
+            }
+
+            return null; // Unknown pattern
         }
 
         [HttpGet]
@@ -373,6 +802,18 @@ namespace Freelancing.Controllers
                 try
                 {
                     var documentData = System.Text.Json.JsonSerializer.Deserialize<DocumentVerificationData>(sessionDocumentData);
+
+                    // Check if we have valid extracted data (not OCR failure placeholders)
+                    var hasValidExtractedData = !string.IsNullOrEmpty(documentData.ExtractedIdNumber) &&
+                                               documentData.ExtractedIdNumber != "OCR_FAILED";
+
+                    if (!hasValidExtractedData)
+                    {
+                        _logger.LogWarning("Verify GET: No valid extracted data found, redirecting to Document");
+                        TempData["ErrorMessage"] = "Document processing incomplete. Please verify your document again.";
+                        return RedirectToAction("Document");
+                    }
+
                     var model = new FaceVerificationViewModel
                     {
                         IdDocumentType = documentData.IdDocumentType,
@@ -398,7 +839,7 @@ namespace Freelancing.Controllers
             }
 
             _logger.LogWarning("No session document data found in Verify GET, redirecting to Document");
-            TempData["ErrorMessage"] = "No document data found. Submitted ID doesn't match with selected ID type.";
+            TempData["ErrorMessage"] = "No document data found. Please complete document verification first.";
             return RedirectToAction("Document");
         }
 

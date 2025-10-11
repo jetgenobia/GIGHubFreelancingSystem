@@ -184,13 +184,13 @@ namespace Freelancing.Services
         }
 
         public async Task<(bool verified, string message, float confidence, string? extractedIdName, string? extractedIdNumber, DateTime? extractedExpiryDate)> VerifyIdDocumentAsync(
-            IFormFile? documentImage,
-            string idDocumentType,
-            string? manualIdNumber,
-            DateTime? idDocumentExpiryDate,
-            bool idDocumentHasNoExpiration,
-            string userId,
-            byte[]? storedImageBytes = null)
+    IFormFile? documentImage,
+    string idDocumentType,
+    string? manualIdNumber,
+    DateTime? idDocumentExpiryDate,
+    bool idDocumentHasNoExpiration,
+    string userId,
+    byte[]? storedImageBytes = null)
         {
             try
             {
@@ -248,73 +248,142 @@ namespace Freelancing.Services
 
                     if (response.IsSuccessStatusCode)
                     {
-                        var visionResponse = System.Text.Json.JsonSerializer.Deserialize<dynamic>(responseContent);
-                        var textAnnotations = visionResponse.GetProperty("responses")[0].GetProperty("textAnnotations");
-
-                        var extractedText = "";
-                        if (textAnnotations.GetArrayLength() > 0)
+                        try
                         {
-                            extractedText = textAnnotations[0].GetProperty("description").GetString();
-                        }
+                            var visionResponse = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(responseContent);
 
-                        // Parse the extracted text based on document type
-                        IdOcrResult ocrResult = null;
-                        if (idDocumentType == "National ID")
-                            ocrResult = ParseNationalId(extractedText);
-                        else if (idDocumentType == "Driver's License")
-                            ocrResult = ParseDriversLicense(extractedText);
-                        else if (idDocumentType == "Passport")
-                            ocrResult = ParsePassport(extractedText);
-                        else
-                            ocrResult = ParseGenericId(extractedText);
-
-                        // Basic validation - check if it looks like an ID document
-                        var hasNumbers = extractedText.Any(char.IsDigit);
-                        var hasLetters = extractedText.Any(char.IsLetter);
-                        var hasDatePattern = System.Text.RegularExpressions.Regex.IsMatch(extractedText, @"\d{1,2}[/-]\d{1,2}[/-]\d{2,4}");
-
-                        // Log the OCR results for debugging
-                        _logger.LogInformation("OCR Results for {DocumentType}: Name='{ExtractedName}', ID='{ExtractedId}', ExpiryDate='{ExtractedExpiry}'",
-                            idDocumentType, ocrResult?.Name, ocrResult?.IdNumber, ocrResult?.ExpiryDate);
-
-                        // ID documents need at least numbers and letters
-                        if (hasNumbers && hasLetters && ocrResult != null)
-                        {
-                            var confidence = 85.0f;
-                            var message = "ID document processed successfully";
-
-                            // Give higher confidence if we extracted both name and ID number
-                            if (!string.IsNullOrEmpty(ocrResult.Name) && !string.IsNullOrEmpty(ocrResult.IdNumber))
+                            // FIXED: Check if responses array exists and has elements
+                            if (!visionResponse.TryGetProperty("responses", out var responsesElement) ||
+                                responsesElement.GetArrayLength() == 0)
                             {
-                                confidence = 95.0f;
-                                message = "ID document verified with extracted information";
-                            }
-                            else if (!string.IsNullOrEmpty(ocrResult.IdNumber))
-                            {
-                                confidence = 90.0f;
-                                message = "ID document verified with extracted ID number";
+                                _logger.LogWarning("Google Vision API returned empty responses for user {UserId}", userId);
+                                return (false, "No text could be detected in the document image. Please ensure the image is clear and contains readable text.", 0.0f, null, null, null);
                             }
 
-                            // Cross-match extracted name with registered user name
-                            if (!string.IsNullOrEmpty(ocrResult.Name))
+                            var firstResponse = responsesElement[0];
+
+                            // FIXED: Check if textAnnotations exists before trying to access it
+                            if (!firstResponse.TryGetProperty("textAnnotations", out var textAnnotations))
                             {
-                                var (nameMatch, nameMatchMessage) = await CrossMatchNameWithRegisteredUserAsync(ocrResult.Name, userId);
-                                if (!nameMatch)
+                                _logger.LogWarning("No text annotations found in Google Vision response for user {UserId}", userId);
+                                return (false, "No readable text detected in the document. Please ensure the image is clear and well-lit.", 0.0f, null, null, null);
+                            }
+
+                            var extractedText = "";
+                            if (textAnnotations.GetArrayLength() > 0)
+                            {
+                                if (textAnnotations[0].TryGetProperty("description", out var descriptionElement))
                                 {
-                                    _logger.LogWarning("Name mismatch for user {UserId}. Extracted: '{ExtractedName}'", userId, ocrResult.Name);
-                                    return (false, nameMatchMessage, 0.0f, ocrResult.Name, ocrResult.IdNumber, ocrResult.ExpiryDate);
-                                }
-                                else
-                                {
-                                    _logger.LogInformation("Name match successful for user {UserId}", userId);
-                                    message = "ID document verified with name match";
+                                    extractedText = descriptionElement.GetString() ?? "";
                                 }
                             }
 
-                            return (true, message, confidence, ocrResult.Name, ocrResult.IdNumber, ocrResult.ExpiryDate);
-                        }
+                            if (string.IsNullOrEmpty(extractedText))
+                            {
+                                _logger.LogWarning("Empty text extracted from document for user {UserId}", userId);
+                                return (false, "No readable text could be extracted from the document. Please ensure the image is clear and contains visible text.", 0.0f, null, null, null);
+                            }
 
-                        return (false, "Unable to extract required information from ID document. Please ensure the image is clear and contains readable text.", 0.0f, null, null, null);
+                            // Parse the extracted text based on document type
+                            IdOcrResult ocrResult = null;
+
+                            // ENHANCED: Try all parsing methods to get the best result
+                            var allResults = new List<IdOcrResult>();
+
+                            // Parse with all methods to find any ID patterns
+                            allResults.Add(ParseNationalId(extractedText));
+                            allResults.Add(ParseDriversLicense(extractedText));
+                            allResults.Add(ParsePassport(extractedText));
+                            allResults.Add(ParseGenericId(extractedText));
+
+                            // Find the result with the most complete information
+                            ocrResult = allResults
+                                .Where(r => r != null && !string.IsNullOrEmpty(r.IdNumber))
+                                .OrderByDescending(r => (!string.IsNullOrEmpty(r.Name) ? 1 : 0) + (!string.IsNullOrEmpty(r.IdNumber) ? 1 : 0))
+                                .FirstOrDefault();
+
+                            // If we couldn't parse with specific methods, try generic extraction
+                            if (ocrResult == null || string.IsNullOrEmpty(ocrResult.IdNumber))
+                            {
+                                ocrResult = ExtractAnyIdPattern(extractedText);
+                            }
+
+                            // Basic validation - check if it looks like an ID document
+                            var hasNumbers = extractedText.Any(char.IsDigit);
+                            var hasLetters = extractedText.Any(char.IsLetter);
+
+                            // Log the OCR results for debugging
+                            _logger.LogInformation("OCR Results for {DocumentType}: Name='{ExtractedName}', ID='{ExtractedId}', ExpiryDate='{ExtractedExpiry}', Raw text length: {TextLength}",
+                                idDocumentType, ocrResult?.Name, ocrResult?.IdNumber, ocrResult?.ExpiryDate, extractedText.Length);
+
+                            // CRITICAL FIX: Check for document type mismatch BEFORE returning success
+                            if (hasNumbers && hasLetters && ocrResult != null && !string.IsNullOrEmpty(ocrResult.IdNumber))
+                            {
+                                // FIRST: Check if the extracted ID matches the selected document type
+                                var detectedDocumentType = DetectDocumentTypeFromIdNumber(ocrResult.IdNumber);
+                                if (!string.IsNullOrEmpty(detectedDocumentType) &&
+                                    !string.Equals(detectedDocumentType, idDocumentType, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    _logger.LogWarning("Document type mismatch for user {UserId}. Selected: '{SelectedType}', Detected: '{DetectedType}', ID: '{ExtractedId}'",
+                                        userId, idDocumentType, detectedDocumentType, ocrResult.IdNumber);
+
+                                    // Return the extracted data but mark as NOT verified due to type mismatch
+                                    return (false, "Document type mismatch detected", 0.0f, ocrResult.Name, ocrResult.IdNumber, ocrResult.ExpiryDate);
+                                }
+
+                                var confidence = 85.0f;
+                                var message = "ID document processed successfully";
+
+                                // Give higher confidence if we extracted both name and ID number
+                                if (!string.IsNullOrEmpty(ocrResult.Name) && !string.IsNullOrEmpty(ocrResult.IdNumber))
+                                {
+                                    confidence = 95.0f;
+                                    message = "ID document verified with extracted information";
+                                }
+                                else if (!string.IsNullOrEmpty(ocrResult.IdNumber))
+                                {
+                                    confidence = 90.0f;
+                                    message = "ID document verified with extracted ID number";
+                                }
+
+                                // Cross-match extracted name with registered user name
+                                if (!string.IsNullOrEmpty(ocrResult.Name))
+                                {
+                                    var (nameMatch, nameMatchMessage) = await CrossMatchNameWithRegisteredUserAsync(ocrResult.Name, userId);
+                                    if (!nameMatch)
+                                    {
+                                        _logger.LogWarning("Name mismatch for user {UserId}. Extracted: '{ExtractedName}'", userId, ocrResult.Name);
+                                        return (false, nameMatchMessage, 0.0f, ocrResult.Name, ocrResult.IdNumber, ocrResult.ExpiryDate);
+                                    }
+                                    else
+                                    {
+                                        _logger.LogInformation("Name match successful for user {UserId}", userId);
+                                        message = "ID document verified with name match";
+                                    }
+                                }
+
+                                // Return success only if document type matches
+                                return (true, message, confidence, ocrResult.Name, ocrResult.IdNumber, ocrResult.ExpiryDate);
+                            }
+
+                            // Return partial results if we found something
+                            if (ocrResult != null && (!string.IsNullOrEmpty(ocrResult.IdNumber) || !string.IsNullOrEmpty(ocrResult.Name)))
+                            {
+                                return (false, "Partial information extracted from document.", 0.0f, ocrResult.Name, ocrResult.IdNumber, ocrResult.ExpiryDate);
+                            }
+
+                            return (false, "Unable to extract required information from ID document. Please ensure the image is clear and contains readable text.", 0.0f, null, null, null);
+                        }
+                        catch (JsonException jsonEx)
+                        {
+                            _logger.LogError(jsonEx, "Error parsing Google Vision API response for user {UserId}. Response: {Response}", userId, responseContent);
+                            return (false, "Error processing document image response. Please try again.", 0.0f, null, null, null);
+                        }
+                        catch (KeyNotFoundException keyEx)
+                        {
+                            _logger.LogError(keyEx, "Missing expected key in Google Vision API response for user {UserId}. Response: {Response}", userId, responseContent);
+                            return (false, "Unexpected response format from document processing service. Please try again.", 0.0f, null, null, null);
+                        }
                     }
                     else
                     {
@@ -332,6 +401,116 @@ namespace Freelancing.Services
                 _logger.LogError(ex, "Error verifying ID document for user {UserId}", userId);
                 return (false, "Error processing ID document. Please try again.", 0.0f, null, null, null);
             }
+        }
+
+        // Add this helper method to detect document type from ID number patterns
+        private string DetectDocumentTypeFromIdNumber(string idNumber)
+        {
+            if (string.IsNullOrEmpty(idNumber)) return null;
+
+            // Clean the ID number for better matching
+            var cleanedId = idNumber.Trim().ToUpperInvariant();
+
+            // Philippine National ID patterns - most restrictive first
+            if (System.Text.RegularExpressions.Regex.IsMatch(cleanedId, @"^\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}$"))
+            {
+                return "National ID"; // ####-####-####-#### or #### #### #### ####
+            }
+
+            // Driver's License patterns
+            if (System.Text.RegularExpressions.Regex.IsMatch(cleanedId, @"^[A-Z]\d{2}[-\s]?\d{2}[-\s]?\d{5}$"))
+            {
+                return "Driver's License"; // N##-##-##### or N## ## #####
+            }
+
+            // Passport patterns
+            if (System.Text.RegularExpressions.Regex.IsMatch(cleanedId, @"^P\d{7}[A-Z]?$"))
+            {
+                return "Passport"; // P#######A or P#######
+            }
+
+            // Additional flexible patterns for partial matches
+            // Check for partial National ID (might have OCR errors)
+            if (System.Text.RegularExpressions.Regex.IsMatch(cleanedId, @"^\d{4}.*\d{4}.*\d{4}.*\d{4}$"))
+            {
+                return "National ID"; // Flexible National ID pattern
+            }
+
+            // Check for partial Driver's License
+            if (System.Text.RegularExpressions.Regex.IsMatch(cleanedId, @"^[A-Z]\d{2}.*\d{2}.*\d{5}$"))
+            {
+                return "Driver's License"; // Flexible Driver's License pattern
+            }
+
+            // Check for partial Passport
+            if (cleanedId.StartsWith("P") && System.Text.RegularExpressions.Regex.IsMatch(cleanedId, @"^P\d{7,8}[A-Z]?$"))
+            {
+                return "Passport"; // Flexible Passport pattern
+            }
+
+            return null; // Unknown pattern
+        }
+
+        // Add this new method to extract any ID pattern from text
+        private IdOcrResult ExtractAnyIdPattern(string text)
+        {
+            var result = new IdOcrResult();
+
+            // Try to find any ID-like patterns
+            var idPatterns = new[]
+            {
+        @"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b", // National ID pattern
+        @"\b[A-Z]\d{2}[-\s]?\d{2}[-\s]?\d{5}\b",        // Driver's License pattern  
+        @"\bP\d{7}[A-Z]?\b",                           // Passport pattern
+        @"\b\d{8,12}\b",                               // Generic 8-12 digit number
+        @"\b[A-Z0-9]{8,12}\b"                          // Generic alphanumeric
+    };
+
+            foreach (var pattern in idPatterns)
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(text, pattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    result.IdNumber = match.Value.Trim();
+                    break;
+                }
+            }
+
+            // Try to extract any name-like patterns
+            var namePatterns = new[]
+            {
+        @"([A-Z][a-z]+\s*,\s*[A-Z][a-z\s]+)", // "Surname, Given names"
+        @"([A-Z]{2,}(?:\s+[A-Z]{2,})*,\s*[A-Z]{2,}(?:\s+[A-Z]{2,})*)", // "SURNAME, GIVEN NAMES"
+        @"([A-Z]{2,}(?:\s+[A-Z]{2,}){1,3})" // Consecutive capitalized words
+    };
+
+            foreach (var pattern in namePatterns)
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(text, pattern);
+                if (match.Success && IsValidName(match.Groups[1].Value))
+                {
+                    result.Name = match.Groups[1].Value.Trim();
+                    break;
+                }
+            }
+
+            return result;
+        }
+
+        private bool IsValidName(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return false;
+
+            // Basic validation for names
+            var invalidWords = new[]
+            {
+        "REPUBLIC", "PHILIPPINES", "DEPARTMENT", "GOVERNMENT", "AUTHORITY",
+        "LICENSE", "PASSPORT", "NATIONAL", "STATISTICS", "PSA"
+    };
+
+            var upperName = name.ToUpperInvariant();
+            return !invalidWords.Any(word => upperName.Contains(word)) &&
+                   name.Length >= 5 && name.Length <= 50;
         }
 
         public async Task<(bool verified, string message, float confidence)> VerifyLiveFaceAsync(string base64ImageData, string userId)
