@@ -1299,6 +1299,8 @@ namespace Freelancing.Controllers
         {
             var userId = GetCurrentUserId();
             var match = await _context.MentorshipMatches
+                .Include(mm => mm.Mentor)
+                .Include(mm => mm.Mentee)
                 .FirstOrDefaultAsync(mm => mm.Id == matchId && (mm.MentorId == userId || mm.MenteeId == userId) && (mm.Status == "Active" || mm.Status == "Completed"));
 
             if (match == null)
@@ -1429,43 +1431,108 @@ namespace Freelancing.Controllers
 
             await _context.SaveChangesAsync();
 
-            TempData["Success"] = "Goal marked as done successfully";
+            var allGoals = await _context.Goals
+                .Where(g => g.IsActive)
+                .OrderBy(g => g.Order)
+                .ToListAsync();
 
-            // Notify both mentor and mentee that the goal is complete and they may move to the next goal
-            try
+            var allCompletions = await _context.MentorshipGoalCompletions
+                .Where(mgc => mgc.MentorshipMatchId == matchId)
+                .ToListAsync();
+
+            var allGoalsFullyCompleted = allGoals.All(g =>
             {
-                var actorName = User.FindFirst("FullName")?.Value ?? "Your mentor";
-                var goalName = !string.IsNullOrWhiteSpace(goal?.GoalName) ? goal!.GoalName : "the goal";
-                var notificationTitle = "Goal Completed";
-                var notificationMessage = $"{actorName} marked \"{goalName}\" complete. You may move to the next goal!";
-                var finishIconSvg = "<svg viewBox='0 0 20 20' version='1.1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' fill='#000000'><g id='SVGRepo_bgCarrier' stroke-width='0'></g><g id='SVGRepo_tracerCarrier' stroke-linecap='round' stroke-linejoin='round'></g><g id='SVGRepo_iconCarrier'> <title>finish_line [#103]</title> <desc>Created with Sketch.</desc> <defs> </defs> <g id='Page-1' stroke='none' stroke-width='1' fill='none' fill-rule='evenodd'> <g id='Dribbble-Light-Preview' transform='translate(-260.000000, -7759.000000)' fill='#000000'> <g id='icons' transform='translate(56.000000, 160.000000)'> <path d='M214,7611 L218,7611 L218,7607 L214,7607 L214,7611 Z M210,7607 L214,7607 L214,7603 L210,7603 L210,7607 Z M214,7603 L218,7603 L218,7599 L214,7599 L214,7603 Z M222,7599 L222,7603 L218,7603 L218,7607 L222,7607 L222,7611 L224,7611 L224,7599 L222,7599 Z M206,7607 L210,7607 L210,7611 L206,7611 L206,7619 L204,7619 L204,7599 L210,7599 L210,7603 L206,7603 L206,7607 Z' id='finish_line-[#103]'> </path> </g> </g> </g> </g></svg>";
+                var completionsForGoal = allCompletions.Where(c => c.GoalId == g.Id).ToList();
+                var completedByMentor = completionsForGoal.Any(c => c.CompletedByUserId == match.MentorId);
+                var completedByMentee = completionsForGoal.Any(c => c.CompletedByUserId == match.MenteeId);
+                return completedByMentor && completedByMentee;
+            });
 
-                var redirectUrl = $"/MentorshipManage/Goals?matchId={matchId}";
+            if (allGoalsFullyCompleted)
+            {
+                // Automatically finish the mentorship
+                match.Status = "Completed";
+                match.EndDate = DateTime.UtcNow;
+                _context.MentorshipMatches.Update(match);
+                await _context.SaveChangesAsync();
 
-                // notify mentor
-                await _notificationService.CreateNotificationAsync(
-                    match.MentorId,
-                    notificationTitle,
-                    notificationMessage,
-                    "goal_completed",
-                    finishIconSvg,
-                    redirectUrl
-                );
+                TempData["Success"] = "Congratulations! All goals completed. The mentorship has been finished.";
 
-                // notify mentee
-                await _notificationService.CreateNotificationAsync(
-                    match.MenteeId,
-                    notificationTitle,
-                    notificationMessage,
-                    "goal_completed",
-                    finishIconSvg,
-                    redirectUrl
-                );
+                // Notify both mentor and mentee that the mentorship is complete
+                try
+                {
+                    var mentorName = $"{match.Mentor.FirstName} {match.Mentor.LastName}";
+                    var menteeName = $"{match.Mentee.FirstName} {match.Mentee.LastName}";
+
+                    var completionIconSvg = "<svg viewBox='0 0 20 20' version='1.1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' fill='#000000'><g id='SVGRepo_bgCarrier' stroke-width='0'></g><g id='SVGRepo_tracerCarrier' stroke-linecap='round' stroke-linejoin='round'></g><g id='SVGRepo_iconCarrier'> <title>finish_line [#103]</title> <desc>Created with Sketch.</desc> <defs> </defs> <g id='Page-1' stroke='none' stroke-width='1' fill='none' fill-rule='evenodd'> <g id='Dribbble-Light-Preview' transform='translate(-260.000000, -7759.000000)' fill='#000000'> <g id='icons' transform='translate(56.000000, 160.000000)'> <path d='M214,7611 L218,7611 L218,7607 L214,7607 L214,7611 Z M210,7607 L214,7607 L214,7603 L210,7603 L210,7607 Z M214,7603 L218,7603 L218,7599 L214,7599 L214,7603 Z M222,7599 L222,7603 L218,7603 L218,7607 L222,7607 L222,7611 L224,7611 L224,7599 L222,7599 Z M206,7607 L210,7607 L210,7611 L206,7611 L206,7619 L204,7619 L204,7599 L210,7599 L210,7603 L206,7603 L206,7607 Z' id='finish_line-[#103]'> </path> </g> </g> </g> </g></svg>";
+
+                    // Notify mentor
+                    await _notificationService.CreateNotificationAsync(
+                        match.MentorId,
+                        "Mentorship Completed!",
+                        $"Congratulations! Your mentorship with {menteeName} has been successfully completed. All goals have been achieved.",
+                        "mentorship_completed",
+                        completionIconSvg,
+                        "/MentorshipMatching/MentorDashboard"
+                    );
+
+                    // Notify mentee
+                    await _notificationService.CreateNotificationAsync(
+                        match.MenteeId,
+                        "Mentorship Completed!",
+                        $"Congratulations! Your mentorship with {mentorName} has been successfully completed. All goals have been achieved. Please provide feedback.",
+                        "mentorship_completed",
+                        completionIconSvg,
+                        $"/MentorshipManage/Feedback?matchId={matchId}"
+                    );
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to create mentorship completion notifications (matchId={MatchId}).", matchId);
+                }
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogWarning(ex, "Failed to create completion notifications after marking goal done (matchId={MatchId}, goalId={GoalId}).", matchId, goalId);
-                // do not fail the user flow if notifications fail
+                TempData["Success"] = "Goal marked as done successfully";
+            }
+
+            // Send per-goal completion notifications only if mentorship not fully complete
+            if (!allGoalsFullyCompleted)
+            {
+                try
+                {
+                    var actorName = User.FindFirst("FullName")?.Value ?? "Your mentor";
+                    var goalName = !string.IsNullOrWhiteSpace(goal?.GoalName) ? goal!.GoalName : "the goal";
+                    var notificationTitle = "Goal Completed";
+                    var notificationMessage = $"{actorName} marked \"{goalName}\" complete. You may move to the next goal!";
+                    var finishIconSvg = "<svg viewBox='0 0 20 20' version='1.1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' fill='#000000'><g id='SVGRepo_bgCarrier' stroke-width='0'></g><g id='SVGRepo_tracerCarrier' stroke-linecap='round' stroke-linejoin='round'></g><g id='SVGRepo_iconCarrier'> <title>finish_line [#103]</title> <desc>Created with Sketch.</desc> <defs> </defs> <g id='Page-1' stroke='none' stroke-width='1' fill='none' fill-rule='evenodd'> <g id='Dribbble-Light-Preview' transform='translate(-260.000000, -7759.000000)' fill='#000000'> <g id='icons' transform='translate(56.000000, 160.000000)'> <path d='M214,7611 L218,7611 L218,7607 L214,7607 L214,7611 Z M210,7607 L214,7607 L214,7603 L210,7603 L210,7607 Z M214,7603 L218,7603 L218,7599 L214,7599 L214,7603 Z M222,7599 L222,7603 L218,7603 L218,7607 L222,7607 L222,7611 L224,7611 L224,7599 L222,7599 Z M206,7607 L210,7607 L210,7611 L206,7611 L206,7619 L204,7619 L204,7599 L210,7599 L210,7603 L206,7603 L206,7607 Z' id='finish_line-[#103]'> </path> </g> </g> </g> </g></svg>";
+
+                    var redirectUrl = $"/MentorshipManage/Goals?matchId={matchId}";
+
+                    // notify mentor
+                    await _notificationService.CreateNotificationAsync(
+                        match.MentorId,
+                        notificationTitle,
+                        notificationMessage,
+                        "goal_completed",
+                        finishIconSvg,
+                        redirectUrl
+                    );
+
+                    // notify mentee
+                    await _notificationService.CreateNotificationAsync(
+                        match.MenteeId,
+                        notificationTitle,
+                        notificationMessage,
+                        "goal_completed",
+                        finishIconSvg,
+                        redirectUrl
+                    );
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to create completion notifications after marking goal done (matchId={MatchId}, goalId={GoalId}).", matchId, goalId);
+                }
             }
 
             return RedirectToAction("Goals", new { matchId });
