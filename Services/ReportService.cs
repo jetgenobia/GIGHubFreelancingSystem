@@ -175,6 +175,25 @@ namespace Freelancing.Services
             // Implementation for mentorship report
             throw new NotImplementedException("Mentorship Report not yet implemented");
         }
+        private string RenderSkillTags(IEnumerable<ProjectSkill>? skills)
+        {
+            if (skills == null || !skills.Any())
+                return "—";
+
+            var sb = new System.Text.StringBuilder();
+            foreach (var ps in skills)
+            {
+                var name = ps?.UserSkill?.Name?.Trim();
+                if (string.IsNullOrEmpty(name)) continue;
+
+                // HTML-encode the skill name to avoid XSS and ensure valid HTML
+                sb.Append("<span class='skill-tag'>");
+                sb.Append(System.Net.WebUtility.HtmlEncode(name));
+                sb.Append("</span> ");
+            }
+
+            return sb.ToString().Trim();
+        }
 
         private string GenerateReportHeader(string reportTitle, string userInfo, DateTime startDate, DateTime endDate, string borderColor = "#3B82F6")
         {
@@ -522,7 +541,7 @@ namespace Freelancing.Services
             <tr>
                 <td>{p.Project.ProjectName}</td>
                 <td>{p.Project.User.FirstName} {p.Project.User.LastName}</td>
-                <td>{{(p.Project.ProjectSkills != null && p.Project.ProjectSkills.Any() ? string.Join("""" """", p.Project.ProjectSkills.Select(ps => $""""<span class='skill-tag'>{{ps.UserSkill?.Name}}</span>"""")) : """"—"""")}}</td>
+                <td>{RenderSkillTags(p.Project.ProjectSkills)}</td>                
                 <td class='text-right'>₱{p.Budget:N0}</td>
                 <td>{(p.BiddingAcceptedDate?.ToString("MMM dd, yyyy") ?? "N/A")}</td>
             </tr>"))}
