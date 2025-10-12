@@ -30,10 +30,14 @@ namespace Freelancing.Controllers
 
             try
             {
-                _logger.LogInformation("Generating freelancer performance report for user {UserId} from {StartDate} to {EndDate}",
-                    userId, startDate?.ToString("yyyy-MM-dd") ?? "N/A", endDate?.ToString("yyyy-MM-dd") ?? "N/A");
+                // Convert dates to UTC if they have a value
+                var utcStartDate = startDate.HasValue ? DateTime.SpecifyKind(startDate.Value, DateTimeKind.Utc) : (DateTime?)null;
+                var utcEndDate = endDate.HasValue ? DateTime.SpecifyKind(endDate.Value, DateTimeKind.Utc) : (DateTime?)null;
 
-                var pdfBytes = await _reportService.GenerateFreelancerPerformanceReportAsync(userId, startDate, endDate);
+                _logger.LogInformation("Generating freelancer performance report for user {UserId} from {StartDate} to {EndDate}",
+                    userId, utcStartDate?.ToString("yyyy-MM-dd") ?? "N/A", utcEndDate?.ToString("yyyy-MM-dd") ?? "N/A");
+
+                var pdfBytes = await _reportService.GenerateFreelancerPerformanceReportAsync(userId, utcStartDate, utcEndDate);
                 var fileName = $"FreelancerPerformanceReport_{DateTime.UtcNow:yyyyMMdd_HHmmss}.pdf";
 
                 _logger.LogInformation("Successfully generated freelancer performance report for user {UserId}", userId);
@@ -59,10 +63,14 @@ namespace Freelancing.Controllers
 
             try
             {
-                _logger.LogInformation("Generating client project report for user {UserId} from {StartDate} to {EndDate}",
-                    userId, startDate?.ToString("yyyy-MM-dd") ?? "N/A", endDate?.ToString("yyyy-MM-dd") ?? "N/A");
+                // Convert dates to UTC if they have a value
+                var utcStartDate = startDate.HasValue ? DateTime.SpecifyKind(startDate.Value, DateTimeKind.Utc) : (DateTime?)null;
+                var utcEndDate = endDate.HasValue ? DateTime.SpecifyKind(endDate.Value, DateTimeKind.Utc) : (DateTime?)null;
 
-                var pdfBytes = await _reportService.GenerateClientProjectReportAsync(userId, startDate, endDate);
+                _logger.LogInformation("Generating client project report for user {UserId} from {StartDate} to {EndDate}",
+                    userId, utcStartDate?.ToString("yyyy-MM-dd") ?? "N/A", utcEndDate?.ToString("yyyy-MM-dd") ?? "N/A");
+
+                var pdfBytes = await _reportService.GenerateClientProjectReportAsync(userId, utcStartDate, utcEndDate);
                 var fileName = $"ClientProjectReport_{DateTime.UtcNow:yyyyMMdd_HHmmss}.pdf";
 
                 _logger.LogInformation("Successfully generated client project report for user {UserId}", userId);
@@ -83,10 +91,14 @@ namespace Freelancing.Controllers
 
             try
             {
-                _logger.LogInformation("Generating system analytics report from {StartDate} to {EndDate} by admin {UserId}",
-                    startDate?.ToString("yyyy-MM-dd") ?? "N/A", endDate?.ToString("yyyy-MM-dd") ?? "N/A", userId ?? "Unknown");
+                // Convert dates to UTC if they have a value
+                var utcStartDate = startDate.HasValue ? DateTime.SpecifyKind(startDate.Value, DateTimeKind.Utc) : (DateTime?)null;
+                var utcEndDate = endDate.HasValue ? DateTime.SpecifyKind(endDate.Value, DateTimeKind.Utc) : (DateTime?)null;
 
-                var pdfBytes = await _reportService.GenerateAdminSystemReportAsync(startDate, endDate);
+                _logger.LogInformation("Generating system analytics report from {StartDate} to {EndDate} by admin {UserId}",
+                    utcStartDate?.ToString("yyyy-MM-dd") ?? "N/A", utcEndDate?.ToString("yyyy-MM-dd") ?? "N/A", userId ?? "Unknown");
+
+                var pdfBytes = await _reportService.GenerateAdminSystemReportAsync(utcStartDate, utcEndDate);
                 var fileName = $"SystemAnalyticsReport_{DateTime.UtcNow:yyyyMMdd_HHmmss}.pdf";
 
                 _logger.LogInformation("Successfully generated system analytics report by admin {UserId}", userId ?? "Unknown");
@@ -112,10 +124,14 @@ namespace Freelancing.Controllers
 
             try
             {
-                _logger.LogInformation("Generating financial report for user {UserId} from {StartDate} to {EndDate}",
-                    userId, startDate?.ToString("yyyy-MM-dd") ?? "N/A", endDate?.ToString("yyyy-MM-dd") ?? "N/A");
+                // Convert dates to UTC if they have a value
+                var utcStartDate = startDate.HasValue ? DateTime.SpecifyKind(startDate.Value, DateTimeKind.Utc) : (DateTime?)null;
+                var utcEndDate = endDate.HasValue ? DateTime.SpecifyKind(endDate.Value, DateTimeKind.Utc) : (DateTime?)null;
 
-                var pdfBytes = await _reportService.GenerateFinancialReportAsync(userId, startDate, endDate);
+                _logger.LogInformation("Generating financial report for user {UserId} from {StartDate} to {EndDate}",
+                    userId, utcStartDate?.ToString("yyyy-MM-dd") ?? "N/A", utcEndDate?.ToString("yyyy-MM-dd") ?? "N/A");
+
+                var pdfBytes = await _reportService.GenerateFinancialReportAsync(userId, utcStartDate, utcEndDate);
                 var fileName = $"FinancialReport_{DateTime.UtcNow:yyyyMMdd_HHmmss}.pdf";
 
                 _logger.LogInformation("Successfully generated financial report for user {UserId}", userId);
