@@ -478,15 +478,15 @@ namespace Freelancing.Services
             <div class='kpi-label'>Completed Projects</div>
         </div>
         <div class='kpi'>
-            <span class='kpi-value'>₱{totalEarnings:N0}</span>
+            <span class='kpi-value'>PHP {totalEarnings:N0}</span>
             <div class='kpi-label'>Total Earnings</div>
         </div>
         <div class='kpi'>
-            <span class='kpi-value'>₱{(completedProjects.Any() ? completedProjects.Average(b => b.Budget) : 0):N0}</span>
+            <span class='kpi-value'>PHP {(completedProjects.Any() ? completedProjects.Average(b => b.Budget) : 0):N0}</span>
             <div class='kpi-label'>Average Project Value</div>
         </div>
         <div class='kpi'>
-            <span class='kpi-value'>₱{(monthlyEarnings.Any() ? monthlyEarnings.Values.Average() : 0):N0}</span>
+            <span class='kpi-value'>PHP {(monthlyEarnings.Any() ? monthlyEarnings.Values.Average() : 0):N0}</span>
             <div class='kpi-label'>Average Monthly Earnings</div>
         </div>
         
@@ -498,7 +498,7 @@ namespace Freelancing.Services
         <thead>
             <tr>
                 <th>Month</th>
-                <th class='text-right'>Earnings (₱)</th>
+                <th class='text-right'>Earnings (PHP)</th>
                 <th class='text-right'>Projects Completed</th>
             </tr>
         </thead>
@@ -506,7 +506,7 @@ namespace Freelancing.Services
             {string.Join("", monthlyEarnings.OrderByDescending(me => me.Key).Select(me => $@"
             <tr>
                 <td>{me.Key}</td>
-                <td class='text-right'>₱{me.Value:N0}</td>
+                <td class='text-right'>PHP {me.Value:N0}</td>
                 <td class='text-right'>{completedProjects.Count(p => p.BiddingAcceptedDate?.ToString("yyyy-MM") == me.Key)}</td>
             </tr>"))}
         </tbody>
@@ -526,7 +526,7 @@ namespace Freelancing.Services
                 <th>Project Name</th>
                 <th>Client</th>
                 <th>Required Skills</th>
-                <th class='text-right'>Earnings (₱)</th>
+                <th class='text-right'>Earnings (PHP)</th>
                 <th>Completed Date</th>
             </tr>
         </thead>
@@ -536,7 +536,7 @@ namespace Freelancing.Services
                 <td>{p.Project.ProjectName}</td>
                 <td>{p.Project.User.FirstName} {p.Project.User.LastName}</td>
                 <td>{RenderSkillTags(p.Project.ProjectSkills)}</td>                
-                <td class='text-right'>₱{p.Budget:N0}</td>
+                <td class='text-right'>PHP {p.Budget:N0}</td>
                 <td>{(p.BiddingAcceptedDate?.ToString("MMM dd, yyyy") ?? "N/A")}</td>
             </tr>"))}
         </tbody>
@@ -560,8 +560,8 @@ namespace Freelancing.Services
             <tr>
                 <td>{f.AcceptBidding.Project.ProjectName}</td>
                 <td>{f.AcceptBidding.Project.User.FirstName} {f.AcceptBidding.Project.User.LastName}</td>
-                <td class='star-rating'>{new string('⭐', f.Rating)} ({f.Rating}/5)</td>
-                <td>{(f.WouldRecommend ? "✅ Yes" : "❌ No")}</td>
+                <td class='star-rating'>{f.Rating}/5 Stars</td>
+                <td>{(f.WouldRecommend ? "Yes" : "No")}</td>
                 <td class='review-comment'>{(string.IsNullOrEmpty(f.Comments) ? "—" : f.Comments)}</td>
                 <td>{f.CreatedAt:MMM dd, yyyy}</td>
             </tr>"))}
@@ -631,11 +631,11 @@ namespace Freelancing.Services
             <div class='kpi-label'>Completed Projects</div>
         </div>
         <div class='kpi'>
-            <span class='kpi-value'>₱{totalSpent:N0}</span>
+            <span class='kpi-value'>PHP {totalSpent:N0}</span>
             <div class='kpi-label'>Total Spent</div>
         </div>
         <div class='kpi'>
-            <span class='kpi-value'>₱{avgBudget:N0}</span>
+            <span class='kpi-value'>PHP {avgBudget:N0}</span>
             <div class='kpi-label'>Average Budget</div>
         </div>
         <div class='kpi'>
@@ -647,7 +647,7 @@ namespace Freelancing.Services
     <h2>Review Statistics</h2>
     <div class='kpi-grid'>
         <div class='kpi'>
-            <span class='kpi-value'>{averageRatingGiven:F1} ⭐</span>
+            <span class='kpi-value'>{averageRatingGiven:F1}</span>
             <div class='kpi-label'>Average Rating Given</div>
         </div>
         <div class='kpi'>
@@ -677,7 +677,7 @@ namespace Freelancing.Services
             <tr>
                 <td>{p.ProjectName}</td>
                 <td>{(p.AcceptedBid != null ? $"{p.AcceptedBid.User.FirstName} {p.AcceptedBid.User.LastName}" : "—")}</td>
-                <td>{(p.AcceptedBid != null ? $"₱{p.AcceptedBid.Budget:N0}" : $"₱{p.Budget:N0}")}</td>
+                <td>{(p.AcceptedBid != null ? $"PHP {p.AcceptedBid.Budget:N0}" : $"PHP {p.Budget:N0}")}</td>
                 <td>{(p.Status ?? "Open")}</td>
                 <td>{p.CreatedAt:MMM yyyy}</td>
             </tr>"))}
@@ -702,8 +702,8 @@ namespace Freelancing.Services
             <tr>
                 <td>{r.AcceptBidding.Project.ProjectName}</td>
                 <td>{r.Freelancer.FirstName} {r.Freelancer.LastName}</td>
-                <td class='star-rating'>{new string('⭐', r.Rating)} ({r.Rating}/5)</td>
-                <td>{(r.WouldRecommend ? "✅ Yes" : "❌ No")}</td>
+                <td class='star-rating'>{r.Rating}/5 Stars</td>
+                <td>{(r.WouldRecommend ? "Yes" : "No")}</td>
                 <td class='review-comment'>{(string.IsNullOrEmpty(r.Comments) ? "—" : r.Comments)}</td>
                 <td>{r.CreatedAt:MMM dd, yyyy}</td>
             </tr>"))}
