@@ -177,22 +177,16 @@ namespace Freelancing.Services
         }
         private string RenderSkillTags(IEnumerable<ProjectSkill>? skills)
         {
-            if (skills == null || !skills.Any())
+            if (skills == null)
                 return "—";
 
-            var sb = new System.Text.StringBuilder();
-            foreach (var ps in skills)
-            {
-                var name = ps?.UserSkill?.Name?.Trim();
-                if (string.IsNullOrEmpty(name)) continue;
+            var names = skills
+                .Select(ps => ps?.UserSkill?.Name?.Trim())
+                .Where(n => !string.IsNullOrEmpty(n))
+                .Select(n => System.Net.WebUtility.HtmlEncode(n!))
+                .ToArray();
 
-                // HTML-encode the skill name to avoid XSS and ensure valid HTML
-                sb.Append("<span class='skill-tag'>");
-                sb.Append(System.Net.WebUtility.HtmlEncode(name));
-                sb.Append("</span> ");
-            }
-
-            return sb.ToString().Trim();
+            return names.Length == 0 ? "—" : string.Join(", ", names);
         }
 
         private string GenerateReportHeader(string reportTitle, string userInfo, DateTime startDate, DateTime endDate, string borderColor = "#3B82F6")
@@ -224,7 +218,7 @@ namespace Freelancing.Services
         {
             return @"
         body { 
-            font-family: Inter, ""Segoe UI"", ""Segoe UI Emoji"", ""Segoe UI Symbol"", ""Noto Color Emoji"", ""Apple Color Emoji"", ""Arial Unicode MS"", Arial, sans-serif; 
+            font-family: 'Segoe UI', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', 'Apple Color Emoji', Arial, sans-serif; 
             font-size: 14px; 
             color: #111827;
             margin: 0;
