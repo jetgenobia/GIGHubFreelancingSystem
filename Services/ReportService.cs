@@ -35,8 +35,8 @@ namespace Freelancing.Services
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
             var biddings = await _context.Biddings
-                .Include(b => b.Project)
-                .ThenInclude(p => p.User)
+                .Include(b => b.Project).ThenInclude(p => p.User)
+                .Include(b => b.Project).ThenInclude(p => p.ProjectSkills).ThenInclude(ps => ps.UserSkill)
                 .Where(b => b.UserId == userId &&
                            b.Project.CreatedAt >= startDate &&
                            b.Project.CreatedAt <= endDate)
@@ -187,7 +187,7 @@ namespace Freelancing.Services
                     alt='GIGHub Logo' class='company-logo' />
             </div>
             <div class='website-url'>
-                <a href='https://www.gighub.com' class='website-link'>www.gighub.com</a>
+                <a href='https://gighub.space' class='website-link'>gighub.space</a>
             </div>
         </div>
         
@@ -205,7 +205,7 @@ namespace Freelancing.Services
         {
             return @"
         body { 
-            font-family: Inter, Arial, sans-serif; 
+            font-family: Inter, ""Segoe UI"", ""Segoe UI Emoji"", ""Segoe UI Symbol"", ""Noto Color Emoji"", ""Apple Color Emoji"", ""Arial Unicode MS"", Arial, sans-serif; 
             font-size: 14px; 
             color: #111827;
             margin: 0;
@@ -512,6 +512,7 @@ namespace Freelancing.Services
             <tr>
                 <th>Project Name</th>
                 <th>Client</th>
+                <th>Required Skills</th>
                 <th class='text-right'>Earnings (₱)</th>
                 <th>Completed Date</th>
             </tr>
@@ -521,6 +522,7 @@ namespace Freelancing.Services
             <tr>
                 <td>{p.Project.ProjectName}</td>
                 <td>{p.Project.User.FirstName} {p.Project.User.LastName}</td>
+                <td>{{(p.Project.ProjectSkills != null && p.Project.ProjectSkills.Any() ? string.Join("""" """", p.Project.ProjectSkills.Select(ps => $""""<span class='skill-tag'>{{ps.UserSkill?.Name}}</span>"""")) : """"—"""")}}</td>
                 <td class='text-right'>₱{p.Budget:N0}</td>
                 <td>{(p.BiddingAcceptedDate?.ToString("MMM dd, yyyy") ?? "N/A")}</td>
             </tr>"))}
