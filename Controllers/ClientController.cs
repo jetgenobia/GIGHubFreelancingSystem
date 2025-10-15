@@ -932,7 +932,10 @@ namespace Freelancing.Controllers
 
             ViewBag.TwoFactorEnabled = await _userManager.GetTwoFactorEnabledAsync(userAccount);
 
-            // ✅ FIX: Remove .ToString() from LINQ queries
+            // Keep originals to compare later (do not overwrite userAccount.Email/UserName yet)
+            var originalEmail = userAccount.Email;
+            var originalUserName = userAccount.UserName;
+
             // Check for existing username/email
             var existingUserWithUsername = await dbContext.UserAccounts
                 .FirstOrDefaultAsync(u => u.UserName == viewModel.UserName && u.Id != userId2);
@@ -951,13 +954,12 @@ namespace Freelancing.Controllers
                 return View(viewModel);
             }
 
-            // Rest of the method remains the same...
             // Track if any changes were made
             bool hasChanges = false;
             bool nameChanged = false;
             bool photoChanged = false;
 
-            // Check and update user account fields only if they changed
+            // Update non-identity fields only
             if (userAccount.FirstName != viewModel.FirstName)
             {
                 userAccount.FirstName = viewModel.FirstName;
@@ -970,18 +972,6 @@ namespace Freelancing.Controllers
                 userAccount.LastName = viewModel.LastName;
                 hasChanges = true;
                 nameChanged = true;
-            }
-
-            if (userAccount.Email != viewModel.Email)
-            {
-                userAccount.Email = viewModel.Email;
-                hasChanges = true;
-            }
-
-            if (userAccount.UserName != viewModel.UserName)
-            {
-                userAccount.UserName = viewModel.UserName;
-                hasChanges = true;
             }
 
             if (userAccount.Bio != viewModel.Bio)
@@ -1028,60 +1018,63 @@ namespace Freelancing.Controllers
                 catch (Exception ex)
                 {
                     ModelState.AddModelError("PhotoFile", $"Failed to upload photo: {ex.Message}");
-                    // FIX: Use userId2 instead of userId
                     var reloadedViewModel = await PopulateEditAccountViewModel(userId2, userAccount);
                     return View(reloadedViewModel);
                 }
             }
 
-            // Only save if there were actual changes
+            // Handle identity fields (email / username) using UserManager and originals
+            if (!string.Equals(originalEmail, viewModel.Email, StringComparison.OrdinalIgnoreCase))
+            {
+                var emailResult = await _userManager.SetEmailAsync(userAccount, viewModel.Email);
+                if (!emailResult.Succeeded)
+                {
+                    foreach (var error in emailResult.Errors)
+                    {
+                        ModelState.AddModelError("Email", error.Description);
+                    }
+                    return View(viewModel);
+                }
+
+                // Ensure normalized value is set (UserManager may normalize, but keep explicit update)
+                userAccount.NormalizedEmail = viewModel.Email?.ToUpperInvariant();
+                hasChanges = true;
+            }
+
+            if (!string.Equals(originalUserName, viewModel.UserName, StringComparison.Ordinal))
+            {
+                var usernameResult = await _userManager.SetUserNameAsync(userAccount, viewModel.UserName);
+                if (!usernameResult.Succeeded)
+                {
+                    foreach (var error in usernameResult.Errors)
+                    {
+                        ModelState.AddModelError("UserName", error.Description);
+                    }
+                    return View(viewModel);
+                }
+
+                // Ensure normalized user name is set
+                userAccount.NormalizedUserName = viewModel.UserName?.ToUpperInvariant();
+                hasChanges = true;
+            }
+
             if (hasChanges)
             {
-                // Update normalized fields through UserManager to ensure Identity consistency
-                if (userAccount.Email != viewModel.Email)
+                // Persist via UserManager to ensure identity stores / normalizers are honored
+                var updateResult = await _userManager.UpdateAsync(userAccount);
+                if (!updateResult.Succeeded)
                 {
-                    var emailResult = await _userManager.SetEmailAsync(userAccount, viewModel.Email);
-                    if (!emailResult.Succeeded)
+                    foreach (var error in updateResult.Errors)
                     {
-                        foreach (var error in emailResult.Errors)
-                        {
-                            ModelState.AddModelError("Email", error.Description);
-                        }
-                        return View(viewModel);
+                        ModelState.AddModelError("", error.Description);
                     }
-
-                    // Explicitly update the normalized email to ensure it's updated
-                    userAccount.NormalizedEmail = viewModel.Email.ToUpperInvariant();
+                    return View(viewModel);
                 }
 
-                if (userAccount.UserName != viewModel.UserName)
-                {
-                    var usernameResult = await _userManager.SetUserNameAsync(userAccount, viewModel.UserName);
-                    if (!usernameResult.Succeeded)
-                    {
-                        foreach (var error in usernameResult.Errors)
-                        {
-                            ModelState.AddModelError("UserName", error.Description);
-                        }
-                        return View(viewModel);
-                    }
-
-                    // Explicitly update the normalized username to ensure it's updated
-                    userAccount.NormalizedUserName = viewModel.UserName.ToUpperInvariant();
-                }
-
-                // Save other changes to the database
-                dbContext.Entry(userAccount).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
-                await dbContext.SaveChangesAsync();
-
-                // Force a complete refresh from the database to get the updated normalized fields
+                // Reload from DB to be safe
                 await dbContext.Entry(userAccount).ReloadAsync();
 
-                // Also update the local object properties to ensure consistency
-                userAccount.Email = viewModel.Email;
-                userAccount.UserName = viewModel.UserName;
-
-                // Always refresh claims when there are changes since all fields affect claims
+                // Refresh claims
                 await RefreshUserClaims(userAccount);
 
                 ViewBag.Message = "Account updated successfully!";
