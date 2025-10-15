@@ -161,6 +161,7 @@
                     <hr class="border-gray-300 mb-6">
                     <h2 class="text-xl font-semibold text-gray-900 mb-4">Project Timeline</h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 m-6">
+                        <input type="hidden" id="AcceptedDeliveryProposal" value="@Model.DeliveryTimeline" />
                         <div>
                             <label asp-for="StartDate" class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
                             <input asp-for="StartDate" type="date" class="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" />
@@ -331,6 +332,80 @@
         finalInput.addEventListener('input', function() {
             adjustPaymentPercentages('final');
         });
+
+            // -- Auto-fill Deadline from accepted bid delivery proposal --
+    (function() {
+        // Convert proposal like "1 week", "6 days", "1 week/6 days", "2 months" into number of days.
+        function parseDeliveryProposalToDays(proposal) {
+            if (!proposal) return null;
+            // find all "<number> <unit>" occurrences
+            const re = /(\d+)\s*(day|days|d|week|weeks|wk|w|month|months|mo|m)/ig;
+            const matches = [...proposal.matchAll(re)];
+            if (matches.length === 0) return null;
+
+            const daysList = matches.map(m => {
+                const n = parseInt(m[1], 10);
+                const unit = m[2].toLowerCase();
+                if (unit.startsWith('week') || unit === 'w' || unit === 'wk') return n * 7;
+                if (unit.startsWith('month') || unit === 'mo' || unit === 'm') return n * 30;
+                // default: days
+                return n;
+            });
+
+            // If multiple values (e.g. "1 week/6 days"), choose the smallest duration (most conservative)
+            return Math.min(...daysList);
+        }
+
+        function toIsoDateString(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        // Only overwrite deadline automatically until the user manually edits it
+        let userEditedDeadline = false;
+
+        const acceptedProposalEl = document.getElementById('AcceptedDeliveryProposal');
+        const startInput = document.getElementById('StartDate');
+        const deadlineInput = document.getElementById('Deadline');
+
+        if (!startInput || !deadlineInput) return;
+
+        // mark if user manually edits deadline
+        deadlineInput.addEventListener('input', function() {
+            userEditedDeadline = true;
+        });
+
+        function computeAndSetDeadline() {
+            if (userEditedDeadline) return; // respect manual edits
+
+            const proposal = acceptedProposalEl ? acceptedProposalEl.value : '';
+            const days = parseDeliveryProposalToDays(proposal);
+            const startVal = startInput.value;
+
+            if (!startVal || !days) return;
+
+            const startDate = new Date(startVal + 'T00:00:00'); // keep local date
+            startDate.setDate(startDate.getDate() + days);
+            deadlineInput.value = toIsoDateString(startDate);
+            // trigger change so other listeners update preview
+            deadlineInput.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        // compute on load
+        computeAndSetDeadline();
+
+        // recompute when start date changes
+        startInput.addEventListener('change', computeAndSetDeadline);
+
+        // Also recompute if the accepted proposal changes dynamically (unlikely) — safe no-op
+        if (acceptedProposalEl) {
+            // observe attribute/value changes (in case server-side updates page via JS)
+            const obs = new MutationObserver(computeAndSetDeadline);
+            obs.observe(acceptedProposalEl, { attributes: true, childList: true, subtree: true });
+        }
+    })();
 
         // Auto-refresh preview when form fields change
         const formInputs = document.querySelectorAll('input, select, textarea');
