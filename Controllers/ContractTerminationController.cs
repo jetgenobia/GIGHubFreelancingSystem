@@ -327,6 +327,7 @@ namespace Freelancing.Controllers
                     {
                         contract.Project.Status = "Open";
                         contract.Project.AcceptedBidId = null; // Clear the accepted bid
+                        contract.Project.Deadline = null; // Clear the deadline
                     }
 
                     await _context.SaveChangesAsync();
