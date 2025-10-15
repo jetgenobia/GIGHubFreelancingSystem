@@ -333,27 +333,40 @@
             adjustPaymentPercentages('final');
         });
 
-            // -- Auto-fill Deadline from accepted bid delivery proposal --
+        // -- Auto-fill Deadline from accepted bid delivery proposal (improved weeks/months handling) --
     (function() {
-        // Convert proposal like "1 week", "6 days", "1 week/6 days", "2 months" into number of days.
-        function parseDeliveryProposalToDays(proposal) {
+        function parseDeliveryProposal(proposal) {
             if (!proposal) return null;
-            // find all "<number> <unit>" occurrences
-            const re = /(\d+)\s*(day|days|d|week|weeks|wk|w|month|months|mo|m)/ig;
+            const re = /(\d+)\s*(day|days|d|week|weeks|wk|wks|w|month|months|mo|mos)/ig;
             const matches = [...proposal.matchAll(re)];
             if (matches.length === 0) return null;
 
-            const daysList = matches.map(m => {
+            const daysCandidates = [];
+            const monthsCandidates = [];
+
+            matches.forEach(m => {
                 const n = parseInt(m[1], 10);
                 const unit = m[2].toLowerCase();
-                if (unit.startsWith('week') || unit === 'w' || unit === 'wk') return n * 7;
-                if (unit.startsWith('month') || unit === 'mo' || unit === 'm') return n * 30;
-                // default: days
-                return n;
+
+                if (unit.startsWith('week') || unit === 'w' || unit.startsWith('wk') || unit === 'wks') {
+                    daysCandidates.push(n * 7);
+                } else if (unit.startsWith('month') || unit === 'mo' || unit === 'mos') {
+                    monthsCandidates.push(n);
+                } else {
+                    // day / days / d
+                    daysCandidates.push(n);
+                }
             });
 
-            // If multiple values (e.g. "1 week/6 days"), choose the smallest duration (most conservative)
-            return Math.min(...daysList);
+            if (daysCandidates.length > 0) {
+                return { type: 'days', value: Math.min(...daysCandidates) };
+            }
+
+            if (monthsCandidates.length > 0) {
+                return { type: 'months', value: Math.min(...monthsCandidates) };
+            }
+
+            return null;
         }
 
         function toIsoDateString(date) {
@@ -363,7 +376,6 @@
             return `${y}-${m}-${d}`;
         }
 
-        // Only overwrite deadline automatically until the user manually edits it
         let userEditedDeadline = false;
 
         const acceptedProposalEl = document.getElementById('AcceptedDeliveryProposal');
@@ -372,24 +384,33 @@
 
         if (!startInput || !deadlineInput) return;
 
-        // mark if user manually edits deadline
         deadlineInput.addEventListener('input', function() {
             userEditedDeadline = true;
         });
 
         function computeAndSetDeadline() {
-            if (userEditedDeadline) return; // respect manual edits
+            if (userEditedDeadline) return;
 
             const proposal = acceptedProposalEl ? acceptedProposalEl.value : '';
-            const days = parseDeliveryProposalToDays(proposal);
+            const parsed = parseDeliveryProposal(proposal);
             const startVal = startInput.value;
 
-            if (!startVal || !days) return;
+            if (!startVal || !parsed) return;
 
-            const startDate = new Date(startVal + 'T00:00:00'); // keep local date
-            startDate.setDate(startDate.getDate() + days);
-            deadlineInput.value = toIsoDateString(startDate);
-            // trigger change so other listeners update preview
+            const startDate = new Date(startVal + 'T00:00:00');
+
+            if (parsed.type === 'months') {
+                // Use calendar months when proposal only specified months
+                const target = new Date(startDate);
+                target.setMonth(target.getMonth() + parsed.value);
+                // If adding months crosses into invalid day (e.g., Feb 30) Date handles overflow; that's usually desired.
+                deadlineInput.value = toIsoDateString(target);
+            } else { // days
+                const target = new Date(startDate);
+                target.setDate(target.getDate() + parsed.value);
+                deadlineInput.value = toIsoDateString(target);
+            }
+
             deadlineInput.dispatchEvent(new Event('change', { bubbles: true }));
         }
 
@@ -399,9 +420,8 @@
         // recompute when start date changes
         startInput.addEventListener('change', computeAndSetDeadline);
 
-        // Also recompute if the accepted proposal changes dynamically (unlikely) — safe no-op
+        // watch for changes to the hidden proposal element (safe no-op)
         if (acceptedProposalEl) {
-            // observe attribute/value changes (in case server-side updates page via JS)
             const obs = new MutationObserver(computeAndSetDeadline);
             obs.observe(acceptedProposalEl, { attributes: true, childList: true, subtree: true });
         }
