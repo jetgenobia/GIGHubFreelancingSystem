@@ -1060,7 +1060,7 @@ namespace Freelancing.Controllers
 
                 if (hasActiveItems)
                 {
-                    TempData["Error"] = errorMessage;
+                    TempData["DeleteAccountError"] = errorMessage;
                     return RedirectToAction("AccountSettings");
                 }
 
@@ -1073,7 +1073,7 @@ namespace Freelancing.Controllers
                 var result = await _userManager.UpdateAsync(userAccount);
                 if (!result.Succeeded)
                 {
-                    TempData["Error"] = "An error occurred while deleting your account. Please try again.";
+                    TempData["DeleteAccountError"] = "An error occurred while deleting your account. Please try again.";
                     return RedirectToAction("AccountSettings");
                 }
 
@@ -1085,7 +1085,7 @@ namespace Freelancing.Controllers
             }
             catch (Exception ex)
             {
-                TempData["Error"] = "An unexpected error occurred. Please try again later.";
+                TempData["DeleteAccountError"] = "An unexpected error occurred. Please try again later.";
                 return RedirectToAction("AccountSettings");
             }
         }

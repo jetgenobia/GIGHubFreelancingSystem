@@ -94,7 +94,7 @@
                                         <svg class="shrink-0 inline w-4 h-4 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
                                             <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
                                         </svg>
-                                        <span class="font-medium">Edit failed!</span>
+                                        <span class="font-medium">Password reset failed!</span>
                                     </div>
 
                                     <ul class="list-disc list-inside space-y-1">
@@ -196,24 +196,6 @@
                             </div>
 
                             <div id="passwordMatchMessage" class="mt-2 text-xs hidden"></div>
-                            @if (!ViewData.ModelState.IsValid)
-                            {
-                                <div class="mt-2 p-4 mb-4 text-sm text-red-800 border border-red-300 rounded-lg bg-red-50" role="alert">
-                                    <div class="flex items-center mb-2">
-                                        <svg class="shrink-0 inline w-4 h-4 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-                                            <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
-                                        </svg>
-                                        <span class="font-medium">Password reset failed!</span>
-                                    </div>
-
-                                    <ul class="list-disc list-inside space-y-1">
-                                        @foreach (var modelError in ViewData.ModelState.Values.SelectMany(v => v.Errors))
-                                        {
-                                            <li>@modelError.ErrorMessage</li>
-                                        }
-                                    </ul>
-                                </div>
-                            }
                             <div class="flex items-end justify-end">
                                 <button type="submit" class="mt-5 text-white inline-flex items-center bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Change Password</button>
                             </div>
@@ -336,6 +318,18 @@
                     <div class="border border-gray-200 rounded-lg p-4 bg-white">
                         <h3 class="text-lg font-medium text-gray-900 mb-6">Delete Account</h3>
                         <div class="mb-4">
+                            @if (TempData["DeleteAccountError"] != null)
+                            {
+                                <div class="mt-4 flex items-center p-4 mb-4 text-sm text-red-800 border border-red-300 rounded-lg bg-red-50" role="alert">
+                                    <svg class="shrink-0 inline w-4 h-4 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
+                                    </svg>
+                                    <span class="sr-only">Error</span>
+                                    <div>
+                                        <span class="font-medium">Error:</span> @TempData["DeleteAccountError"]
+                                    </div>
+                                </div>
+                            }
                             <div class="mb-6 flex gap-4">
                                 <button type="button"
                                         data-modal-target="deleteAccountModal"
