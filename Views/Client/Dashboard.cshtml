@@ -38,144 +38,59 @@
             </div>
 
             @{
-                var activeProjects = (Model.Projects ?? Enumerable.Empty<dynamic>())
+                // Get all active projects
+                var allActiveProjects = (Model.Projects ?? Enumerable.Empty<dynamic>())
                 .Where(p => !string.IsNullOrWhiteSpace((string?)p.Status) &&
                 string.Equals((string?)p.Status, "Active", StringComparison.OrdinalIgnoreCase) &&
                 !((HashSet<Guid>)ViewBag.TerminatedProjectIds).Contains(p.Id))
-                .Take(3)
                 .ToList();
+
+                var activeProjectsCount = allActiveProjects.Count();
+
+                // Get all posted projects (Open status)
+                var allPostedProjects = (Model.Projects ?? Enumerable.Empty<dynamic>())
+                .Where(p => !string.IsNullOrWhiteSpace((string?)p.Status) &&
+                string.Equals((string?)p.Status, "Open", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+                var postedProjectsCount = allPostedProjects.Count();
+
+                // Get all given feedbacks count
+                var allGivenFeedbacks = (Model.freelancerFeedbacks ?? new List<Freelancing.Models.Entities.FreelancerFeedback>()).ToList();
+                var givenFeedbacksCount = allGivenFeedbacks.Count();
             }
-            <div class="grid grid-cols-1 gap-4 mb-4">
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+
                 <div class="w-full max-w p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
                     <div class="flex items-center justify-between mb-4">
                         <h5 class="text-xl font-bold leading-none text-gray-900">Active Projects</h5>
                         <a asp-action="ActiveProjects" asp-controller="Client" type="button" class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-full text-xs px-3 py-1.5 me-2 mb-2">View All</a>
                     </div>
                     <div class="flow-root">
-                        <ul role="list" class="divide-y divide-gray-300">
-                            @if (activeProjects.Any())
-                            {
-                                @foreach (var project in activeProjects)
-                                {
-                                    <li class="py-3 sm:py-4">
-                                        <div class="flex items-center">
-                                            <div class="flex-1 min-w-0">
-                                                <p class="text-sm font-medium text-gray-900 truncate">
-                                                    @project.ProjectName
-                                                </p>
-                                                <p class="text-xs text-gray-500">
-                                                    Freelancer: @(project.AcceptedBid?.User != null ? $"{project.AcceptedBid.User.FirstName} {project.AcceptedBid.User.LastName}" : "—")
-                                                </p>
-                                            </div>
-                                            <div class="inline-flex items-center text-base font-semibold text-gray-900">
-                                                <a class="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-6 py-2 me-2 mb-2"
-                                                   asp-controller="ManageProjectClient" asp-action="Details" asp-route-id="@project.Id"> View </a>
-                                            </div>
-                                        </div>
-                                    </li>
-                                }
-                            }
-                            else
-                            {
-                                <li class="py-3 sm:py-4 text-center">
-                                    <div class="text-sm text-gray-500">No active projects.</div>
-                                </li>
-                            }
-                        </ul>
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-
-                <div class="w-full max-w p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
-                    <div class="flex items-center justify-between mb-4">
-                        <h5 class="text-xl font-bold leading-none text-gray-900">Manage Biddings</h5>
-                        <a asp-action="Biddings" asp-controller="Client" type="button" class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-full text-xs px-3 py-1.5 me-2 mb-2">View All</a>
-                    </div>
-                    <div class="flow-root">
-                        <ul role="list" class="divide-y divide-gray-300">
-                            @{
-                                var biddingProjects = (Model.Projects ?? Enumerable.Empty<Freelancing.Models.Entities.Project>())
-                                .Where(p => p.AcceptedBidId == null)
-                                .Take(3)
-                                .ToList();
-                            }
-
-                            @if (biddingProjects.Any())
-                            {
-                                @foreach (var project in biddingProjects)
-                                {
-                                    <li class="py-3 sm:py-4">
-                                        <div class="flex items-center">
-                                            <div class="flex-1 min-w-0">
-                                                <p class="me-1 text-sm font-medium text-gray-900 truncate">
-                                                    @project.ProjectName
-                                                </p>
-                                                <p class="text-xs text-gray-500">Created: @project.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt")</p>
-                                            </div>
-                                            <div class="inline-flex items-center text-base font-semibold text-gray-900">
-                                                <a class="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-3 py-2 me-2 mb-2"
-                                                   asp-controller="Client" asp-action="ManageBid" asp-route-id="@project.Id"> Manage </a>
-                                            </div>
-                                        </div>
-                                    </li>
-                                }
-                            }
-                            else
-                            {
-                                <li class="py-3 sm:py-4 text-center">
-                                    <div class="text-sm text-gray-500">No projects currently open for bidding.</div>
-                                </li>
-                            }
-                        </ul>
+                        <h5 class="mb-2 text-3xl font-bold text-gray-900">@activeProjectsCount</h5>
                     </div>
                 </div>
 
                 <div class="w-full max-w p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
                     <div class="flex items-center justify-between mb-4">
-                        <h5 class="text-xl font-bold leading-none text-gray-900">Manage Postings</h5>
+                        <h5 class="text-xl font-bold leading-none text-gray-900">Open Projects</h5>
                         <a asp-action="Postings" asp-controller="Client" type="button" class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-full text-xs px-3 py-1.5 me-2 mb-2">View All</a>
                     </div>
                     <div class="flow-root">
-                        <ul role="list" class="divide-y divide-gray-300">
-                            @{
-                                var postings = (Model.Projects ?? Enumerable.Empty<Freelancing.Models.Entities.Project>())
-                                .Where(p => p.AcceptedBidId == null)
-                                .Take(3)
-                                .ToList();
-                            }
-
-                            @if (postings.Any())
-                            {
-                                @foreach (var project in postings)
-                                {
-                                    <li class="py-3 sm:py-4">
-                                        <div class="flex items-center">
-                                            <div class="flex-1 min-w-0">
-                                                <p class="me-1 text-sm font-medium text-gray-900 truncate">
-                                                    @project.ProjectName
-                                                </p>
-                                                <p class="text-xs text-gray-500">Created: @project.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt")</p>
-                                            </div>
-                                            <div class="inline-flex items-center text-base font-semibold text-gray-900">
-                                                <a class="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-3 py-2 me-2 mb-2"
-                                                   asp-controller="Client" asp-action="EditPost" asp-route-id="@project.Id"> Edit </a>
-                                            </div>
-                                        </div>
-                                    </li>
-                                }
-                            }
-                            else
-                            {
-                                <li class="py-3 sm:py-4 text-center">
-                                    <div class="text-sm text-gray-500">No projects currently open for bidding.</div>
-                                </li>
-                            }
-                        </ul>
+                        <h5 class="mb-2 text-3xl font-bold text-gray-900">@postedProjectsCount</h5>
                     </div>
                 </div>
 
+                <div class="w-full max-w p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <h5 class="text-xl font-bold leading-none text-gray-900">Given Feedbacks</h5>
+                        <a asp-action="Feedbacks" asp-controller="Client" type="button" class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-full text-xs px-3 py-1.5 me-2 mb-2">View All</a>
+                    </div>
+                    <div class="flow-root">
+                        <h5 class="mb-2 text-3xl font-bold text-gray-900">@givenFeedbacksCount</h5>
+                    </div>
+                </div>
 
                 <div class="w-full max-w p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
                     <div class="mb-4">
@@ -185,69 +100,6 @@
                     <div class="flow-root">
                         <h5 id="totalPostedProject" class="mb-2 text-3xl font-bold text-gray-900"><span class="mr-2">₱</span>@ViewBag.TotalAcceptedBudget</h5>
                     </div>
-                </div>
-
-
-                <div class="w-full max-w p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
-                    <div class="flex items-center justify-between mb-4">
-                        <h5 class="text-xl font-bold leading-none text-gray-900">Given Feedbacks</h5>
-                        <a asp-action="Feedbacks" asp-controller="Client" type="button" class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-full text-xs px-3 py-1.5 me-2 mb-2">View All</a>
-                    </div>
-                    <div class="flow-root">
-                        <ul role="list" class="divide-y divide-gray-300">
-                            @{
-                                var feedbacksList = (Model.freelancerFeedbacks ?? new List<Freelancing.Models.Entities.FreelancerFeedback>())
-                                .Take(3)
-                                .ToList();
-                            }
-
-                            @foreach (var feedbacks in feedbacksList)
-                            {
-                                <li class="py-3 sm:py-4">
-                                    <div class="flex items-center">
-                                        <div class="flex-1 min-w-0">
-                                            <p class="text-sm font-medium text-gray-900 truncate">
-                                                @(
-                                                                                            feedbacks.AcceptBidding?.Project != null
-                                                                                            ? feedbacks.AcceptBidding.Project.ProjectName
-                                                                                            : "Unknown project"
-                                                                                            )
-                                        </p>
-                                        <p class="text-xs text-gray-500">
-                                            To: @(feedbacks.Freelancer != null ? $"{feedbacks.Freelancer.FirstName} {feedbacks.Freelancer.LastName}" : feedbacks.FreelancerId) • @feedbacks.Rating star(s)
-                                        </p>
-                                    </div>
-                                    <div class="inline-flex items-center text-base font-semibold text-gray-900">
-                                        @{
-                                                var projectId = feedbacks.AcceptBidding?.Project?.Id;
-                                            }
-                                            @if (projectId != null)
-                                            {
-                                                <a class="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-6 py-2 me-2 mb-2"
-                                                   asp-controller="ManageProjectClient" asp-action="Feedback" asp-route-id="@feedbacks.AcceptBidId"> View </a>
-                                            }
-                                        </div>
-                                    </div>
-                                </li>
-                            }
-
-                            @if (!feedbacksList.Any())
-                            {
-                                <li class="py-3 sm:py-4 text-center">
-                                    <div class="text-sm text-gray-500">No feedback sent yet.</div>
-                                </li>
-                            }
-                        </ul>
-                    </div>
-                </div>
-            </div>
-            <div class="grid grid-cols-1 gap-4 mb-4">
-                <div class="w-full max-w p-4 bg-white border border-gray-300 rounded-lg shadow-sm sm:p-8">
-                    <div class="mb-4">
-                        <h5 class="text-xl font-bold leading-none text-gray-900">Reports</h5>
-                        <p class="text-sm italic font-light">Select Report Range</p>
-                    </div>
-                    @await Html.PartialAsync("_ReportButtons")
                 </div>
             </div>
         </div>

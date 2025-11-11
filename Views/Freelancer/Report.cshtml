@@ -1,0 +1,16 @@
+﻿@{
+    Layout = "_LayoutFreelancer";
+    ViewData["Title"] = "Report";
+}
+
+<div class="p-4 sm:ml-64">
+    <div class="pt-2 mt-20">
+        <div class="mt-1">
+            <div class="block w-full p-6">
+                <h2 class="text-2xl font-bold text-gray-900">Reports</h2>
+                <p class="mb-4 text-sm italic font-light">Select Report Range</p>
+                @await Html.PartialAsync("_ReportButtons")
+            </div>
+        </div>
+    </div>
+</div>

@@ -51,6 +51,11 @@ namespace Freelancing.Controllers
 
             return uniqueFileName;
         }
+
+        public IActionResult Report()
+        {
+            return View();
+        }
         // Displays the client dashboard with project statistics and a list of projects.
         public async Task<IActionResult> Dashboard(string message = null)
         {
@@ -330,32 +335,32 @@ namespace Freelancing.Controllers
                     System.Diagnostics.Debug.WriteLine($"Skill ID: {skillId}");
                 }
             }
-            
+
             if (ModelState.IsValid)
             {
                 var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                 if (!string.IsNullOrEmpty(userId))
                 {
                     List<string> imagePaths = new List<string>();
-                    
+
                     // Handle multiple file uploads
                     if (viewModel.ProjectImages != null && viewModel.ProjectImages.Any())
                     {
                         var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".svg" };
-                        
+
                         foreach (var file in viewModel.ProjectImages)
                         {
                             if (file != null && file.Length > 0)
                             {
                                 // Validate file type
                                 var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
-                                
+
                                 if (!allowedExtensions.Contains(fileExtension))
                                 {
                                     ModelState.AddModelError("ProjectImages", $"File {file.FileName} is not a valid image type. Only JPG, PNG, GIF, and SVG files are allowed.");
                                     return View(viewModel);
                                 }
-                                
+
                                 // Validate file size (max 10MB)
                                 if (file.Length > 10 * 1024 * 1024)
                                 {
@@ -364,14 +369,14 @@ namespace Freelancing.Controllers
                                 }
                             }
                         }
-                        
+
                         // Create project post uploads directory if it doesn't exist
                         var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "projectpost");
                         if (!Directory.Exists(uploadsDir))
                         {
                             Directory.CreateDirectory(uploadsDir);
                         }
-                        
+
                         // Process each file
                         foreach (var file in viewModel.ProjectImages)
                         {
@@ -379,18 +384,18 @@ namespace Freelancing.Controllers
                             {
                                 var fileName = GenerateUniqueFileName(file.FileName, uploadsDir);
                                 var filePath = Path.Combine(uploadsDir, fileName);
-                                
+
                                 // Save file
                                 using (var stream = new FileStream(filePath, FileMode.Create))
                                 {
                                     await file.CopyToAsync(stream);
                                 }
-                                
+
                                 imagePaths.Add($"/uploads/projectpost/{fileName}");
                             }
                         }
                     }
-                    
+
                     var project = new Project
                     {
                         UserId = userId,
@@ -415,7 +420,7 @@ namespace Freelancing.Controllers
 
                         await dbContext.ProjectSkills.AddRangeAsync(projectSkills);
                         await dbContext.SaveChangesAsync();
-                        
+
                         // Log for debugging
                         System.Diagnostics.Debug.WriteLine($"Added {projectSkills.Count} skills to project {project.Id}");
                     }
@@ -1028,7 +1033,7 @@ namespace Freelancing.Controllers
                         }
                         return View(viewModel);
                     }
-                    
+
                     // Explicitly update the normalized email to ensure it's updated
                     userAccount.NormalizedEmail = viewModel.Email.ToUpperInvariant();
                 }
@@ -1044,7 +1049,7 @@ namespace Freelancing.Controllers
                         }
                         return View(viewModel);
                     }
-                    
+
                     // Explicitly update the normalized username to ensure it's updated
                     userAccount.NormalizedUserName = viewModel.UserName.ToUpperInvariant();
                 }
@@ -1055,7 +1060,7 @@ namespace Freelancing.Controllers
 
                 // Force a complete refresh from the database to get the updated normalized fields
                 await dbContext.Entry(userAccount).ReloadAsync();
-                
+
                 // Also update the local object properties to ensure consistency
                 userAccount.Email = viewModel.Email;
                 userAccount.UserName = viewModel.UserName;

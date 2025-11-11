@@ -54,6 +54,11 @@ namespace Freelancing.Controllers
         {
             return View();
         }
+
+        public IActionResult Report()
+        {
+            return View();
+        }
         // Displays the freelancer dashboard with statistics and a list of biddings for the logged-in user.
         public async Task<IActionResult> Dashboard(Guid projectId)
         {
