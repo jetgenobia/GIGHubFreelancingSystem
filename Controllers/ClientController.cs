@@ -75,6 +75,12 @@ namespace Freelancing.Controllers
                 Photo = userAccount.Photo ?? string.Empty
             };
         }
+
+        public IActionResult Report()
+        {
+            return View();
+        }
+
         // Displays the client dashboard with project statistics and a list of projects.
         public async Task<IActionResult> Dashboard(string message = null)
         {

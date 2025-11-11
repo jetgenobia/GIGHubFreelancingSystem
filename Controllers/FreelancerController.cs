@@ -52,6 +52,12 @@ namespace Freelancing.Controllers
 
             return uniqueFileName;
         }
+
+        public IActionResult Report()
+        {
+            return View();
+        }
+
         public IActionResult Index()
         {
             return View();
