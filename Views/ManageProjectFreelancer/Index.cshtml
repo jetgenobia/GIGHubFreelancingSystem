@@ -15,6 +15,7 @@
                     var activeProjects = Model.OngoingProjects.Where(p => p.ProjectStatus == "Active" || p.ProjectStatus == "Draft" || p.ProjectStatus == "AwaitingClient" || p.ProjectStatus == "AwaitingFreelancer").ToList();
                     var terminatedProjects = Model.OngoingProjects.Where(p => p.ProjectStatus == "Terminated").ToList();
                     var completedProjects = Model.OngoingProjects.Where(p => p.ProjectStatus == "Completed").ToList();
+                    var lateProjects = activeProjects.Where(p => p.ProjectDeadline.HasValue && p.ProjectDeadline.Value < DateTime.Now).Count();
 
                     <!-- Summary Cards -->
                     <div class="mb-6 flex flex-wrap gap-2">
@@ -22,6 +23,12 @@
                         {
                             <a href="#active-projects-section" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 hover:bg-green-200 transition duration-200 cursor-pointer">
                                 @activeProjects.Count Active Project@(activeProjects.Count != 1 ? "s" : "")
+                            </a>
+                        }
+                        @if (lateProjects > 0)
+                        {
+                            <a href="#active-projects-section" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 hover:bg-red-200 transition duration-200 cursor-pointer">
+                                @lateProjects Late Project@(lateProjects != 1 ? "s" : "")
                             </a>
                         }
                         @if (terminatedProjects.Any())
@@ -48,12 +55,21 @@
                             <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                                 @foreach (var project in activeProjects)
                                 {
-                                    <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200 border-l-4 border-l-green-500">
+                                    var isPastDeadline = project.ProjectDeadline.HasValue && project.ProjectDeadline.Value < DateTime.Now;
+                                    <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200 border-l-4 @(isPastDeadline ? "border-l-red-500" : "border-l-green-500")">
                                         <div class="flex items-start justify-between mb-4">
                                             <h4 class="text-lg font-semibold text-gray-900">@project.ProjectName</h4>
-                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                @project.ProjectStatus
-                                            </span>
+                                            <div class="flex flex-col gap-1">
+                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium @(isPastDeadline ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800")">
+                                                    @project.ProjectStatus
+                                                </span>
+                                                @if (isPastDeadline)
+                                                {
+                                                    <span class="inline-flex items-center justify-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                                        Late
+                                                    </span>
+                                                }
+                                            </div>
                                         </div>
 
                                         <div class="space-y-3">
