@@ -301,7 +301,10 @@
                                                 <h3 class="text-red-800 font-semibold">Deadline Passed</h3>
                                             </div>
                                             <p class="text-red-700 text-sm mb-3">
-                                                The deadline was @Model.ProjectDeadline.Value.ToString("MMM dd, yyyy 'at' h:mm tt").
+                                                @{
+                                                    var phTime = TimeHelpers.ToPhilippineTime(Model.ProjectDeadline.Value);
+                                                }
+                                                The deadline was @phTime.ToString("MMM dd, yyyy 'at' h:mm tt").
                                                 It's a good time to check in with your client now.
                                             </p>
                                             <div class="flex justify-center space-x-2">
