@@ -35,8 +35,8 @@ namespace Freelancing.Services
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
             var biddings = await _context.Biddings
-                .Include(b => b.Project).ThenInclude(p => p.User)
-                .Include(b => b.Project).ThenInclude(p => p.ProjectSkills).ThenInclude(ps => ps.UserSkill)
+                .Include(b => b.Project)
+                .ThenInclude(p => p.User)
                 .Where(b => b.UserId == userId &&
                            b.Project.CreatedAt >= startDate &&
                            b.Project.CreatedAt <= endDate)
@@ -50,13 +50,22 @@ namespace Freelancing.Services
                            f.CreatedAt <= endDate)
                 .ToListAsync();
 
+            // Get comparative data from platform
+            var platformAvgRating = await _context.FreelancerFeedbacks
+                .Where(f => f.CreatedAt >= startDate && f.CreatedAt <= endDate)
+                .AverageAsync(f => (double?)f.Rating) ?? 0;
+
+            var platformAvgSuccessRate = await CalculatePlatformSuccessRateAsync(startDate.Value, endDate.Value);
+
             var reportData = new FreelancerReportData
             {
                 Freelancer = freelancer,
                 StartDate = startDate.Value,
                 EndDate = endDate.Value,
                 Biddings = biddings,
-                Feedbacks = feedbacks
+                Feedbacks = feedbacks,
+                PlatformAverageRating = platformAvgRating,
+                PlatformAverageSuccessRate = platformAvgSuccessRate
             };
 
             var htmlContent = GenerateFreelancerPerformanceHtml(reportData);
@@ -79,7 +88,6 @@ namespace Freelancing.Services
                            p.CreatedAt <= endDate)
                 .ToListAsync();
 
-            // Updated: Get sent reviews (feedbacks given by this client)
             var sentReviews = await _context.FreelancerFeedbacks
                 .Include(f => f.AcceptBidding)
                 .ThenInclude(ab => ab.Project)
@@ -89,13 +97,22 @@ namespace Freelancing.Services
                            f.CreatedAt <= endDate)
                 .ToListAsync();
 
+            // Get platform benchmarks
+            var platformAvgBudget = await _context.Projects
+                .Where(p => p.CreatedAt >= startDate && p.CreatedAt <= endDate && p.AcceptedBid != null)
+                .AverageAsync(p => (double?)p.AcceptedBid.Budget) ?? 0;
+
+            var platformAvgCompletionRate = await CalculatePlatformCompletionRateAsync(startDate.Value, endDate.Value);
+
             var reportData = new ClientReportData
             {
                 Client = client,
                 StartDate = startDate.Value,
                 EndDate = endDate.Value,
                 Projects = projects,
-                SentReviews = sentReviews // Updated property name for clarity
+                SentReviews = sentReviews,
+                PlatformAverageBudget = platformAvgBudget,
+                PlatformAverageCompletionRate = platformAvgCompletionRate
             };
 
             var htmlContent = GenerateClientProjectHtml(reportData);
@@ -107,27 +124,72 @@ namespace Freelancing.Services
             startDate ??= DateTime.UtcNow.AddMonths(-3);
             endDate ??= DateTime.UtcNow;
 
+            // Calculate trends by comparing with previous period
+            var periodLength = (endDate.Value - startDate.Value).Days;
+            var previousStartDate = startDate.Value.AddDays(-periodLength);
+            var previousEndDate = startDate.Value;
+
+            // Get delayed/late projects
+            var delayedProjects = await _context.Projects
+                .Include(p => p.AcceptedBid)
+                .ThenInclude(ab => ab.User)
+                .Include(p => p.User)
+                .Include(p => p.Contract)
+                .Where(p => p.CreatedAt >= startDate && p.CreatedAt <= endDate &&
+                           p.Deadline.HasValue &&
+                           ((p.Status == "Active" && DateTime.UtcNow > p.Deadline.Value) ||
+                            (p.Status == "Completed" && p.Contract != null &&
+                             p.Contract.CompletedAt.HasValue &&
+                             p.Contract.CompletedAt.Value > p.Deadline.Value)))
+                .ToListAsync();
+
             var reportData = new SystemReportData
             {
                 StartDate = startDate.Value,
                 EndDate = endDate.Value,
+
+                // Current period metrics
                 TotalUsers = await _context.UserAccounts.CountAsync(),
                 TotalFreelancers = await _context.UserAccounts.CountAsync(u => u.Role == "Freelancer" || u.FRole == "Freelancer"),
                 TotalClients = await _context.UserAccounts.CountAsync(u => u.Role == "Client" || u.FRole == "Client"),
-                TotalProjects = await _context.Projects.CountAsync(),
+                TotalProjects = await _context.Projects.CountAsync(p => p.CreatedAt >= startDate && p.CreatedAt <= endDate),
                 ActiveProjects = await _context.Projects.CountAsync(p => p.Status == "Active"),
-                CompletedProjects = await _context.Projects.CountAsync(p => p.Status == "Completed"),
-                TotalBiddings = await _context.Biddings.CountAsync(),
-                AcceptedBiddings = await _context.Biddings.CountAsync(b => b.IsAccepted),
+                CompletedProjects = await _context.Projects.CountAsync(p => p.Status == "Completed" && p.CreatedAt >= startDate && p.CreatedAt <= endDate),
+                TotalBiddings = await _context.Biddings.CountAsync(b => b.Project.CreatedAt >= startDate && b.Project.CreatedAt <= endDate),
+                AcceptedBiddings = await _context.Biddings.CountAsync(b => b.IsAccepted && b.Project.CreatedAt >= startDate && b.Project.CreatedAt <= endDate),
                 TotalMentorshipMatches = await _context.MentorshipMatches.CountAsync(),
-                ActiveMentorships = await _context.MentorshipMatches.CountAsync(m => m.Status == "Active")
+                ActiveMentorships = await _context.MentorshipMatches.CountAsync(m => m.Status == "Active"),
+
+                // Previous period for comparison
+                PreviousPeriodProjects = await _context.Projects.CountAsync(p => p.CreatedAt >= previousStartDate && p.CreatedAt < previousEndDate),
+                PreviousPeriodBiddings = await _context.Biddings.CountAsync(b => b.Project.CreatedAt >= previousStartDate && b.Project.CreatedAt < previousEndDate),
+                PreviousPeriodCompletedProjects = await _context.Projects.CountAsync(p => p.Status == "Completed" && p.CreatedAt >= previousStartDate && p.CreatedAt < previousEndDate),
+
+                // Problem areas
+                InactiveFreelancers = await _context.UserAccounts
+                    .Where(u => (u.Role == "Freelancer" || u.FRole == "Freelancer") &&
+                           !_context.Biddings.Any(b => b.UserId == u.Id && b.Project.CreatedAt >= startDate))
+                    .CountAsync(),
+
+                ProjectsWithoutBids = await _context.Projects
+                    .Where(p => p.CreatedAt >= startDate && p.CreatedAt <= endDate && !p.Biddings.Any())
+                    .CountAsync(),
+
+                LowRatedFreelancers = await _context.FreelancerFeedbacks
+                    .Where(f => f.CreatedAt >= startDate && f.CreatedAt <= endDate)
+                    .GroupBy(f => f.FreelancerId)
+                    .Where(g => g.Average(f => f.Rating) < 3)
+                    .CountAsync(),
+
+                // NEW: Delayed/Late projects tracking
+                DelayedProjects = delayedProjects.Where(p => p.Status == "Active").ToList(),
+                LateCompletedProjects = delayedProjects.Where(p => p.Status == "Completed").ToList()
             };
 
             var htmlContent = GenerateSystemReportHtml(reportData);
             return await _pdfService.GenerateHtmlToPdfAsync(htmlContent, "System Analytics Report");
         }
 
-        // Add the missing method
         public async Task<byte[]> GenerateFinancialReportAsync(string userId, DateTime? startDate = null, DateTime? endDate = null)
         {
             startDate ??= DateTime.UtcNow.AddMonths(-12);
@@ -157,42 +219,56 @@ namespace Freelancing.Services
             return await _pdfService.GenerateHtmlToPdfAsync(htmlContent, "Financial Report");
         }
 
-        // Add other missing methods with basic implementations
         public async Task<byte[]> GenerateProjectAnalyticsReportAsync(Guid projectId)
         {
-            // Implementation for project analytics
             throw new NotImplementedException("Project Analytics Report not yet implemented");
         }
 
         public async Task<byte[]> GenerateContractReportAsync(Guid contractId)
         {
-            // Implementation for contract report
             throw new NotImplementedException("Contract Report not yet implemented");
         }
 
         public async Task<byte[]> GenerateMentorshipReportAsync(string userId, DateTime? startDate = null, DateTime? endDate = null)
         {
-            // Implementation for mentorship report
             throw new NotImplementedException("Mentorship Report not yet implemented");
         }
-        private string RenderSkillTags(IEnumerable<ProjectSkill>? skills)
+
+
+        // Helper methods for platform benchmarks
+        private async Task<double> CalculatePlatformSuccessRateAsync(DateTime startDate, DateTime endDate)
         {
-            if (skills == null)
-                return "—";
+            var totalBids = await _context.Biddings
+                .Where(b => b.Project.CreatedAt >= startDate && b.Project.CreatedAt <= endDate)
+                .CountAsync();
 
-            var names = skills
-                .Select(ps => ps?.UserSkill?.Name?.Trim())
-                .Where(n => !string.IsNullOrEmpty(n))
-                .Select(n => System.Net.WebUtility.HtmlEncode(n!))
-                .ToArray();
+            if (totalBids == 0) return 0;
 
-            return names.Length == 0 ? "—" : string.Join(", ", names);
+            var acceptedBids = await _context.Biddings
+                .Where(b => b.IsAccepted && b.Project.CreatedAt >= startDate && b.Project.CreatedAt <= endDate)
+                .CountAsync();
+
+            return (acceptedBids * 100.0) / totalBids;
+        }
+
+        private async Task<double> CalculatePlatformCompletionRateAsync(DateTime startDate, DateTime endDate)
+        {
+            var totalProjects = await _context.Projects
+                .Where(p => p.CreatedAt >= startDate && p.CreatedAt <= endDate)
+                .CountAsync();
+
+            if (totalProjects == 0) return 0;
+
+            var completedProjects = await _context.Projects
+                .Where(p => p.Status == "Completed" && p.CreatedAt >= startDate && p.CreatedAt <= endDate)
+                .CountAsync();
+
+            return (completedProjects * 100.0) / totalProjects;
         }
 
         private string GenerateReportHeader(string reportTitle, string userInfo, DateTime startDate, DateTime endDate, string borderColor = "#3B82F6")
         {
             return $@"
-    <!-- Report Header with Logo and Website -->
     <div class='report-header'>
         <div class='top-bar'>
             <div class='company-logo-container'>
@@ -200,7 +276,7 @@ namespace Freelancing.Services
                     alt='GIGHub Logo' class='company-logo' />
             </div>
             <div class='website-url'>
-                <a href='https://gighub.space' class='website-link'>gighub.space</a>
+                <a href='https://www.gighub.com' class='website-link'>www.gighub.com</a>
             </div>
         </div>
         
@@ -218,7 +294,7 @@ namespace Freelancing.Services
         {
             return @"
         body { 
-            font-family: 'Segoe UI', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', 'Apple Color Emoji', Arial, sans-serif; 
+            font-family: Inter, Arial, sans-serif; 
             font-size: 14px; 
             color: #111827;
             margin: 0;
@@ -326,6 +402,85 @@ namespace Freelancing.Services
             letter-spacing: 0.5px;
             font-weight: 500;
         }
+
+        .insight-box {
+            background: #FEF3C7;
+            border-left: 4px solid #F59E0B;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .insight-box.success {
+            background: #D1FAE5;
+            border-left-color: #10B981;
+        }
+
+        .insight-box.warning {
+            background: #FEE2E2;
+            border-left-color: #EF4444;
+        }
+
+        .insight-box h3 {
+            margin: 0 0 10px;
+            color: #92400E;
+            font-size: 16px;
+        }
+
+        .insight-box.success h3 {
+            color: #065F46;
+        }
+
+        .insight-box.warning h3 {
+            color: #991B1B;
+        }
+
+        .insight-box ul {
+            margin: 10px 0 0 20px;
+            padding: 0;
+        }
+
+        .insight-box li {
+            margin: 5px 0;
+        }
+
+        .recommendation-box {
+            background: #EFF6FF;
+            border-left: 4px solid #3B82F6;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .recommendation-box h3 {
+            margin: 0 0 10px;
+            color: #1E40AF;
+            font-size: 16px;
+        }
+
+        .trend-indicator {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+
+        .trend-up {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .trend-down {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+
+        .trend-neutral {
+            background: #F3F4F6;
+            color: #6B7280;
+        }
         
         table { 
             width: 100%; 
@@ -407,17 +562,24 @@ namespace Freelancing.Services
             var recommendationRate = data.Feedbacks.Any() ?
                 (data.Feedbacks.Count(f => f.WouldRecommend) * 100.0 / data.Feedbacks.Count) : 0;
 
-            // Add financial calculations from the financial report
             var monthlyEarnings = completedProjects
                 .GroupBy(b => b.BiddingAcceptedDate?.ToString("yyyy-MM"))
                 .ToDictionary(g => g.Key, g => g.Sum(b => b.Budget));
+
+            // Generate specific insights and recommendations
+            var insights = GenerateFreelancerInsights(data, successRate, averageRating, recommendationRate, totalEarnings);
+            var recommendations = GenerateFreelancerRecommendations(data, successRate, averageRating, completedProjects.Count);
+
+            // Compare with platform averages
+            var successRateComparison = successRate >= data.PlatformAverageSuccessRate ? "above" : "below";
+            var ratingComparison = averageRating >= data.PlatformAverageRating ? "above" : "below";
 
             var headerHtml = GenerateReportHeader(
                 "Freelancer Performance Report",
                 $"For {data.Freelancer?.FirstName} {data.Freelancer?.LastName}",
                 data.StartDate,
                 data.EndDate,
-                "#3B82F6"  // Use blue theme for freelancer reports
+                "#3B82F6"
             );
 
             return $@"
@@ -430,8 +592,6 @@ namespace Freelancing.Services
         {GetReportStyles()}
         .kpi-value {{ color: #3B82F6; }}
         .main-header {{ border-bottom-color: #3B82F6; }}
-        
-        /* Additional style for 2-column KPI grid */
         .kpi-grid-2 {{ 
             display: grid; 
             grid-template-columns: repeat(2, 1fr); 
@@ -456,6 +616,9 @@ namespace Freelancing.Services
         <div class='kpi'>
             <span class='kpi-value'>{successRate:F1}%</span>
             <div class='kpi-label'>Success Rate</div>
+            <span class='trend-indicator {(successRate >= data.PlatformAverageSuccessRate ? "trend-up" : "trend-down")}'>
+                {successRateComparison} platform avg ({data.PlatformAverageSuccessRate:F1}%)
+            </span>
         </div>
         <div class='kpi'>
             <span class='kpi-value'>{data.Feedbacks.Count}</span>
@@ -464,12 +627,19 @@ namespace Freelancing.Services
         <div class='kpi'>
             <span class='kpi-value'>{averageRating:F1}</span>
             <div class='kpi-label'>Average Rating</div>
+            <span class='trend-indicator {(averageRating >= data.PlatformAverageRating ? "trend-up" : "trend-down")}'>
+                {ratingComparison} platform avg ({data.PlatformAverageRating:F1})
+            </span>
         </div>
         <div class='kpi'>
             <span class='kpi-value'>{recommendationRate:F1}%</span>
             <div class='kpi-label'>Recommendation Rate</div>
         </div>
     </div>
+
+    {insights}
+
+    {recommendations}
 
     <h2>Financial Summary</h2>
     <div class='kpi-grid-2'>
@@ -478,18 +648,17 @@ namespace Freelancing.Services
             <div class='kpi-label'>Completed Projects</div>
         </div>
         <div class='kpi'>
-            <span class='kpi-value'>PHP {totalEarnings:N0}</span>
+            <span class='kpi-value'>₱{totalEarnings:N0}</span>
             <div class='kpi-label'>Total Earnings</div>
         </div>
         <div class='kpi'>
-            <span class='kpi-value'>PHP {(completedProjects.Any() ? completedProjects.Average(b => b.Budget) : 0):N0}</span>
+            <span class='kpi-value'>₱{(completedProjects.Any() ? completedProjects.Average(b => b.Budget) : 0):N0}</span>
             <div class='kpi-label'>Average Project Value</div>
         </div>
         <div class='kpi'>
-            <span class='kpi-value'>PHP {(monthlyEarnings.Any() ? monthlyEarnings.Values.Average() : 0):N0}</span>
+            <span class='kpi-value'>₱{(monthlyEarnings.Any() ? monthlyEarnings.Values.Average() : 0):N0}</span>
             <div class='kpi-label'>Average Monthly Earnings</div>
         </div>
-        
     </div>
 
     <h2>Monthly Earnings Breakdown</h2>
@@ -498,7 +667,7 @@ namespace Freelancing.Services
         <thead>
             <tr>
                 <th>Month</th>
-                <th class='text-right'>Earnings (PHP)</th>
+                <th class='text-right'>Earnings</th>
                 <th class='text-right'>Projects Completed</th>
             </tr>
         </thead>
@@ -510,13 +679,13 @@ namespace Freelancing.Services
                 <td class='text-right'>{completedProjects.Count(p => p.BiddingAcceptedDate?.ToString("yyyy-MM") == me.Key)}</td>
             </tr>"))}
         </tbody>
-    </table>" : "")}
+    </table>" : "<p>No earnings data available for this period.</p>")}
 
     <h2>Skills Portfolio</h2>
     {(data.Freelancer?.UserAccountSkills?.Any() == true ? $@"
     <div class='skills-list'>
         {string.Join("", data.Freelancer.UserAccountSkills.Select(s => $"<span class='skill-tag'>{s.UserSkill.Name}</span>"))}
-    </div>" : "")}
+    </div>" : "<p>No skills listed in profile.</p>")}
 
     <h2>Recent Completed Projects</h2>
     {(completedProjects.Any() ? $@"
@@ -525,8 +694,7 @@ namespace Freelancing.Services
             <tr>
                 <th>Project Name</th>
                 <th>Client</th>
-                <th>Required Skills</th>
-                <th class='text-right'>Earnings (PHP)</th>
+                <th class='text-right'>Earnings</th>
                 <th>Completed Date</th>
             </tr>
         </thead>
@@ -535,12 +703,11 @@ namespace Freelancing.Services
             <tr>
                 <td>{p.Project.ProjectName}</td>
                 <td>{p.Project.User.FirstName} {p.Project.User.LastName}</td>
-                <td>{RenderSkillTags(p.Project.ProjectSkills)}</td>                
                 <td class='text-right'>PHP {p.Budget:N0}</td>
                 <td>{(p.BiddingAcceptedDate?.ToString("MMM dd, yyyy") ?? "N/A")}</td>
             </tr>"))}
         </tbody>
-    </table>" : "")}
+    </table>" : "<p>No completed projects in this period.</p>")}
 
     <h2>Client Reviews Received</h2>
     {(data.Feedbacks.Any() ? $@"
@@ -560,19 +727,161 @@ namespace Freelancing.Services
             <tr>
                 <td>{f.AcceptBidding.Project.ProjectName}</td>
                 <td>{f.AcceptBidding.Project.User.FirstName} {f.AcceptBidding.Project.User.LastName}</td>
-                <td class='star-rating'>{f.Rating}/5 Stars</td>
+                <td class='star-rating'>{f.Rating}/5</td>
                 <td>{(f.WouldRecommend ? "Yes" : "No")}</td>
                 <td class='review-comment'>{(string.IsNullOrEmpty(f.Comments) ? "—" : f.Comments)}</td>
                 <td>{f.CreatedAt:MMM dd, yyyy}</td>
             </tr>"))}
         </tbody>
-    </table>" : "")}
+    </table>" : "<p>No client reviews received in this period.</p>")}
 
     <div class='footer'>
-        Generated on {DateTime.UtcNow:MMMM dd, yyyy 'at' h:mm tt}
+        Generated on {DateTime.Now:MMMM dd, yyyy 'at' h:mm tt}
     </div>
 </body>
 </html>";
+        }
+
+        private string GenerateFreelancerInsights(FreelancerReportData data, double successRate, double averageRating, double recommendationRate, int totalEarnings)
+        {
+            var insights = new List<string>();
+            var insightType = "insight-box"; // default yellow
+
+            // Success rate analysis
+            if (successRate > 40)
+            {
+                insightType = "insight-box success";
+                insights.Add($"Your bid success rate of <strong>{successRate:F1}%</strong> is excellent, indicating strong proposal quality and competitive pricing.");
+            }
+            else if (successRate > 20)
+            {
+                insights.Add($"Your bid success rate of <strong>{successRate:F1}%</strong> is moderate. Consider refining your proposals to stand out more.");
+            }
+            else
+            {
+                insightType = "insight-box warning";
+                insights.Add($"Your bid success rate of <strong>{successRate:F1}%</strong> is below average. Your proposals may need improvement or you might be bidding on projects outside your expertise.");
+            }
+
+            // Rating analysis
+            if (averageRating >= 4.5)
+            {
+                insightType = "insight-box success";
+                insights.Add($"Outstanding rating of <strong>{averageRating:F1}/5</strong> shows clients are very satisfied with your work quality.");
+            }
+            else if (averageRating >= 4.0)
+            {
+                insights.Add($"Good rating of <strong>{averageRating:F1}/5</strong>, but there's room to achieve excellence.");
+            }
+            else if (averageRating > 0)
+            {
+                insightType = "insight-box warning";
+                insights.Add($"Your rating of <strong>{averageRating:F1}/5</strong> needs improvement. Review negative feedback and address common issues.");
+            }
+
+            // Recommendation rate
+            if (recommendationRate >= 80)
+            {
+                insights.Add($"<strong>{recommendationRate:F1}%</strong> of clients would recommend you, showing strong professional reputation.");
+            }
+            else if (recommendationRate > 0)
+            {
+                insights.Add($"Only <strong>{recommendationRate:F1}%</strong> would recommend you. Focus on exceeding client expectations.");
+            }
+
+            // Earnings insight
+            if (totalEarnings > 0)
+            {
+                var acceptedBids = data.Biddings.Where(b => b.IsAccepted).ToList();
+                if (acceptedBids.Any())
+                {
+                    var avgProjectValue = acceptedBids.Average(b => b.Budget);
+                    insights.Add($"Your average project value is <strong>PHP {avgProjectValue:N0}</strong>. Consider taking on higher-value projects to increase earnings.");
+                }
+            }
+
+            if (!insights.Any())
+            {
+                insights.Add("Insufficient data to generate specific insights. Continue building your portfolio and collecting client feedback.");
+            }
+
+            return $@"
+    <div class='{insightType}'>
+        <h3>Performance Insights</h3>
+        <ul>
+            {string.Join("", insights.Select(i => $"<li>{i}</li>"))}
+        </ul>
+    </div>";
+        }
+
+        private string GenerateFreelancerRecommendations(FreelancerReportData data, double successRate, double averageRating, int completedProjects)
+        {
+            var recommendations = new List<string>();
+
+            // Success rate recommendations
+            if (successRate < 30)
+            {
+                recommendations.Add("<strong>Improve Your Proposals:</strong> Personalize each proposal, highlight relevant experience, and clearly explain how you'll solve the client's problem.");
+                recommendations.Add("<strong>Bid Strategically:</strong> Focus on projects that match your skills perfectly rather than bidding on everything.");
+            }
+
+            // Rating recommendations
+            if (averageRating < 4.5 && data.Feedbacks.Any())
+            {
+                recommendations.Add("<strong>Quality Improvement:</strong> Analyze feedback from lower-rated projects and address recurring issues.");
+                recommendations.Add("<strong>Communication:</strong> Maintain regular updates with clients and set clear expectations from the start.");
+            }
+
+            // Activity recommendations
+            if (data.Biddings.Count < 10)
+            {
+                recommendations.Add("<strong>Increase Activity:</strong> Submit more bids to increase your chances of winning projects. Aim for at least 15-20 quality bids per month.");
+            }
+
+            // Skills recommendations
+            if (data.Freelancer?.UserAccountSkills?.Count < 5)
+            {
+                recommendations.Add("<strong>Expand Skills:</strong> Add more relevant skills to your profile to appear in more searches and attract diverse projects.");
+            }
+
+            // Portfolio recommendations
+            if (completedProjects < 5)
+            {
+                recommendations.Add("<strong>Build Portfolio:</strong> Complete more projects to build credibility. Consider taking on smaller projects initially.");
+            }
+            else if (completedProjects >= 10)
+            {
+                recommendations.Add("<strong>Showcase Success:</strong> Update your portfolio with your best work and client testimonials to attract higher-paying clients.");
+            }
+
+            // Financial growth
+            var monthlyEarnings = data.Biddings
+                .Where(b => b.IsAccepted && b.Project.Status == "Completed")
+                .GroupBy(b => b.BiddingAcceptedDate?.ToString("yyyy-MM"))
+                .Select(g => g.Sum(b => b.Budget))
+                .ToList();
+
+            if (monthlyEarnings.Count >= 3)
+            {
+                var trend = monthlyEarnings.Last() - monthlyEarnings.First();
+                if (trend < 0)
+                {
+                    recommendations.Add("<strong>Revenue Declining:</strong> Your monthly earnings are decreasing. Focus on client retention and winning higher-value projects.");
+                }
+            }
+
+            if (!recommendations.Any())
+            {
+                recommendations.Add("You're performing well! Keep maintaining your quality standards and continue building client relationships.");
+            }
+
+            return $@"
+    <div class='recommendation-box'>
+        <h3>Actionable Recommendations</h3>
+        <ul>
+            {string.Join("", recommendations.Select(r => $"<li>{r}</li>"))}
+        </ul>
+    </div>";
         }
 
         private string GenerateClientProjectHtml(ClientReportData data)
@@ -592,6 +901,12 @@ namespace Freelancing.Services
             var averageRatingGiven = data.SentReviews.Any() ? data.SentReviews.Average(r => r.Rating) : 0;
             var recommendationRate = data.SentReviews.Any() ?
                 (data.SentReviews.Count(r => r.WouldRecommend) * 100.0 / data.SentReviews.Count) : 0;
+
+            var completionRate = data.Projects.Any() ? (completedProjects.Count * 100.0 / data.Projects.Count) : 0;
+
+            // Generate insights and recommendations
+            var insights = GenerateClientInsights(data, completionRate, averageRatingGiven, totalSpent);
+            var recommendations = GenerateClientRecommendations(data, completionRate, activeProjects.Count);
 
             var headerHtml = GenerateReportHeader(
                 "Client Project Report",
@@ -631,21 +946,35 @@ namespace Freelancing.Services
             <div class='kpi-label'>Completed Projects</div>
         </div>
         <div class='kpi'>
+            <span class='kpi-value'>{completionRate:F1}%</span>
+            <div class='kpi-label'>Completion Rate</div>
+            <span class='trend-indicator {(completionRate >= data.PlatformAverageCompletionRate ? "trend-up" : "trend-down")}'>
+                {(completionRate >= data.PlatformAverageCompletionRate ? "above" : "below")} platform avg ({data.PlatformAverageCompletionRate:F1}%)
+            </span>
+        </div>
+        <div class='kpi'>
             <span class='kpi-value'>PHP {totalSpent:N0}</span>
             <div class='kpi-label'>Total Spent</div>
         </div>
         <div class='kpi'>
             <span class='kpi-value'>PHP {avgBudget:N0}</span>
             <div class='kpi-label'>Average Budget</div>
+            <span class='trend-indicator {(avgBudget >= data.PlatformAverageBudget ? "trend-up" : "trend-down")}'>
+                {(avgBudget >= data.PlatformAverageBudget ? "above" : "below")} platform avg (₱{data.PlatformAverageBudget:N0})
+            </span>
         </div>
+    </div>
+
+    {insights}
+
+    {recommendations}
+
+    <h2>Review Statistics</h2>
+    <div class='kpi-grid'>
         <div class='kpi'>
             <span class='kpi-value'>{data.SentReviews.Count}</span>
             <div class='kpi-label'>Reviews Given</div>
         </div>
-    </div>
-
-    <h2>Review Statistics</h2>
-    <div class='kpi-grid'>
         <div class='kpi'>
             <span class='kpi-value'>{averageRatingGiven:F1}</span>
             <div class='kpi-label'>Average Rating Given</div>
@@ -653,10 +982,6 @@ namespace Freelancing.Services
         <div class='kpi'>
             <span class='kpi-value'>{recommendationRate:F1}%</span>
             <div class='kpi-label'>Recommendation Rate</div>
-        </div>
-        <div class='kpi'>
-            <span class='kpi-value'>{data.SentReviews.Count(r => r.Comments != null && r.Comments.Trim().Length > 0)}</span>
-            <div class='kpi-label'>Reviews with Comments</div>
         </div>
     </div>
 
@@ -679,10 +1004,10 @@ namespace Freelancing.Services
                 <td>{(p.AcceptedBid != null ? $"{p.AcceptedBid.User.FirstName} {p.AcceptedBid.User.LastName}" : "—")}</td>
                 <td>{(p.AcceptedBid != null ? $"PHP {p.AcceptedBid.Budget:N0}" : $"PHP {p.Budget:N0}")}</td>
                 <td>{(p.Status ?? "Open")}</td>
-                <td>{p.CreatedAt:MMM yyyy}</td>
+                <td>{p.CreatedAt:MMM dd, yyyy}</td>
             </tr>"))}
         </tbody>
-    </table>" : "")}
+    </table>" : "<p>No projects created in this period.</p>")}
 
     <h2>Reviews Sent</h2>
     {(data.SentReviews.Any() ? $@"
@@ -702,30 +1027,188 @@ namespace Freelancing.Services
             <tr>
                 <td>{r.AcceptBidding.Project.ProjectName}</td>
                 <td>{r.Freelancer.FirstName} {r.Freelancer.LastName}</td>
-                <td class='star-rating'>{r.Rating}/5 Stars</td>
+                <td class='star-rating'>{r.Rating}/5</td>
                 <td>{(r.WouldRecommend ? "Yes" : "No")}</td>
                 <td class='review-comment'>{(string.IsNullOrEmpty(r.Comments) ? "—" : r.Comments)}</td>
                 <td>{r.CreatedAt:MMM dd, yyyy}</td>
             </tr>"))}
         </tbody>
-    </table>" : "")}
+    </table>" : "<p>No reviews given in this period.</p>")}
 
     <div class='footer'>
-        Generated on {DateTime.UtcNow:MMMM dd, yyyy 'at' h:mm tt}
+        Generated on {DateTime.Now:MMMM dd, yyyy 'at' h:mm tt}
     </div>
 </body>
 </html>";
         }
 
+        private string GenerateClientInsights(ClientReportData data, double completionRate, double averageRatingGiven, int totalSpent)
+        {
+            var insights = new List<string>();
+            var insightType = "insight-box";
+
+            // Completion rate analysis
+            if (completionRate >= 80)
+            {
+                insightType = "insight-box success";
+                insights.Add($"Excellent <strong>{completionRate:F1}%</strong> project completion rate shows effective project management and freelancer selection.");
+            }
+            else if (completionRate >= 60)
+            {
+                insights.Add($"Your <strong>{completionRate:F1}%</strong> completion rate is good, but there's potential for improvement in project scoping or freelancer vetting.");
+            }
+            else if (completionRate > 0)
+            {
+                insightType = "insight-box warning";
+                insights.Add($"Your <strong>{completionRate:F1}%</strong> completion rate is below optimal. Review project requirements clarity and freelancer selection criteria.");
+            }
+
+            // Budget analysis
+            var projectsWithBudget = data.Projects.Where(p => p.AcceptedBid != null).ToList();
+            if (projectsWithBudget.Any())
+            {
+                var avgBudget = projectsWithBudget.Average(p => p.AcceptedBid.Budget);
+                if (avgBudget > data.PlatformAverageBudget * 1.5)
+                {
+                    insights.Add($"Your average project budget is significantly higher than the platform average. You might find better value by exploring more competitive options.");
+                }
+                else if (avgBudget < data.PlatformAverageBudget * 0.7)
+                {
+                    insights.Add($"Your average budget is below the platform average. Consider if you're undervaluing projects, which might affect quality.");
+                }
+            }
+
+            // Review analysis
+            if (averageRatingGiven > 0)
+            {
+                if (averageRatingGiven >= 4.5)
+                {
+                    insights.Add($"You give high ratings (<strong>{averageRatingGiven:F1}/5 avg</strong>), showing satisfaction with freelancer work. This helps build positive relationships.");
+                }
+                else if (averageRatingGiven < 3.5)
+                {
+                    insights.Add($"Your average rating given is <strong>{averageRatingGiven:F1}/5</strong>. Frequent low ratings might indicate issues with freelancer selection or unclear project requirements.");
+                }
+            }
+
+            // Projects without bids analysis
+            var projectsWithoutBids = data.Projects.Where(p => !p.Biddings.Any()).Count();
+            if (projectsWithoutBids > data.Projects.Count * 0.3)
+            {
+                insightType = "insight-box warning";
+                insights.Add($"<strong>{projectsWithoutBids}</strong> of your projects received no bids. Consider improving project descriptions, offering competitive budgets, or clarifying requirements.");
+            }
+
+            if (!insights.Any())
+            {
+                insights.Add("Continue posting clear project requirements and maintaining good relationships with freelancers.");
+            }
+
+            return $@"
+    <div class='{insightType}'>
+        <h3>Project Insights</h3>
+        <ul>
+            {string.Join("", insights.Select(i => $"<li>{i}</li>"))}
+        </ul>
+    </div>";
+        }
+
+        private string GenerateClientRecommendations(ClientReportData data, double completionRate, int activeProjectsCount)
+        {
+            var recommendations = new List<string>();
+
+            // Completion rate recommendations
+            if (completionRate < 70)
+            {
+                recommendations.Add("<strong>Improve Project Success:</strong> Write detailed project descriptions, set realistic timelines, and verify freelancer portfolios before hiring.");
+                recommendations.Add("<strong>Clear Requirements:</strong> Use milestones and deliverables to track progress and ensure alignment.");
+            }
+
+            // Active projects management
+            if (activeProjectsCount > 5)
+            {
+                recommendations.Add("<strong>Project Management:</strong> You have many active projects. Consider using project management tools or hiring dedicated freelancers to manage workload effectively.");
+            }
+
+            // Review giving
+            var unreviewed = data.Projects.Where(p => p.Status == "Completed" && p.AcceptedBid != null)
+                .Count(p => !data.SentReviews.Any(r => r.AcceptBidding.ProjectId == p.Id));
+
+            if (unreviewed > 0)
+            {
+                recommendations.Add($"<strong>Leave Reviews:</strong> You have <strong>{unreviewed}</strong> completed projects without reviews. Feedback helps freelancers improve and guides other clients.");
+            }
+
+            // Budget optimization
+            var projectsWithBudget = data.Projects.Where(p => p.AcceptedBid != null).ToList();
+            if (projectsWithBudget.Any())
+            {
+                var budgetVariance = projectsWithBudget.Max(p => p.AcceptedBid.Budget) - projectsWithBudget.Min(p => p.AcceptedBid.Budget);
+                if (budgetVariance > projectsWithBudget.Average(p => p.AcceptedBid.Budget) * 2)
+                {
+                    recommendations.Add("<strong>Budget Consistency:</strong> Your project budgets vary significantly. Standardize similar project budgets to attract consistent quality.");
+                }
+            }
+
+            // Relationship building
+            if (data.SentReviews.Any(r => r.Rating >= 4))
+            {
+                var topFreelancers = data.SentReviews
+                    .Where(r => r.Rating >= 4)
+                    .GroupBy(r => r.FreelancerId)
+                    .Count();
+
+                if (topFreelancers >= 3)
+                {
+                    recommendations.Add("<strong>Build Long-term Relationships:</strong> You've worked with multiple quality freelancers. Consider rehiring top performers for recurring projects to save time and ensure quality.");
+                }
+            }
+
+            // Activity recommendations
+            if (data.Projects.Count < 3)
+            {
+                recommendations.Add("<strong>Leverage the Platform:</strong> Post more projects to fully utilize freelancer expertise and grow your business faster.");
+            }
+
+            if (!recommendations.Any())
+            {
+                recommendations.Add("You're managing projects well! Continue providing clear requirements and timely feedback to freelancers.");
+            }
+
+            return $@"
+    <div class='recommendation-box'>
+        <h3>Actionable Recommendations</h3>
+        <ul>
+            {string.Join("", recommendations.Select(r => $"<li>{r}</li>"))}
+        </ul>
+    </div>";
+        }
+
         private string GenerateSystemReportHtml(SystemReportData data)
         {
+            // Calculate growth trends
+            var projectGrowth = data.PreviousPeriodProjects > 0
+                ? ((data.TotalProjects - data.PreviousPeriodProjects) * 100.0 / data.PreviousPeriodProjects)
+                : 0;
+            var biddingGrowth = data.PreviousPeriodBiddings > 0
+                ? ((data.TotalBiddings - data.PreviousPeriodBiddings) * 100.0 / data.PreviousPeriodBiddings)
+                : 0;
+            var completionGrowth = data.PreviousPeriodCompletedProjects > 0
+                ? ((data.CompletedProjects - data.PreviousPeriodCompletedProjects) * 100.0 / data.PreviousPeriodCompletedProjects)
+                : 0;
+
+            // Generate admin insights
+            var insights = GenerateAdminInsights(data, projectGrowth, biddingGrowth);
+            var recommendations = GenerateAdminRecommendations(data);
+
             var headerHtml = GenerateReportHeader(
-    "GIGHub System Analytics Report",
-    "",
-    data.StartDate,
-    data.EndDate,
-    "#1D4ED8"
-);
+                "GIGHub System Analytics Report",
+                "",
+                data.StartDate,
+                data.EndDate,
+                "#1D4ED8"
+            );
+
             return $@"
 <!DOCTYPE html>
 <html>
@@ -740,6 +1223,31 @@ namespace Freelancing.Services
 </head>
 <body>
     {headerHtml}
+
+    <h2>Platform Growth Overview</h2>
+    <div class='kpi-grid'>
+        <div class='kpi'>
+            <span class='kpi-value'>{data.TotalProjects}</span>
+            <div class='kpi-label'>New Projects</div>
+            <span class='trend-indicator {(projectGrowth > 0 ? "trend-up" : projectGrowth < 0 ? "trend-down" : "trend-neutral")}'>
+                {(projectGrowth > 0 ? "↑" : projectGrowth < 0 ? "↓" : "→")} {Math.Abs(projectGrowth):F1}% vs previous period
+            </span>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value'>{data.TotalBiddings}</span>
+            <div class='kpi-label'>Total Bids</div>
+            <span class='trend-indicator {(biddingGrowth > 0 ? "trend-up" : biddingGrowth < 0 ? "trend-down" : "trend-neutral")}'>
+                {(biddingGrowth > 0 ? "↑" : biddingGrowth < 0 ? "↓" : "→")} {Math.Abs(biddingGrowth):F1}% vs previous period
+            </span>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value'>{data.CompletedProjects}</span>
+            <div class='kpi-label'>Completed Projects</div>
+            <span class='trend-indicator {(completionGrowth > 0 ? "trend-up" : completionGrowth < 0 ? "trend-down" : "trend-neutral")}'>
+                {(completionGrowth > 0 ? "↑" : completionGrowth < 0 ? "↓" : "→")} {Math.Abs(completionGrowth):F1}% vs previous period
+            </span>
+        </div>
+    </div>
 
     <h2>User Statistics</h2>
     <div class='kpi-grid'>
@@ -757,43 +1265,302 @@ namespace Freelancing.Services
         </div>
     </div>
 
-    <h2>Project Statistics</h2>
+    {insights}
+
+    <h2>Platform Health Metrics</h2>
     <div class='kpi-grid'>
-        <div class='kpi'>
-            <span class='kpi-value'>{data.TotalProjects}</span>
-            <div class='kpi-label'>Total Projects</div>
-        </div>
         <div class='kpi'>
             <span class='kpi-value'>{data.ActiveProjects}</span>
             <div class='kpi-label'>Active Projects</div>
         </div>
         <div class='kpi'>
-            <span class='kpi-value'>{data.CompletedProjects}</span>
-            <div class='kpi-label'>Completed Projects</div>
+            <span class='kpi-value'>{(data.TotalBiddings > 0 ? (data.AcceptedBiddings * 100.0 / data.TotalBiddings) : 0):F1}%</span>
+            <div class='kpi-label'>Bid Acceptance Rate</div>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value'>{data.ActiveMentorships}</span>
+            <div class='kpi-label'>Active Mentorships</div>
         </div>
     </div>
 
-    <h2>Platform Activity</h2>
+    <h2>Areas Requiring Attention</h2>
     <div class='kpi-grid'>
         <div class='kpi'>
-            <span class='kpi-value'>{data.TotalBiddings}</span>
-            <div class='kpi-label'>Total Bids</div>
+            <span class='kpi-value'>{data.InactiveFreelancers}</span>
+            <div class='kpi-label'>Inactive Freelancers</div>
         </div>
         <div class='kpi'>
-            <span class='kpi-value'>{data.AcceptedBiddings}</span>
-            <div class='kpi-label'>Accepted Bids</div>
+            <span class='kpi-value'>{data.ProjectsWithoutBids}</span>
+            <div class='kpi-label'>Projects Without Bids</div>
         </div>
         <div class='kpi'>
-            <span class='kpi-value'>{data.TotalMentorshipMatches}</span>
-            <div class='kpi-label'>Mentorships</div>
+            <span class='kpi-value'>{data.LowRatedFreelancers}</span>
+            <div class='kpi-label'>Low-Rated Freelancers (&lt;3★)</div>
         </div>
     </div>
 
+    <h2>Project Delivery Performance</h2>
+    <div class='kpi-grid'>
+        <div class='kpi'>
+            <span class='kpi-value' style='color: #EF4444;'>{data.DelayedProjects.Count}</span>
+            <div class='kpi-label'>Currently Delayed Projects</div>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value' style='color: #F59E0B;'>{data.LateCompletedProjects.Count}</span>
+            <div class='kpi-label'>Projects Completed Late</div>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value' style='color: #10B981;'>{data.CompletedProjects - data.LateCompletedProjects.Count}</span>
+            <div class='kpi-label'>Projects Completed On Time</div>
+        </div>
+    </div>
+
+    {(data.DelayedProjects.Any() ? $@"
+    <h2>⚠️ Currently Delayed Projects</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Project Name</th>
+                <th>Client</th>
+                <th>Freelancer</th>
+                <th>Deadline</th>
+                <th>Days Overdue</th>
+            </tr>
+        </thead>
+        <tbody>
+            {string.Join("", data.DelayedProjects.OrderBy(p => p.Deadline).Select(p => {
+                var daysOverdue = p.Deadline.HasValue ? (DateTime.UtcNow - p.Deadline.Value).Days : 0;
+                return $@"
+            <tr style='background-color: #FEE2E2;'>
+                <td>{p.ProjectName}</td>
+                <td>{p.User?.FirstName} {p.User?.LastName}</td>
+                <td>{(p.AcceptedBid != null ? $"{p.AcceptedBid.User?.FirstName} {p.AcceptedBid.User?.LastName}" : "—")}</td>
+                <td>{p.Deadline?.ToString("MMM dd, yyyy")}</td>
+                <td style='color: #DC2626; font-weight: bold;'>{daysOverdue} days</td>
+            </tr>";
+            }))}
+        </tbody>
+    </table>" : "")}
+
+    {(data.LateCompletedProjects.Any() ? $@"
+    <h2>Projects Completed Late</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Project Name</th>
+                <th>Client</th>
+                <th>Freelancer</th>
+                <th>Deadline</th>
+                <th>Completed Date</th>
+                <th>Days Late</th>
+            </tr>
+        </thead>
+        <tbody>
+            {string.Join("", data.LateCompletedProjects.OrderByDescending(p => p.Contract?.CompletedAt).Select(p => {
+                var daysLate = p.Deadline.HasValue && p.Contract?.CompletedAt.HasValue == true
+                    ? (p.Contract.CompletedAt.Value - p.Deadline.Value).Days
+                    : 0;
+                return $@"
+            <tr style='background-color: #FEF3C7;'>
+                <td>{p.ProjectName}</td>
+                <td>{p.User?.FirstName} {p.User?.LastName}</td>
+                <td>{(p.AcceptedBid != null ? $"{p.AcceptedBid.User?.FirstName} {p.AcceptedBid.User?.LastName}" : "—")}</td>
+                <td>{p.Deadline?.ToString("MMM dd, yyyy")}</td>
+                <td>{p.Contract?.CompletedAt?.ToString("MMM dd, yyyy") ?? "N/A"}</td>
+                <td style='color: #D97706; font-weight: bold;'>{daysLate} days</td>
+            </tr>";
+            }))}
+        </tbody>
+    </table>" : "")}
+
+    {recommendations}
+
     <div class='footer'>
-        Generated on {DateTime.UtcNow:MMMM dd, yyyy 'at' h:mm tt}
+        Generated on {DateTime.Now:MMMM dd, yyyy 'at' h:mm tt}
     </div>
 </body>
 </html>";
+        }
+
+        private string GenerateAdminInsights(SystemReportData data, double projectGrowth, double biddingGrowth)
+        {
+            var insights = new List<string>();
+            var insightType = "insight-box";
+
+            // Platform growth analysis
+            if (projectGrowth > 20)
+            {
+                insightType = "insight-box success";
+                insights.Add($"<strong>Strong Growth:</strong> New projects increased by <strong>{projectGrowth:F1}%</strong>. Platform adoption is accelerating.");
+            }
+            else if (projectGrowth < -10)
+            {
+                insightType = "insight-box warning";
+                insights.Add($"<strong>Declining Activity:</strong> New projects decreased by <strong>{Math.Abs(projectGrowth):F1}%</strong>. Investigate barriers to client engagement.");
+            }
+
+            // Marketplace health
+            var bidAcceptanceRate = data.TotalBiddings > 0 ? (data.AcceptedBiddings * 100.0 / data.TotalBiddings) : 0;
+            if (bidAcceptanceRate < 10)
+            {
+                insightType = "insight-box warning";
+                insights.Add($"<strong>Low Acceptance Rate:</strong> Only <strong>{bidAcceptanceRate:F1}%</strong> of bids are accepted. This suggests quality issues or mismatch between freelancers and projects.");
+            }
+            else if (bidAcceptanceRate > 25)
+            {
+                insightType = "insight-box success";
+                insights.Add($"<strong>Healthy Marketplace:</strong> <strong>{bidAcceptanceRate:F1}%</strong> bid acceptance rate indicates good freelancer-project matching.");
+            }
+
+            // NEW: Project delivery performance analysis
+            var totalProjectsWithDeadlines = data.DelayedProjects.Count + data.LateCompletedProjects.Count + (data.CompletedProjects - data.LateCompletedProjects.Count);
+            if (totalProjectsWithDeadlines > 0)
+            {
+                var onTimeRate = ((data.CompletedProjects - data.LateCompletedProjects.Count) * 100.0 / totalProjectsWithDeadlines);
+
+                if (onTimeRate >= 80)
+                {
+                    insights.Add($"<strong>Excellent Delivery:</strong> <strong>{onTimeRate:F1}%</strong> of projects are completed on time, showing strong freelancer reliability.");
+                }
+                else if (onTimeRate < 60)
+                {
+                    insightType = "insight-box warning";
+                    insights.Add($"<strong>Delivery Issues:</strong> Only <strong>{onTimeRate:F1}%</strong> of projects completed on time. Review freelancer accountability and project scoping.");
+                }
+            }
+
+            if (data.DelayedProjects.Count > 0)
+            {
+                insightType = "insight-box warning";
+                insights.Add($"<strong>Active Delays:</strong> <strong>{data.DelayedProjects.Count}</strong> projects are currently overdue. Immediate intervention may be needed.");
+            }
+
+            // User balance
+            var freelancerToClientRatio = data.TotalClients > 0 ? (data.TotalFreelancers * 1.0 / data.TotalClients) : 0;
+            if (freelancerToClientRatio < 1)
+            {
+                insights.Add($"<strong>Freelancer Shortage:</strong> Ratio of {freelancerToClientRatio:F2}:1 freelancers to clients. Consider recruiting more freelancers.");
+            }
+            else if (freelancerToClientRatio > 5)
+            {
+                insights.Add($"<strong>Client Shortage:</strong> Ratio of {freelancerToClientRatio:F2}:1 freelancers to clients. Focus on client acquisition.");
+            }
+
+            // Inactive users
+            if (data.InactiveFreelancers > data.TotalFreelancers * 0.3)
+            {
+                insightType = "insight-box warning";
+                insights.Add($"<strong>High Inactivity:</strong> <strong>{data.InactiveFreelancers}</strong> freelancers ({(data.InactiveFreelancers * 100.0 / data.TotalFreelancers):F1}%) are inactive. Implement re-engagement campaigns.");
+            }
+
+            // Projects without bids
+            if (data.ProjectsWithoutBids > data.TotalProjects * 0.2)
+            {
+                insightType = "insight-box warning";
+                insights.Add($"<strong>Matching Issues:</strong> <strong>{data.ProjectsWithoutBids}</strong> projects received no bids. Review project visibility and matching algorithms.");
+            }
+
+            if (!insights.Any())
+            {
+                insights.Add("Platform metrics are stable. Continue monitoring key indicators.");
+            }
+
+            return $@"
+    <div class='{insightType}'>
+        <h3>Platform Health Insights</h3>
+        <ul>
+            {string.Join("", insights.Select(i => $"<li>{i}</li>"))}
+        </ul>
+    </div>";
+        }
+
+        private string GenerateAdminRecommendations(SystemReportData data)
+        {
+            var recommendations = new List<string>();
+
+            // NEW: Delayed project recommendations
+            if (data.DelayedProjects.Count > 0)
+            {
+                recommendations.Add($"<strong>Address Delayed Projects:</strong> {data.DelayedProjects.Count} projects are overdue. Contact freelancers and clients to identify blockers and provide support to get projects back on track.");
+            }
+
+            if (data.LateCompletedProjects.Count > data.CompletedProjects * 0.3)
+            {
+                recommendations.Add($"<strong>Improve Delivery Timeliness:</strong> {((data.LateCompletedProjects.Count * 100.0) / Math.Max(1, data.CompletedProjects)):F1}% of projects completed late. Consider implementing milestone tracking, automated deadline reminders, or freelancer performance penalties.");
+            }
+
+            // Inactive freelancer engagement
+            if (data.InactiveFreelancers > data.TotalFreelancers * 0.3)
+            {
+                recommendations.Add($"<strong>Re-engage Inactive Freelancers:</strong> Launch targeted email campaigns, offer incentives for first bids, or provide training resources to activate {data.InactiveFreelancers} inactive freelancers.");
+            }
+
+            // Projects without bids
+            if (data.ProjectsWithoutBids > 5)
+            {
+                recommendations.Add($"<strong>Improve Project Visibility:</strong> {data.ProjectsWithoutBids} projects received no bids. Enhance search algorithms, send notifications to relevant freelancers, or guide clients in writing better descriptions.");
+            }
+
+            // Low-rated freelancers
+            if (data.LowRatedFreelancers > 0)
+            {
+                recommendations.Add($"<strong>Quality Intervention:</strong> {data.LowRatedFreelancers} freelancers have low ratings. Consider implementing quality improvement programs or stricter vetting.");
+            }
+
+            // Bid acceptance rate
+            var bidAcceptanceRate = data.TotalBiddings > 0 ? (data.AcceptedBiddings * 100.0 / data.TotalBiddings) : 0;
+            if (bidAcceptanceRate < 15)
+            {
+                recommendations.Add($"<strong>Improve Matching Quality:</strong> Low bid acceptance rate ({bidAcceptanceRate:F1}%) suggests poor freelancer-project matching. Enhance recommendation algorithms or provide bid coaching.");
+            }
+
+            // Platform growth
+            var projectGrowth = data.PreviousPeriodProjects > 0
+                ? ((data.TotalProjects - data.PreviousPeriodProjects) * 100.0 / data.PreviousPeriodProjects)
+                : 0;
+
+            if (projectGrowth < 0)
+            {
+                recommendations.Add($"<strong>Reverse Declining Growth:</strong> Project creation decreased by {Math.Abs(projectGrowth):F1}%. Invest in marketing, improve user experience, or offer promotional campaigns.");
+            }
+            else if (projectGrowth > 30)
+            {
+                recommendations.Add($"<strong>Scale Infrastructure:</strong> Strong {projectGrowth:F1}% growth in projects. Ensure platform capacity can handle increased load and consider hiring support staff.");
+            }
+
+            // User balance
+            var freelancerToClientRatio = data.TotalClients > 0 ? (data.TotalFreelancers * 1.0 / data.TotalClients) : 0;
+            if (freelancerToClientRatio < 2)
+            {
+                recommendations.Add($"<strong>Recruit Freelancers:</strong> Ratio of {freelancerToClientRatio:F2}:1 is imbalanced. Launch freelancer recruitment campaigns or partnerships with educational institutions.");
+            }
+            else if (freelancerToClientRatio > 8)
+            {
+                recommendations.Add($"<strong>Client Acquisition Focus:</strong> High freelancer-to-client ratio ({freelancerToClientRatio:F2}:1). Invest in B2B sales, advertising, or client referral programs.");
+            }
+
+            // Mentorship program
+            var mentorshipEngagement = data.TotalMentorshipMatches > 0
+                ? (data.ActiveMentorships * 100.0 / data.TotalMentorshipMatches)
+                : 0;
+
+            if (data.TotalMentorshipMatches > 0 && mentorshipEngagement < 50)
+            {
+                recommendations.Add($"<strong>Boost Mentorship Engagement:</strong> Only {mentorshipEngagement:F1}% of mentorships are active. Provide structured programs, incentives, or better matching to increase engagement.");
+            }
+
+            if (!recommendations.Any())
+            {
+                recommendations.Add("Platform is operating efficiently. Continue monitoring metrics and maintaining quality standards.");
+            }
+
+            return $@"
+    <div class='recommendation-box'>
+        <h3>Strategic Recommendations for Platform Growth</h3>
+        <ul>
+            {string.Join("", recommendations.Select(r => $"<li>{r}</li>"))}
+        </ul>
+    </div>";
         }
 
         private string GenerateFinancialReportHtml(FinancialReportData data)
@@ -801,14 +1568,38 @@ namespace Freelancing.Services
             var totalEarnings = data.CompletedBiddings.Sum(b => b.Budget);
             var monthlyEarnings = data.CompletedBiddings
                 .GroupBy(b => b.BiddingAcceptedDate?.ToString("yyyy-MM"))
+                .OrderByDescending(g => g.Key)
                 .ToDictionary(g => g.Key, g => g.Sum(b => b.Budget));
+
+            var avgProjectValue = data.CompletedBiddings.Any()
+                ? data.CompletedBiddings.Average(b => b.Budget)
+                : 0;
+            var avgMonthlyEarnings = monthlyEarnings.Any()
+                ? monthlyEarnings.Values.Average()
+                : 0;
+
+            // Calculate earnings trend
+            var earningsTrend = "";
+            if (monthlyEarnings.Count >= 2)
+            {
+                var recentMonths = monthlyEarnings.Take(3).Select(m => m.Value).ToList();
+                var isGrowing = recentMonths.Count >= 2 && recentMonths[0] > recentMonths[1];
+                earningsTrend = isGrowing
+                    ? "<span class='trend-indicator trend-up'>📈 Growing</span>"
+                    : "<span class='trend-indicator trend-down'>📉 Declining</span>";
+            }
+
+            // Generate insights
+            var insights = GenerateFinancialInsights(data, totalEarnings, avgMonthlyEarnings);
+            var recommendations = GenerateFinancialRecommendations(data, monthlyEarnings);
+
             var headerHtml = GenerateReportHeader(
-    "Financial Report",
-    $"For {data.Freelancer?.FirstName} {data.Freelancer?.LastName}",
-    data.StartDate,
-    data.EndDate,
-    "#1D4ED8"
-);
+                "Financial Report",
+                $"For {data.Freelancer?.FirstName} {data.Freelancer?.LastName}",
+                data.StartDate,
+                data.EndDate,
+                "#059669"  // Green theme for financial reports
+            );
 
             return $@"
 <!DOCTYPE html>
@@ -818,16 +1609,23 @@ namespace Freelancing.Services
     <title>Financial Report</title>
     <style>
         {GetReportStyles()}
-        .kpi-value {{ color: #1D4ED8; }}
-        .main-header {{ border-bottom-color: #1D4ED8; }}
+        .kpi-value {{ color: #059669; }}
+        .main-header {{ border-bottom-color: #059669; }}
+        .kpi-grid-2 {{ 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 20px; 
+            margin: 25px 0;
+        }}
     </style>
 </head>
 <body>
     {headerHtml}
 
-    <div class='kpi-grid'>
+    <h2>Financial Overview {earningsTrend}</h2>
+    <div class='kpi-grid-2'>
         <div class='kpi'>
-            <span class='kpi-value'>₱{totalEarnings:N0}</span>
+            <span class='kpi-value'>PHP {totalEarnings:N0}</span>
             <div class='kpi-label'>Total Earnings</div>
         </div>
         <div class='kpi'>
@@ -835,35 +1633,56 @@ namespace Freelancing.Services
             <div class='kpi-label'>Completed Projects</div>
         </div>
         <div class='kpi'>
-            <span class='kpi-value'>₱{(data.CompletedBiddings.Any() ? data.CompletedBiddings.Average(b => b.Budget) : 0):N0}</span>
+            <span class='kpi-value'>PHP {avgProjectValue:N0}</span>
             <div class='kpi-label'>Average Project Value</div>
         </div>
         <div class='kpi'>
-            <span class='kpi-value'>₱{(monthlyEarnings.Any() ? monthlyEarnings.Values.Average() : 0):N0}</span>
+            <span class='kpi-value'>PHP {avgMonthlyEarnings:N0}</span>
             <div class='kpi-label'>Average Monthly Earnings</div>
         </div>
     </div>
 
-    {(monthlyEarnings.Any() ? $@"
+    {insights}
+
+    {recommendations}
+
     <h2>Monthly Earnings Breakdown</h2>
+    {(monthlyEarnings.Any() ? $@"
     <table>
         <thead>
             <tr>
                 <th>Month</th>
-                <th class='text-right'>Earnings (₱)</th>
+                <th class='text-right'>Earnings</th>
+                <th class='text-right'>Projects Completed</th>
+                <th class='text-right'>Average per Project</th>
             </tr>
         </thead>
         <tbody>
-            {string.Join("", monthlyEarnings.Select(me => $@"
+            {string.Join("", monthlyEarnings.Select(me =>
+            {
+                var monthProjects = data.CompletedBiddings.Where(p => p.BiddingAcceptedDate?.ToString("yyyy-MM") == me.Key).ToList();
+                var avgPerProject = monthProjects.Any() ? monthProjects.Average(p => p.Budget) : 0;
+                return $@"
             <tr>
                 <td>{me.Key}</td>
-                <td class='text-right'>{me.Value:N0}</td>
-            </tr>"))}
+                <td class='text-right'>₱{me.Value:N0}</td>
+                <td class='text-right'>{monthProjects.Count}</td>
+                <td class='text-right'>₱{avgPerProject:N0}</td>
+            </tr>";
+            }))}
         </tbody>
-    </table>" : "")}
+        <tfoot>
+            <tr style='font-weight: bold; background-color: #F3F4F6;'>
+                <td>Total</td>
+                <td class='text-right'>₱{totalEarnings:N0}</td>
+                <td class='text-right'>{data.CompletedBiddings.Count}</td>
+                <td class='text-right'>₱{avgProjectValue:N0}</td>
+            </tr>
+        </tfoot>
+    </table>" : "<p>No earnings data available for this period.</p>")}
 
-    {(data.CompletedBiddings.Any() ? $@"
     <h2>Project Details</h2>
+    {(data.CompletedBiddings.Any() ? $@"
     <table>
         <thead>
             <tr>
@@ -878,21 +1697,203 @@ namespace Freelancing.Services
             <tr>
                 <td>{b.Project.ProjectName}</td>
                 <td>{b.Project.User.FirstName} {b.Project.User.LastName}</td>
-                <td class='text-right'>{b.Budget:N0}</td>
+                <td class='text-right'>₱{b.Budget:N0}</td>
                 <td>{b.BiddingAcceptedDate?.ToString("MMM dd, yyyy") ?? "N/A"}</td>
             </tr>"))}
         </tbody>
-    </table>" : "")}
+    </table>" : "<p>No completed projects in this period.</p>")}
 
     <div class='footer'>
-        Generated on {DateTime.UtcNow:MMMM dd, yyyy 'at' h:mm tt}
+        Generated on {DateTime.Now:MMMM dd, yyyy 'at' h:mm tt}
     </div>
 </body>
 </html>";
         }
+
+        private string GenerateFinancialInsights(FinancialReportData data, int totalEarnings, double avgMonthlyEarnings)
+        {
+            var insights = new List<string>();
+            var insightType = "insight-box";
+
+            // Earnings analysis
+            if (totalEarnings > 100000)
+            {
+                insightType = "insight-box success";
+                insights.Add($"<strong>Strong Earnings:</strong> Total earnings of <strong>₱{totalEarnings:N0}</strong> demonstrate excellent productivity and value delivery.");
+            }
+            else if (totalEarnings > 50000)
+            {
+                insights.Add($"<strong>Solid Performance:</strong> Earned <strong>₱{totalEarnings:N0}</strong> in this period, showing consistent project completion.");
+            }
+            else if (totalEarnings > 0)
+            {
+                insights.Add($"<strong>Building Momentum:</strong> Earned <strong>₱{totalEarnings:N0}</strong>. Focus on increasing project volume and rates.");
+            }
+
+            // Project value analysis
+            if (data.CompletedBiddings.Any())
+            {
+                var avgProjectValue = data.CompletedBiddings.Average(b => b.Budget);
+                if (avgProjectValue > 20000)
+                {
+                    insightType = "insight-box success";
+                    insights.Add($"<strong>High-Value Projects:</strong> Your average project value of <strong>₱{avgProjectValue:N0}</strong> positions you in the premium market segment.");
+                }
+                else if (avgProjectValue < 5000)
+                {
+                    insights.Add($"<strong>Growth Opportunity:</strong> Average project value is <strong>₱{avgProjectValue:N0}</strong>. Consider targeting higher-budget projects to increase earnings.");
+                }
+            }
+
+            // Monthly earnings trend
+            var monthlyEarnings = data.CompletedBiddings
+                .GroupBy(b => b.BiddingAcceptedDate?.ToString("yyyy-MM"))
+                .OrderByDescending(g => g.Key)
+                .Take(3)
+                .Select(g => g.Sum(b => b.Budget))
+                .ToList();
+
+            if (monthlyEarnings.Count >= 2)
+            {
+                if (monthlyEarnings[0] > monthlyEarnings[1])
+                {
+                    var growthPercent = ((monthlyEarnings[0] - monthlyEarnings[1]) * 100.0 / monthlyEarnings[1]);
+                    insightType = "insight-box success";
+                    insights.Add($"<strong>Positive Trend:</strong> Earnings increased by <strong>{growthPercent:F1}%</strong> in the most recent month, showing upward momentum.");
+                }
+                else if (monthlyEarnings[0] < monthlyEarnings[1])
+                {
+                    var declinePercent = ((monthlyEarnings[1] - monthlyEarnings[0]) * 100.0 / monthlyEarnings[1]);
+                    insightType = "insight-box warning";
+                    insights.Add($"<strong>Declining Trend:</strong> Earnings decreased by <strong>{declinePercent:F1}%</strong> in the most recent month. Review your bidding strategy and availability.");
+                }
+            }
+
+            // Productivity insights
+            if (data.CompletedBiddings.Any())
+            {
+                var projectsPerMonth = data.CompletedBiddings.Count / Math.Max(1,
+                    ((data.EndDate - data.StartDate).Days / 30.0));
+
+                if (projectsPerMonth >= 4)
+                {
+                    insights.Add($"<strong>High Productivity:</strong> Completing approximately <strong>{projectsPerMonth:F1}</strong> projects per month shows excellent time management.");
+                }
+                else if (projectsPerMonth < 2)
+                {
+                    insights.Add($"<strong>Capacity Available:</strong> Averaging <strong>{projectsPerMonth:F1}</strong> projects per month. You have capacity to take on more work.");
+                }
+            }
+
+            if (!insights.Any())
+            {
+                insights.Add("Start completing projects to see detailed financial insights and track your earnings growth.");
+            }
+
+            return $@"
+    <div class='{insightType}'>
+        <h3>💰 Financial Insights</h3>
+        <ul>
+            {string.Join("", insights.Select(i => $"<li>{i}</li>"))}
+        </ul>
+    </div>";
+        }
+
+        private string GenerateFinancialRecommendations(FinancialReportData data, Dictionary<string, int> monthlyEarnings)
+        {
+            var recommendations = new List<string>();
+
+            // Revenue diversification
+            if (data.CompletedBiddings.Any())
+            {
+                var clientDistribution = data.CompletedBiddings
+                    .GroupBy(b => b.Project.UserId)
+                    .Count();
+
+                if (clientDistribution == 1)
+                {
+                    recommendations.Add("<strong>Diversify Client Base:</strong> All earnings come from one client. Expand your client portfolio to reduce income risk.");
+                }
+                else if (clientDistribution >= 5)
+                {
+                    recommendations.Add("<strong>Strong Diversification:</strong> Working with multiple clients is excellent for income stability. Consider building long-term relationships with top clients.");
+                }
+            }
+
+            // Project value optimization
+            if (data.CompletedBiddings.Any())
+            {
+                var avgProjectValue = data.CompletedBiddings.Average(b => b.Budget);
+                var highValueProjects = data.CompletedBiddings.Where(b => b.Budget > avgProjectValue * 1.5).Count();
+                var lowValueProjects = data.CompletedBiddings.Where(b => b.Budget < avgProjectValue * 0.5).Count();
+
+                if (lowValueProjects > highValueProjects)
+                {
+                    recommendations.Add($"<strong>Raise Your Rates:</strong> You're completing many lower-value projects. Focus on projects worth ₱{(avgProjectValue * 1.5):N0}+ to maximize earnings per hour.");
+                }
+            }
+
+            // Earnings consistency
+            if (monthlyEarnings.Count >= 3)
+            {
+                var stdDev = CalculateStandardDeviation(monthlyEarnings.Values.Select(v => (double)v).ToList());
+                var avgEarnings = monthlyEarnings.Values.Average();
+
+                if (stdDev > avgEarnings * 0.5)
+                {
+                    recommendations.Add("<strong>Stabilize Income:</strong> Your monthly earnings vary significantly. Build a project pipeline and consider retainer agreements for consistent cash flow.");
+                }
+            }
+
+            // Volume recommendations
+            if (data.CompletedBiddings.Count < 5)
+            {
+                recommendations.Add("<strong>Increase Project Volume:</strong> Complete more projects to build a stronger financial foundation. Aim for at least 2-3 projects per month.");
+            }
+
+            // Growth strategy
+            var totalEarnings = data.CompletedBiddings.Sum(b => b.Budget);
+            if (totalEarnings < 50000)
+            {
+                recommendations.Add("<strong>Scale Your Business:</strong> Set a goal to reach ₱50,000+ monthly. Focus on higher-value projects and improving your skill set.");
+            }
+            else if (totalEarnings > 100000)
+            {
+                recommendations.Add("<strong>Consider Premium Positioning:</strong> Your earnings show strong performance. Position yourself as a premium freelancer and target enterprise clients.");
+            }
+
+            // Financial planning
+            if (data.CompletedBiddings.Any())
+            {
+                recommendations.Add("<strong>Financial Planning:</strong> Set aside 20-30% of earnings for taxes and emergency fund. Consider professional accounting services.");
+            }
+
+            if (!recommendations.Any())
+            {
+                recommendations.Add("Complete more projects to receive personalized financial recommendations for growing your freelance business.");
+            }
+
+            return $@"
+    <div class='recommendation-box'>
+        <h3>💡 Financial Growth Recommendations</h3>
+        <ul>
+            {string.Join("", recommendations.Select(r => $"<li>{r}</li>"))}
+        </ul>
+    </div>";
+        }
+
+        private double CalculateStandardDeviation(List<double> values)
+        {
+            if (values.Count < 2) return 0;
+
+            var avg = values.Average();
+            var sumOfSquares = values.Sum(v => Math.Pow(v - avg, 2));
+            return Math.Sqrt(sumOfSquares / values.Count);
+        }
     }
 
-    // Data classes for reports
+
+    // Enhanced data classes for reports
     public class FreelancerReportData
     {
         public UserAccount Freelancer { get; set; }
@@ -900,6 +1901,10 @@ namespace Freelancing.Services
         public DateTime EndDate { get; set; }
         public List<Bidding> Biddings { get; set; }
         public List<FreelancerFeedback> Feedbacks { get; set; }
+
+        // Platform benchmarks for comparison
+        public double PlatformAverageRating { get; set; }
+        public double PlatformAverageSuccessRate { get; set; }
     }
 
     public class ClientReportData
@@ -910,6 +1915,10 @@ namespace Freelancing.Services
         public List<Project> Projects { get; set; }
         public List<FreelancerFeedback> Feedbacks { get; set; }
         public List<FreelancerFeedback> SentReviews { get; set; }
+
+        // Platform benchmarks for comparison
+        public double PlatformAverageBudget { get; set; }
+        public double PlatformAverageCompletionRate { get; set; }
     }
 
     public class SystemReportData
@@ -926,6 +1935,20 @@ namespace Freelancing.Services
         public int AcceptedBiddings { get; set; }
         public int TotalMentorshipMatches { get; set; }
         public int ActiveMentorships { get; set; }
+
+        // Previous period data for trend analysis
+        public int PreviousPeriodProjects { get; set; }
+        public int PreviousPeriodBiddings { get; set; }
+        public int PreviousPeriodCompletedProjects { get; set; }
+
+        // Problem areas
+        public int InactiveFreelancers { get; set; }
+        public int ProjectsWithoutBids { get; set; }
+        public int LowRatedFreelancers { get; set; }
+
+        // NEW: Delayed/Late projects
+        public List<Project> DelayedProjects { get; set; } = new List<Project>();
+        public List<Project> LateCompletedProjects { get; set; } = new List<Project>();
     }
 
     public class FinancialReportData
