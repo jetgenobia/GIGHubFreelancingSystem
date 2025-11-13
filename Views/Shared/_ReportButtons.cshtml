@@ -14,13 +14,53 @@
                 </div>
             </div>
 
-            <div class="hidden md:block"></div>
+            @if (User.IsInRole("Freelancer"))
+            {
+                <div class="w-full">
+                    <label for="reportType" class="block text-xs font-medium text-gray-700">Report Type</label>
+                    <select id="reportType" class="mt-1 block w-full text-sm border-gray-300 rounded-md">
+                        <option value="performance">Complete Performance Report</option>
+                        <option value="bids">Bids and Acceptance Rate</option>
+                        <option value="reviews">Reviews</option>
+                        <option value="financial">Financial</option>
+                    </select>
+                </div>
+            }
+            else if (User.IsInRole("Client"))
+            {
+                <div class="w-full">
+                    <label for="reportType" class="block text-xs font-medium text-gray-700">Report Type</label>
+                    <select id="reportType" class="mt-1 block w-full text-sm border-gray-300 rounded-md">
+                        <option value="complete">Complete Project Report</option>
+                        <option value="projects">Project and Completion Rate</option>
+                        <option value="reviews">Reviews</option>
+                        <option value="financial">Financial</option>
+                    </select>
+                </div>
+            }
+            else if (User.IsInRole("Admin"))
+            {
+                <div class="w-full">
+                    <label for="reportType" class="block text-xs font-medium text-gray-700">Report Type</label>
+                    <select id="reportType" class="mt-1 block w-full text-sm border-gray-300 rounded-md">
+                        <option value="complete">Complete System Analytics</option>
+                        <option value="projects">Projects Overview</option>
+                        <option value="delivery">Project Delivery Performance</option>
+                        <option value="users">Users Overview</option>
+                        <option value="financial">Financial Overview</option>
+                    </select>
+                </div>
+            }
+            else
+            {
+                <div class="hidden md:block"></div>
+            }
 
             <div class="w-full flex justify-start md:justify-end">
                 @if (User.IsInRole("Freelancer"))
                 {
-                    <button onclick="downloadReport('@Url.Action("FreelancerPerformance", "Report")')"
-                            aria-label="Download Performance Report"
+                    <button onclick="downloadFreelancerReport()"
+                            aria-label="Download Report"
                             class="inline-flex items-center text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-6 py-2 mr-2 z-10">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -31,7 +71,7 @@
 
                 @if (User.IsInRole("Client"))
                 {
-                    <button onclick="downloadReport('@Url.Action("ClientProjects", "Report")')"
+                    <button onclick="downloadClientReport()"
                             aria-label="Download Project Report"
                             class="inline-flex items-center text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-6 py-2 mr-2 z-10">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -43,11 +83,11 @@
 
                 @if (User.IsInRole("Admin"))
                 {
-                    <button onclick="downloadReport('@Url.Action("SystemAnalytics", "Report")')"
-                            aria-label="Download System Analytics"
+                    <button onclick="downloadAdminReport()"
+                            aria-label="Download System Analytics Report"
                             class="inline-flex items-center text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-6 py-2 mr-2 z-10">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                         </svg>
                         Download Report
                     </button>
@@ -58,21 +98,97 @@
 </div>
 
 <script>
-    function downloadReport(baseUrl) {
+    function downloadFreelancerReport() {
         const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;
+        const reportType = document.getElementById('reportType').value;
 
-        let url = baseUrl;
-        const params = new URLSearchParams();
-
-        if (startDate) params.append('startDate', startDate);
-        if (endDate) params.append('endDate', endDate);
-
-        if (params.toString()) {
-            url += '?' + params.toString();
+        let url = '';
+        switch(reportType) {
+            case 'bids':
+                url = '@Url.Action("FreelancerBids", "Report")';
+                break;
+            case 'reviews':
+                url = '@Url.Action("FreelancerReviews", "Report")';
+                break;
+            case 'financial':
+                url = '@Url.Action("FreelancerFinancial", "Report")';
+                break;
+            case 'performance':
+            default:
+                url = '@Url.Action("FreelancerPerformance", "Report")';
+                break;
         }
 
-        // Open in new tab to trigger download
-        window.open(url, '_blank');
+        downloadReport(url, startDate, endDate);
+    }
+
+    function downloadClientReport() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const reportType = document.getElementById('reportType').value;
+
+        let url = '';
+        switch(reportType) {
+            case 'projects':
+                url = '@Url.Action("ClientProjectsCompletion", "Report")';
+                break;
+            case 'reviews':
+                url = '@Url.Action("ClientReviews", "Report")';
+                break;
+            case 'financial':
+                url = '@Url.Action("ClientFinancial", "Report")';
+                break;
+            case 'complete':
+            default:
+                url = '@Url.Action("ClientProjects", "Report")';
+                break;
+        }
+
+        downloadReport(url, startDate, endDate);
+    }
+
+    function downloadAdminReport() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const reportType = document.getElementById('reportType').value;
+
+        let url = '';
+        switch(reportType) {
+            case 'projects':
+                url = '@Url.Action("AdminProjectsOverview", "Report")';
+                break;
+            case 'delivery':
+                url = '@Url.Action("AdminProjectDelivery", "Report")';
+                break;
+            case 'users':
+                url = '@Url.Action("AdminUsersOverview", "Report")';
+                break;
+            case 'financial':
+                url = '@Url.Action("AdminFinancial", "Report")';
+                break;
+            case 'complete':
+            default:
+                url = '@Url.Action("SystemAnalytics", "Report")';
+                break;
+        }
+
+        downloadReport(url, startDate, endDate);
+    }
+
+    function downloadReport(url, startDate = null, endDate = null) {
+        if (!startDate) {
+            startDate = document.getElementById('startDate')?.value;
+        }
+        if (!endDate) {
+            endDate = document.getElementById('endDate')?.value;
+        }
+
+        let params = [];
+        if (startDate) params.push('startDate=' + startDate);
+        if (endDate) params.push('endDate=' + endDate);
+
+        const fullUrl = params.length > 0 ? url + '?' + params.join('&') : url;
+        window.open(fullUrl, '_blank');
     }
 </script>

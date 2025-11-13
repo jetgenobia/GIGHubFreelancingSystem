@@ -219,6 +219,1111 @@ namespace Freelancing.Services
             return await _pdfService.GenerateHtmlToPdfAsync(htmlContent, "Financial Report");
         }
 
+        public async Task<byte[]> GenerateFreelancerBidsReportAsync(string userId, DateTime? startDate = null, DateTime? endDate = null)
+        {
+            startDate ??= DateTime.UtcNow.AddMonths(-12);
+            endDate ??= DateTime.UtcNow;
+
+            var freelancer = await _context.UserAccounts
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            var biddings = await _context.Biddings
+                .Include(b => b.Project)
+                .ThenInclude(p => p.User)
+                .Where(b => b.UserId == userId &&
+                           b.Project.CreatedAt >= startDate &&
+                           b.Project.CreatedAt <= endDate)
+                .ToListAsync();
+
+            var acceptedBids = biddings.Where(b => b.IsAccepted).ToList();
+            var successRate = biddings.Any() ? (acceptedBids.Count * 100.0 / biddings.Count) : 0;
+
+            var headerHtml = GenerateReportHeader(
+                "Bids and Acceptance Rate Report",
+                $"For {freelancer?.FirstName} {freelancer?.LastName}",
+                startDate.Value,
+                endDate.Value,
+                "#3B82F6"
+            );
+
+            return await _pdfService.GenerateHtmlToPdfAsync($@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>Bids and Acceptance Rate Report</title>
+    <style>
+        {GetReportStyles()}
+        .kpi-value {{ color: #3B82F6; }}
+        .main-header {{ border-bottom-color: #3B82F6; }}
+    </style>
+</head>
+<body>
+    {headerHtml}
+
+    <h2>Performance Overview</h2>
+    <div class='kpi-grid'>
+        <div class='kpi'>
+            <span class='kpi-value'>{biddings.Count}</span>
+            <div class='kpi-label'>Total Bids</div>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value'>{acceptedBids.Count}</span>
+            <div class='kpi-label'>Accepted Bids</div>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value'>{successRate:F1}%</span>
+            <div class='kpi-label'>Success Rate</div>
+        </div>
+    </div>
+
+    <h2>Bid Details</h2>
+    {(biddings.Any() ? $@"
+    <table>
+        <thead>
+            <tr>
+                <th>Project Name</th>
+                <th>Client</th>
+                <th class='text-right'>Bid Amount (PHP)</th>
+                <th>Delivery (Days)</th>
+                <th>Proposal</th>
+                <th>Date Submitted</th>
+            </tr>
+        </thead>
+        <tbody>
+            {string.Join("", biddings.OrderByDescending(b => b.Project.CreatedAt).Select(b => $@"
+            <tr>
+                <td>{b.Project.ProjectName}</td>
+                <td>{b.Project.User.FirstName} {b.Project.User.LastName}</td>
+                <td class='text-right'>PHP {b.Budget:N0}</td>
+                <td>{b.Delivery}</td>
+                <td class='review-comment'>{(string.IsNullOrEmpty(b.Proposal) ? "—" : b.Proposal)}</td>
+                <td>{b.Project.CreatedAt:MMM dd, yyyy}</td>
+            </tr>"))}
+        </tbody>
+    </table>" : "<p>No bids submitted in this period.</p>")}
+
+    <div class='footer'>
+        Generated on {DateTime.Now:MMMM dd, yyyy 'at' h:mm tt}
+    </div>
+</body>
+</html>", "Bids and Acceptance Rate Report");
+        }
+
+        public async Task<byte[]> GenerateFreelancerReviewsReportAsync(string userId, DateTime? startDate = null, DateTime? endDate = null)
+        {
+            startDate ??= DateTime.UtcNow.AddMonths(-12);
+            endDate ??= DateTime.UtcNow;
+
+            var freelancer = await _context.UserAccounts
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            var feedbacks = await _context.FreelancerFeedbacks
+                .Include(f => f.AcceptBidding)
+                .ThenInclude(ab => ab.Project)
+                .ThenInclude(p => p.User)
+                .Where(f => f.FreelancerId == userId &&
+                           f.CreatedAt >= startDate &&
+                           f.CreatedAt <= endDate)
+                .ToListAsync();
+
+            var averageRating = feedbacks.Any() ? feedbacks.Average(f => f.Rating) : 0;
+            var recommendationRate = feedbacks.Any() ?
+                (feedbacks.Count(f => f.WouldRecommend) * 100.0 / feedbacks.Count) : 0;
+
+            var headerHtml = GenerateReportHeader(
+                "Client Reviews Report",
+                $"For {freelancer?.FirstName} {freelancer?.LastName}",
+                startDate.Value,
+                endDate.Value,
+                "#3B82F6"
+            );
+
+            return await _pdfService.GenerateHtmlToPdfAsync($@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>Client Reviews Report</title>
+    <style>
+        {GetReportStyles()}
+        .kpi-value {{ color: #3B82F6; }}
+        .main-header {{ border-bottom-color: #3B82F6; }}
+    </style>
+</head>
+<body>
+    {headerHtml}
+
+    <h2>Performance Overview</h2>
+    <div class='kpi-grid'>
+        <div class='kpi'>
+            <span class='kpi-value'>{feedbacks.Count}</span>
+            <div class='kpi-label'>Reviews Received</div>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value'>{averageRating:F1} ⭐</span>
+            <div class='kpi-label'>Average Rating</div>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value'>{recommendationRate:F1}%</span>
+            <div class='kpi-label'>Recommendation Rate</div>
+        </div>
+    </div>
+
+    <h2>Client Reviews Received</h2>
+    {(feedbacks.Any() ? $@"
+    <table>
+        <thead>
+            <tr>
+                <th>Project</th>
+                <th>Client</th>
+                <th>Rating</th>
+                <th>Recommend</th>
+                <th>Comments</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {string.Join("", feedbacks.OrderByDescending(f => f.CreatedAt).Select(f => $@"
+            <tr>
+                <td>{f.AcceptBidding.Project.ProjectName}</td>
+                <td>{f.AcceptBidding.Project.User.FirstName} {f.AcceptBidding.Project.User.LastName}</td>
+                <td class='star-rating'>{f.Rating}/5</td>
+                <td>{(f.WouldRecommend ? "Yes" : "No")}</td>
+                <td class='review-comment'>{(string.IsNullOrEmpty(f.Comments) ? "—" : f.Comments)}</td>
+                <td>{f.CreatedAt:MMM dd, yyyy}</td>
+            </tr>"))}
+        </tbody>
+    </table>" : "<p>No client reviews received in this period.</p>")}
+
+    <div class='footer'>
+        Generated on {DateTime.Now:MMMM dd, yyyy 'at' h:mm tt}
+    </div>
+</body>
+</html>", "Client Reviews Report");
+        }
+
+        public async Task<byte[]> GenerateFreelancerFinancialReportAsync(string userId, DateTime? startDate = null, DateTime? endDate = null)
+        {
+            startDate ??= DateTime.UtcNow.AddMonths(-12);
+            endDate ??= DateTime.UtcNow;
+
+            var freelancer = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id == userId);
+
+            var completedBiddings = await _context.Biddings
+                .Include(b => b.Project)
+                .ThenInclude(p => p.User)
+                .Where(b => b.UserId == userId &&
+                           b.IsAccepted &&
+                           b.Project.Status == "Completed" &&
+                           b.BiddingAcceptedDate >= startDate &&
+                           b.BiddingAcceptedDate <= endDate)
+                .ToListAsync();
+
+            var totalEarnings = completedBiddings.Sum(b => b.Budget);
+            var monthlyEarnings = completedBiddings
+                .GroupBy(b => b.BiddingAcceptedDate?.ToString("yyyy-MM"))
+                .OrderByDescending(g => g.Key)
+                .ToDictionary(g => g.Key, g => g.Sum(b => b.Budget));
+
+            var avgProjectValue = completedBiddings.Any()
+                ? completedBiddings.Average(b => b.Budget)
+                : 0;
+
+            var headerHtml = GenerateReportHeader(
+                "Financial Report",
+                $"For {freelancer?.FirstName} {freelancer?.LastName}",
+                startDate.Value,
+                endDate.Value,
+                "#059669"
+            );
+
+            return await _pdfService.GenerateHtmlToPdfAsync($@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>Financial Report</title>
+    <style>
+        {GetReportStyles()}
+        .kpi-value {{ color: #059669; }}
+        .main-header {{ border-bottom-color: #059669; }}
+        .kpi-grid-2 {{ 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 20px; 
+            margin: 25px 0;
+        }}
+    </style>
+</head>
+<body>
+    {headerHtml}
+
+    <h2>Financial Summary</h2>
+    <div class='kpi-grid-2'>
+        <div class='kpi'>
+            <span class='kpi-value'>PHP {totalEarnings:N0}</span>
+            <div class='kpi-label'>Total Earnings</div>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value'>{completedBiddings.Count}</span>
+            <div class='kpi-label'>Completed Projects</div>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value'>PHP {avgProjectValue:N0}</span>
+            <div class='kpi-label'>Average Project Value</div>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value'>PHP {(monthlyEarnings.Any() ? monthlyEarnings.Values.Average() : 0):N0}</span>
+            <div class='kpi-label'>Average Monthly Earnings</div>
+        </div>
+    </div>
+
+    <h2>Monthly Earnings Breakdown</h2>
+    {(monthlyEarnings.Any() ? $@"
+    <table>
+        <thead>
+            <tr>
+                <th>Month</th>
+                <th class='text-right'>Earnings (PHP)</th>
+                <th class='text-right'>Projects Completed</th>
+                <th class='text-right'>Average per Project (PHP)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {string.Join("", monthlyEarnings.Select(me =>
+            {
+                var monthProjects = completedBiddings.Where(p => p.BiddingAcceptedDate?.ToString("yyyy-MM") == me.Key).ToList();
+                var avgPerProject = monthProjects.Any() ? monthProjects.Average(p => p.Budget) : 0;
+                return $@"
+            <tr>
+                <td>{me.Key}</td>
+                <td class='text-right'>PHP {me.Value:N0}</td>
+                <td class='text-right'>{monthProjects.Count}</td>
+                <td class='text-right'>PHP {avgPerProject:N0}</td>
+            </tr>";
+            }))}
+        </tbody>
+        <tfoot>
+            <tr style='font-weight: bold; background-color: #F3F4F6;'>
+                <td>Total</td>
+                <td class='text-right'>PHP {totalEarnings:N0}</td>
+                <td class='text-right'>{completedBiddings.Count}</td>
+                <td class='text-right'>PHP {avgProjectValue:N0}</td>
+            </tr>
+        </tfoot>
+    </table>" : "<p>No earnings data available for this period.</p>")}
+
+    <h2>Project Earnings Details</h2>
+    {(completedBiddings.Any() ? $@"
+    <table>
+        <thead>
+            <tr>
+                <th>Project Name</th>
+                <th>Client</th>
+                <th class='text-right'>Earnings (PHP)</th>
+                <th>Completed Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {string.Join("", completedBiddings.OrderByDescending(b => b.BiddingAcceptedDate).Select(b => $@"
+            <tr>
+                <td>{b.Project.ProjectName}</td>
+                <td>{b.Project.User.FirstName} {b.Project.User.LastName}</td>
+                <td class='text-right'>PHP {b.Budget:N0}</td>
+                <td>{b.BiddingAcceptedDate?.ToString("MMM dd, yyyy") ?? "N/A"}</td>
+            </tr>"))}
+        </tbody>
+    </table>" : "<p>No completed projects in this period.</p>")}
+
+    <div class='footer'>
+        Generated on {DateTime.Now:MMMM dd, yyyy 'at' h:mm tt}
+    </div>
+</body>
+</html>", "Financial Report");
+        }
+
+        public async Task<byte[]> GenerateClientProjectsCompletionReportAsync(string userId, DateTime? startDate = null, DateTime? endDate = null)
+        {
+            startDate ??= DateTime.UtcNow.AddMonths(-12);
+            endDate ??= DateTime.UtcNow;
+
+            var client = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id == userId);
+
+            var projects = await _context.Projects
+                .Include(p => p.AcceptedBid)
+                .ThenInclude(ab => ab.User)
+                .Include(p => p.Biddings)
+                .Where(p => p.UserId == userId &&
+                           p.CreatedAt >= startDate &&
+                           p.CreatedAt <= endDate)
+                .ToListAsync();
+
+            var activeProjects = projects.Where(p => p.Status == "Active").ToList();
+            var completedProjects = projects.Where(p => p.Status == "Completed").ToList();
+            var completionRate = projects.Any() ? (completedProjects.Count * 100.0 / projects.Count) : 0;
+
+            var headerHtml = GenerateReportHeader(
+                "Project and Completion Rate Report",
+                $"For {client?.FirstName} {client?.LastName}",
+                startDate.Value,
+                endDate.Value,
+                "#1D4ED8"
+            );
+
+            return await _pdfService.GenerateHtmlToPdfAsync($@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>Project and Completion Rate Report</title>
+    <style>
+        {GetReportStyles()}
+        .kpi-value {{ color: #1D4ED8; }}
+        .main-header {{ border-bottom-color: #1D4ED8; }}
+        .kpi-grid-4 {{ 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 20px; 
+            margin: 25px 0;
+        }}
+    </style>
+</head>
+<body>
+    {headerHtml}
+
+    <h2>Project Summary</h2>
+    <div class='kpi-grid-4'>
+        <div class='kpi'>
+            <span class='kpi-value'>{projects.Count}</span>
+            <div class='kpi-label'>Total Projects</div>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value'>{activeProjects.Count}</span>
+            <div class='kpi-label'>Active Projects</div>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value'>{completedProjects.Count}</span>
+            <div class='kpi-label'>Completed Projects</div>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value'>{completionRate:F1}%</span>
+            <div class='kpi-label'>Completion Rate</div>
+        </div>
+    </div>
+
+    <h2>Project Details</h2>
+    {(projects.Any() ? $@"
+    <table>
+        <thead>
+            <tr>
+                <th>Project Name</th>
+                <th>Freelancer</th>
+                <th>Budget</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Deadline</th>
+            </tr>
+        </thead>
+        <tbody>
+            {string.Join("", projects.OrderByDescending(p => p.CreatedAt).Select(p => $@"
+            <tr>
+                <td>{p.ProjectName}</td>
+                <td>{(p.AcceptedBid != null ? $"{p.AcceptedBid.User.FirstName} {p.AcceptedBid.User.LastName}" : "—")}</td>
+                <td>{(p.AcceptedBid != null ? $"PHP {p.AcceptedBid.Budget:N0}" : $"PHP {p.Budget}")}</td>
+                <td>{(p.Status ?? "Open")}</td>
+                <td>{p.CreatedAt:MMM dd, yyyy}</td>
+                <td>{(p.Deadline.HasValue ? p.Deadline.Value.ToString("MMM dd, yyyy") : "—")}</td>
+            </tr>"))}
+        </tbody>
+    </table>" : "<p>No projects created in this period.</p>")}
+
+    <div class='footer'>
+        Generated on {DateTime.Now:MMMM dd, yyyy 'at' h:mm tt}
+    </div>
+</body>
+</html>", "Project and Completion Rate Report");
+        }
+
+        public async Task<byte[]> GenerateClientReviewsReportAsync(string userId, DateTime? startDate = null, DateTime? endDate = null)
+        {
+            startDate ??= DateTime.UtcNow.AddMonths(-12);
+            endDate ??= DateTime.UtcNow;
+
+            var client = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id == userId);
+
+            var sentReviews = await _context.FreelancerFeedbacks
+                .Include(f => f.AcceptBidding)
+                .ThenInclude(ab => ab.Project)
+                .Include(f => f.Freelancer)
+                .Where(f => f.AcceptBidding.Project.UserId == userId &&
+                           f.CreatedAt >= startDate &&
+                           f.CreatedAt <= endDate)
+                .ToListAsync();
+
+            var averageRatingGiven = sentReviews.Any() ? sentReviews.Average(r => r.Rating) : 0;
+
+            var headerHtml = GenerateReportHeader(
+                "Reviews Report",
+                $"For {client?.FirstName} {client?.LastName}",
+                startDate.Value,
+                endDate.Value,
+                "#1D4ED8"
+            );
+
+            return await _pdfService.GenerateHtmlToPdfAsync($@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>Reviews Report</title>
+    <style>
+        {GetReportStyles()}
+        .kpi-value {{ color: #1D4ED8; }}
+        .main-header {{ border-bottom-color: #1D4ED8; }}
+        .kpi-grid-2 {{ 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 20px; 
+            margin: 25px 0;
+        }}
+    </style>
+</head>
+<body>
+    {headerHtml}
+
+    <h2>Project Summary</h2>
+    <div class='kpi-grid-2'>
+        <div class='kpi'>
+            <span class='kpi-value'>{sentReviews.Count}</span>
+            <div class='kpi-label'>Reviews Sent</div>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value'>{averageRatingGiven:F1} ⭐</span>
+            <div class='kpi-label'>Average Rating Given</div>
+        </div>
+    </div>
+
+    <h2>Reviews Sent</h2>
+    {(sentReviews.Any() ? $@"
+    <table>
+        <thead>
+            <tr>
+                <th>Project</th>
+                <th>Freelancer</th>
+                <th>Rating</th>
+                <th>Recommend</th>
+                <th>Comments</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {string.Join("", sentReviews.OrderByDescending(r => r.CreatedAt).Select(r => $@"
+            <tr>
+                <td>{r.AcceptBidding.Project.ProjectName}</td>
+                <td>{r.Freelancer.FirstName} {r.Freelancer.LastName}</td>
+                <td class='star-rating'>{r.Rating}/5</td>
+                <td>{(r.WouldRecommend ? "Yes" : "No")}</td>
+                <td class='review-comment'>{(string.IsNullOrEmpty(r.Comments) ? "—" : r.Comments)}</td>
+                <td>{r.CreatedAt:MMM dd, yyyy}</td>
+            </tr>"))}
+        </tbody>
+    </table>" : "<p>No reviews given in this period.</p>")}
+
+    <div class='footer'>
+        Generated on {DateTime.Now:MMMM dd, yyyy 'at' h:mm tt}
+    </div>
+</body>
+</html>", "Reviews Report");
+        }
+
+        public async Task<byte[]> GenerateClientFinancialReportAsync(string userId, DateTime? startDate = null, DateTime? endDate = null)
+        {
+            startDate ??= DateTime.UtcNow.AddMonths(-12);
+            endDate ??= DateTime.UtcNow;
+
+            var client = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id == userId);
+
+            var projects = await _context.Projects
+                .Include(p => p.AcceptedBid)
+                .ThenInclude(ab => ab.User)
+                .Where(p => p.UserId == userId &&
+                           p.CreatedAt >= startDate &&
+                           p.CreatedAt <= endDate &&
+                           p.AcceptedBid != null &&
+                           p.Status == "Completed")
+                .ToListAsync();
+
+            var totalSpent = projects.Sum(p => p.AcceptedBid.Budget);
+            var avgBudget = projects.Any() ? projects.Average(p => p.AcceptedBid.Budget) : 0;
+
+            var headerHtml = GenerateReportHeader(
+                "Financial Report",
+                $"For {client?.FirstName} {client?.LastName}",
+                startDate.Value,
+                endDate.Value,
+                "#059669"
+            );
+
+            return await _pdfService.GenerateHtmlToPdfAsync($@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>Financial Report</title>
+    <style>
+        {GetReportStyles()}
+        .kpi-value {{ color: #059669; }}
+        .main-header {{ border-bottom-color: #059669; }}
+        .kpi-grid-2 {{ 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 20px; 
+            margin: 25px 0;
+        }}
+    </style>
+</head>
+<body>
+    {headerHtml}
+
+    <h2>Project Summary</h2>
+    <div class='kpi-grid-2'>
+        <div class='kpi'>
+            <span class='kpi-value'>PHP {totalSpent:N0}</span>
+            <div class='kpi-label'>Total Spent</div>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value'>PHP {avgBudget:N0}</span>
+            <div class='kpi-label'>Average Budget</div>
+        </div>
+    </div>
+
+    <h2>Project Financial Details</h2>
+    {(projects.Any() ? $@"
+    <table>
+        <thead>
+            <tr>
+                <th>Project Name</th>
+                <th>Freelancer</th>
+                <th class='text-right'>Amount Spent (PHP)</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {string.Join("", projects.OrderByDescending(p => p.CreatedAt).Select(p => $@"
+            <tr>
+                <td>{p.ProjectName}</td>
+                <td>{p.AcceptedBid.User.FirstName} {p.AcceptedBid.User.LastName}</td>
+                <td class='text-right'>PHP {p.AcceptedBid.Budget:N0}</td>
+                <td>{p.Status}</td>
+            </tr>"))}
+        </tbody>
+        <tfoot>
+            <tr style='font-weight: bold; background-color: #F3F4F6;'>
+                <td colspan='2'>Total</td>
+                <td class='text-right'>PHP {totalSpent:N0}</td>
+                <td colspan='3'></td>
+            </tr>
+        </tfoot>
+    </table>" : "<p>No completed projects with spending in this period.</p>")}
+
+    <div class='footer'>
+        Generated on {DateTime.Now:MMMM dd, yyyy 'at' h:mm tt}
+    </div>
+</body>
+</html>", "Financial Report");
+        }
+
+        public async Task<byte[]> GenerateAdminProjectsOverviewReportAsync(DateTime? startDate = null, DateTime? endDate = null)
+        {
+            startDate ??= DateTime.UtcNow.AddMonths(-3);
+            endDate ??= DateTime.UtcNow;
+
+            var periodLength = (endDate.Value - startDate.Value).Days;
+            var previousStartDate = startDate.Value.AddDays(-periodLength);
+            var previousEndDate = startDate.Value;
+
+            var totalProjects = await _context.Projects.CountAsync(p => p.CreatedAt >= startDate && p.CreatedAt <= endDate);
+            var activeProjects = await _context.Projects.CountAsync(p => p.Status == "Active");
+            var completedProjects = await _context.Projects.CountAsync(p => p.Status == "Completed" && p.CreatedAt >= startDate && p.CreatedAt <= endDate);
+            var totalBiddings = await _context.Biddings.CountAsync(b => b.Project.CreatedAt >= startDate && b.Project.CreatedAt <= endDate);
+            var acceptedBiddings = await _context.Biddings.CountAsync(b => b.IsAccepted && b.Project.CreatedAt >= startDate && b.Project.CreatedAt <= endDate);
+
+            var previousProjects = await _context.Projects.CountAsync(p => p.CreatedAt >= previousStartDate && p.CreatedAt < previousEndDate);
+            var previousBiddings = await _context.Biddings.CountAsync(b => b.Project.CreatedAt >= previousStartDate && b.Project.CreatedAt < previousEndDate);
+            var previousCompleted = await _context.Projects.CountAsync(p => p.Status == "Completed" && p.CreatedAt >= previousStartDate && p.CreatedAt < previousEndDate);
+
+            var projectGrowth = previousProjects > 0 ? ((totalProjects - previousProjects) * 100.0 / previousProjects) : 0;
+            var biddingGrowth = previousBiddings > 0 ? ((totalBiddings - previousBiddings) * 100.0 / previousBiddings) : 0;
+            var completionGrowth = previousCompleted > 0 ? ((completedProjects - previousCompleted) * 100.0 / previousCompleted) : 0;
+            var bidAcceptanceRate = totalBiddings > 0 ? (acceptedBiddings * 100.0 / totalBiddings) : 0;
+
+            var newProjects = await _context.Projects
+                .Include(p => p.User)
+                .Include(p => p.AcceptedBid)
+                .ThenInclude(ab => ab.User)
+                .Where(p => p.CreatedAt >= startDate && p.CreatedAt <= endDate)
+                .OrderByDescending(p => p.CreatedAt)
+                .ToListAsync();
+
+            var headerHtml = GenerateReportHeader(
+                "Projects Overview and Acceptance Rate Report",
+                "",
+                startDate.Value,
+                endDate.Value,
+                "#1D4ED8"
+            );
+
+            return await _pdfService.GenerateHtmlToPdfAsync($@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>Projects Overview and Acceptance Rate Report</title>
+    <style>
+        {GetReportStyles()}
+        .kpi-value {{ color: #1D4ED8; }}
+        .main-header {{ border-bottom-color: #1D4ED8; }}
+    </style>
+</head>
+<body>
+    {headerHtml}
+
+    <h2>Platform Growth Overview</h2>
+    <div class='kpi-grid'>
+        <div class='kpi'>
+            <span class='kpi-value'>{totalProjects}</span>
+            <div class='kpi-label'>New Projects</div>
+            <span class='trend-indicator {(projectGrowth > 0 ? "trend-up" : projectGrowth < 0 ? "trend-down" : "trend-neutral")}'>
+                {(projectGrowth > 0 ? "↑" : projectGrowth < 0 ? "↓" : "→")} {Math.Abs(projectGrowth):F1}% vs previous period
+            </span>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value'>{totalBiddings}</span>
+            <div class='kpi-label'>Total Bids</div>
+            <span class='trend-indicator {(biddingGrowth > 0 ? "trend-up" : biddingGrowth < 0 ? "trend-down" : "trend-neutral")}'>
+                {(biddingGrowth > 0 ? "↑" : biddingGrowth < 0 ? "↓" : "→")} {Math.Abs(biddingGrowth):F1}% vs previous period
+            </span>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value'>{completedProjects}</span>
+            <div class='kpi-label'>Completed Projects</div>
+            <span class='trend-indicator {(completionGrowth > 0 ? "trend-up" : completionGrowth < 0 ? "trend-down" : "trend-neutral")}'>
+                {(completionGrowth > 0 ? "↑" : completionGrowth < 0 ? "↓" : "→")} {Math.Abs(completionGrowth):F1}% vs previous period
+            </span>
+        </div>
+    </div>
+
+    <h2>Platform Health Metrics</h2>
+    <div class='kpi-grid'>
+        <div class='kpi'>
+            <span class='kpi-value'>{activeProjects}</span>
+            <div class='kpi-label'>Active Projects</div>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value'>{bidAcceptanceRate:F1}%</span>
+            <div class='kpi-label'>Bid Acceptance Rate</div>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value'>{acceptedBiddings}</span>
+            <div class='kpi-label'>Accepted Biddings</div>
+        </div>
+    </div>
+
+    <h2>New Projects Details</h2>
+    {(newProjects.Any() ? $@"
+    <table>
+        <thead>
+            <tr>
+                <th>Project Name</th>
+                <th>Client</th>
+                <th>Budget</th>
+                <th>Status</th>
+                <th>Freelancer</th>
+                <th>Created Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {string.Join("", newProjects.Select(p => $@"
+            <tr>
+                <td>{p.ProjectName}</td>
+                <td>{p.User.FirstName} {p.User.LastName}</td>
+                <td>PHP {(p.AcceptedBid != null ? p.AcceptedBid.Budget : p.Budget):N0}</td>
+                <td>{(p.Status ?? "Open")}</td>
+                <td>{(p.AcceptedBid != null ? $"{p.AcceptedBid.User.FirstName} {p.AcceptedBid.User.LastName}" : "—")}</td>
+                <td>{p.CreatedAt:MMM dd, yyyy}</td>
+            </tr>"))}
+        </tbody>
+    </table>" : "<p>No new projects in this period.</p>")}
+
+    <div class='footer'>
+        Generated on {DateTime.Now:MMMM dd, yyyy 'at' h:mm tt}
+    </div>
+</body>
+</html>", "Projects Overview and Acceptance Rate Report");
+        }
+
+        public async Task<byte[]> GenerateAdminProjectDeliveryReportAsync(DateTime? startDate = null, DateTime? endDate = null)
+        {
+            startDate ??= DateTime.UtcNow.AddMonths(-3);
+            endDate ??= DateTime.UtcNow;
+
+            var delayedProjects = await _context.Projects
+                .Include(p => p.AcceptedBid)
+                .ThenInclude(ab => ab.User)
+                .Include(p => p.User)
+                .Include(p => p.Contract)
+                .Where(p => p.CreatedAt >= startDate && p.CreatedAt <= endDate &&
+                           p.Deadline.HasValue &&
+                           ((p.Status == "Active" && DateTime.UtcNow > p.Deadline.Value) ||
+                            (p.Status == "Completed" && p.Contract != null &&
+                             p.Contract.CompletedAt.HasValue &&
+                             p.Contract.CompletedAt.Value > p.Deadline.Value)))
+                .ToListAsync();
+
+            var currentlyDelayed = delayedProjects.Where(p => p.Status == "Active").ToList();
+            var lateCompleted = delayedProjects.Where(p => p.Status == "Completed").ToList();
+            var completedProjects = await _context.Projects.CountAsync(p => p.Status == "Completed" && p.CreatedAt >= startDate && p.CreatedAt <= endDate);
+            var onTimeCompleted = completedProjects - lateCompleted.Count;
+
+            var headerHtml = GenerateReportHeader(
+                "Project Delivery Performance Report",
+                "",
+                startDate.Value,
+                endDate.Value,
+                "#F59E0B"
+            );
+
+            return await _pdfService.GenerateHtmlToPdfAsync($@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>Project Delivery Performance Report</title>
+    <style>
+        {GetReportStyles()}
+        .kpi-value {{ color: #F59E0B; }}
+        .main-header {{ border-bottom-color: #F59E0B; }}
+    </style>
+</head>
+<body>
+    {headerHtml}
+
+    <h2>Project Delivery Performance</h2>
+    <div class='kpi-grid'>
+        <div class='kpi'>
+            <span class='kpi-value' style='color: #EF4444;'>{currentlyDelayed.Count}</span>
+            <div class='kpi-label'>Currently Delayed Projects</div>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value' style='color: #F59E0B;'>{lateCompleted.Count}</span>
+            <div class='kpi-label'>Projects Completed Late</div>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value' style='color: #10B981;'>{onTimeCompleted}</span>
+            <div class='kpi-label'>Projects Completed On Time</div>
+        </div>
+    </div>
+
+    {(currentlyDelayed.Any() ? $@"
+    <h2>⚠️ Currently Delayed Projects</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Project Name</th>
+                <th>Client</th>
+                <th>Freelancer</th>
+                <th>Deadline</th>
+                <th>Days Overdue</th>
+            </tr>
+        </thead>
+        <tbody>
+            {string.Join("", currentlyDelayed.OrderBy(p => p.Deadline).Select(p => {
+                var daysOverdue = p.Deadline.HasValue ? (DateTime.UtcNow - p.Deadline.Value).Days : 0;
+                return $@"
+            <tr style='background-color: #FEE2E2;'>
+                <td>{p.ProjectName}</td>
+                <td>{p.User?.FirstName} {p.User?.LastName}</td>
+                <td>{(p.AcceptedBid != null ? $"{p.AcceptedBid.User?.FirstName} {p.AcceptedBid.User?.LastName}" : "—")}</td>
+                <td>{p.Deadline?.ToString("MMM dd, yyyy")}</td>
+                <td style='color: #DC2626; font-weight: bold;'>{daysOverdue} days</td>
+            </tr>";
+            }))}
+        </tbody>
+    </table>" : "<p>No currently delayed projects.</p>")}
+
+    {(lateCompleted.Any() ? $@"
+    <h2>Projects Completed Late</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Project Name</th>
+                <th>Client</th>
+                <th>Freelancer</th>
+                <th>Deadline</th>
+                <th>Completed Date</th>
+                <th>Days Late</th>
+            </tr>
+        </thead>
+        <tbody>
+            {string.Join("", lateCompleted.OrderByDescending(p => p.Contract?.CompletedAt).Select(p => {
+                var daysLate = p.Deadline.HasValue && p.Contract?.CompletedAt.HasValue == true
+                    ? (p.Contract.CompletedAt.Value - p.Deadline.Value).Days
+                    : 0;
+                return $@"
+            <tr style='background-color: #FEF3C7;'>
+                <td>{p.ProjectName}</td>
+                <td>{p.User?.FirstName} {p.User?.LastName}</td>
+                <td>{(p.AcceptedBid != null ? $"{p.AcceptedBid.User?.FirstName} {p.AcceptedBid.User?.LastName}" : "—")}</td>
+                <td>{p.Deadline?.ToString("MMM dd, yyyy")}</td>
+                <td>{p.Contract?.CompletedAt?.ToString("MMM dd, yyyy") ?? "N/A"}</td>
+                <td style='color: #D97706; font-weight: bold;'>{daysLate} days</td>
+            </tr>";
+            }))}
+        </tbody>
+    </table>" : "<p>No projects completed late in this period.</p>")}
+
+    <div class='footer'>
+        Generated on {DateTime.Now:MMMM dd, yyyy 'at' h:mm tt}
+    </div>
+</body>
+</html>", "Project Delivery Performance Report");
+        }
+
+        public async Task<byte[]> GenerateAdminUsersOverviewReportAsync(DateTime? startDate = null, DateTime? endDate = null)
+        {
+            startDate ??= DateTime.UtcNow.AddMonths(-3);
+            endDate ??= DateTime.UtcNow;
+
+            var totalUsers = await _context.UserAccounts.CountAsync();
+            var totalFreelancers = await _context.UserAccounts.CountAsync(u => u.Role == "Freelancer" || u.FRole == "Freelancer");
+            var totalClients = await _context.UserAccounts.CountAsync(u => u.Role == "Client" || u.FRole == "Client");
+
+            var inactiveFreelancers = await _context.UserAccounts
+                .Where(u => (u.Role == "Freelancer" || u.FRole == "Freelancer") &&
+                       !_context.Biddings.Any(b => b.UserId == u.Id && b.Project.CreatedAt >= startDate))
+                .ToListAsync();
+
+            var lowRatedFreelancers = await _context.FreelancerFeedbacks
+                .Where(f => f.CreatedAt >= startDate && f.CreatedAt <= endDate)
+                .GroupBy(f => f.FreelancerId)
+                .Where(g => g.Average(f => f.Rating) < 3)
+                .Select(g => new
+                {
+                    FreelancerId = g.Key,
+                    AverageRating = g.Average(f => f.Rating),
+                    ReviewCount = g.Count()
+                })
+                .ToListAsync();
+
+            var lowRatedUsers = await _context.UserAccounts
+                .Where(u => lowRatedFreelancers.Select(l => l.FreelancerId).Contains(u.Id))
+                .ToListAsync();
+
+            var headerHtml = GenerateReportHeader(
+                "Users Overview Report",
+                "",
+                startDate.Value,
+                endDate.Value,
+                "#8B5CF6"
+            );
+
+            return await _pdfService.GenerateHtmlToPdfAsync($@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>Users Overview Report</title>
+    <style>
+        {GetReportStyles()}
+        .kpi-value {{ color: #8B5CF6; }}
+        .main-header {{ border-bottom-color: #8B5CF6; }}
+    </style>
+</head>
+<body>
+    {headerHtml}
+
+    <h2>User Statistics</h2>
+    <div class='kpi-grid'>
+        <div class='kpi'>
+            <span class='kpi-value'>{totalUsers}</span>
+            <div class='kpi-label'>Total Users</div>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value'>{totalFreelancers}</span>
+            <div class='kpi-label'>Freelancers</div>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value'>{totalClients}</span>
+            <div class='kpi-label'>Clients</div>
+        </div>
+    </div>
+
+    <h2>Areas Requiring Attention</h2>
+    <div class='kpi-grid'>
+        <div class='kpi'>
+            <span class='kpi-value' style='color: #EF4444;'>{inactiveFreelancers.Count}</span>
+            <div class='kpi-label'>Inactive Freelancers</div>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value' style='color: #F59E0B;'>{lowRatedFreelancers.Count}</span>
+            <div class='kpi-label'>Low-Rated Freelancers (&lt;3★)</div>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value'>{totalFreelancers - inactiveFreelancers.Count}</span>
+            <div class='kpi-label'>Active Freelancers</div>
+        </div>
+    </div>
+
+    {(inactiveFreelancers.Any() ? $@"
+    <h2>Inactive Freelancers</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {string.Join("", inactiveFreelancers.Take(50).Select(u => $@"
+            <tr>
+                <td>{u.FirstName} {u.LastName}</td>
+                <td>{u.Email}</td>
+                <td style='color: #EF4444; font-weight: bold;'>Inactive</td>
+            </tr>"))}
+        </tbody>
+    </table>" : "<p>No inactive freelancers found.</p>")}
+
+    {(lowRatedUsers.Any() ? $@"
+    <h2>Low-Rated Freelancers</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Average Rating</th>
+                <th>Review Count</th>
+            </tr>
+        </thead>
+        <tbody>
+            {string.Join("", lowRatedUsers.Select(u => {
+                var rating = lowRatedFreelancers.First(l => l.FreelancerId == u.Id);
+                return $@"
+            <tr style='background-color: #FEF3C7;'>
+                <td>{u.FirstName} {u.LastName}</td>
+                <td>{u.Email}</td>
+                <td class='star-rating' style='color: #EF4444;'>{rating.AverageRating:F1}/5</td>
+                <td>{rating.ReviewCount}</td>
+            </tr>";
+            }))}
+        </tbody>
+    </table>" : "<p>No low-rated freelancers found.</p>")}
+
+    <div class='footer'>
+        Generated on {DateTime.Now:MMMM dd, yyyy 'at' h:mm tt}
+    </div>
+</body>
+</html>", "Users Overview Report");
+        }
+
+        public async Task<byte[]> GenerateAdminFinancialReportAsync(DateTime? startDate = null, DateTime? endDate = null)
+        {
+            startDate ??= DateTime.UtcNow.AddMonths(-3);
+            endDate ??= DateTime.UtcNow;
+
+            var completedProjects = await _context.Projects
+                .Include(p => p.AcceptedBid)
+                .ThenInclude(ab => ab.User)
+                .Include(p => p.User)
+                .Where(p => p.Status == "Completed" &&
+                           p.AcceptedBid != null &&
+                           p.CreatedAt >= startDate &&
+                           p.CreatedAt <= endDate)
+                .ToListAsync();
+
+            var totalRevenue = completedProjects.Sum(p => p.AcceptedBid.Budget);
+            var averageProjectValue = completedProjects.Any() ? completedProjects.Average(p => p.AcceptedBid.Budget) : 0;
+            var projectCount = completedProjects.Count;
+
+            var headerHtml = GenerateReportHeader(
+                "Financial Overview Report",
+                "",
+                startDate.Value,
+                endDate.Value,
+                "#059669"
+            );
+
+            return await _pdfService.GenerateHtmlToPdfAsync($@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>Financial Overview Report</title>
+    <style>
+        {GetReportStyles()}
+        .kpi-value {{ color: #059669; }}
+        .main-header {{ border-bottom-color: #059669; }}
+    </style>
+</head>
+<body>
+    {headerHtml}
+
+    <h2>Financial Summary</h2>
+    <div class='kpi-grid'>
+        <div class='kpi'>
+            <span class='kpi-value'>PHP {totalRevenue:N0}</span>
+            <div class='kpi-label'>Total Platform Revenue</div>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value'>{projectCount}</span>
+            <div class='kpi-label'>Completed Projects</div>
+        </div>
+        <div class='kpi'>
+            <span class='kpi-value'>PHP {averageProjectValue:N0}</span>
+            <div class='kpi-label'>Average Project Value</div>
+        </div>
+    </div>
+
+    <h2>Completed Projects Financial Details</h2>
+    {(completedProjects.Any() ? $@"
+    <table>
+        <thead>
+            <tr>
+                <th>Project Name</th>
+                <th>Client</th>
+                <th>Freelancer</th>
+                <th class='text-right'>Amount (PHP)</th>
+                <th>Completed Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {string.Join("", completedProjects.OrderByDescending(p => p.AcceptedBid.Budget).Select(p => $@"
+            <tr>
+                <td>{p.ProjectName}</td>
+                <td>{p.User.FirstName} {p.User.LastName}</td>
+                <td>{p.AcceptedBid.User.FirstName} {p.AcceptedBid.User.LastName}</td>
+                <td class='text-right'>PHP {p.AcceptedBid.Budget:N0}</td>
+                <td>{(p.Contract?.CompletedAt?.ToString("MMM dd, yyyy") ?? p.CreatedAt.ToString("MMM dd, yyyy"))}</td>
+            </tr>"))}
+        </tbody>
+        <tfoot>
+            <tr style='font-weight: bold; background-color: #F3F4F6;'>
+                <td colspan='3'>Total</td>
+                <td class='text-right'>PHP {totalRevenue:N0}</td>
+                <td></td>
+            </tr>
+        </tfoot>
+    </table>" : "<p>No completed projects in this period.</p>")}
+
+    <div class='footer'>
+        Generated on {DateTime.Now:MMMM dd, yyyy 'at' h:mm tt}
+    </div>
+</body>
+</html>", "Financial Overview Report");
+        }
+
+
         public async Task<byte[]> GenerateProjectAnalyticsReportAsync(Guid projectId)
         {
             throw new NotImplementedException("Project Analytics Report not yet implemented");
@@ -631,10 +1736,6 @@ namespace Freelancing.Services
                 {ratingComparison} platform avg ({data.PlatformAverageRating:F1})
             </span>
         </div>
-        <div class='kpi'>
-            <span class='kpi-value'>{recommendationRate:F1}%</span>
-            <div class='kpi-label'>Recommendation Rate</div>
-        </div>
     </div>
 
     {insights}
@@ -648,15 +1749,15 @@ namespace Freelancing.Services
             <div class='kpi-label'>Completed Projects</div>
         </div>
         <div class='kpi'>
-            <span class='kpi-value'>₱{totalEarnings:N0}</span>
+            <span class='kpi-value'>PHP {totalEarnings:N0}</span>
             <div class='kpi-label'>Total Earnings</div>
         </div>
         <div class='kpi'>
-            <span class='kpi-value'>₱{(completedProjects.Any() ? completedProjects.Average(b => b.Budget) : 0):N0}</span>
+            <span class='kpi-value'>PHP {(completedProjects.Any() ? completedProjects.Average(b => b.Budget) : 0):N0}</span>
             <div class='kpi-label'>Average Project Value</div>
         </div>
         <div class='kpi'>
-            <span class='kpi-value'>₱{(monthlyEarnings.Any() ? monthlyEarnings.Values.Average() : 0):N0}</span>
+            <span class='kpi-value'>PHP {(monthlyEarnings.Any() ? monthlyEarnings.Values.Average() : 0):N0}</span>
             <div class='kpi-label'>Average Monthly Earnings</div>
         </div>
     </div>
@@ -960,7 +2061,7 @@ namespace Freelancing.Services
             <span class='kpi-value'>PHP {avgBudget:N0}</span>
             <div class='kpi-label'>Average Budget</div>
             <span class='trend-indicator {(avgBudget >= data.PlatformAverageBudget ? "trend-up" : "trend-down")}'>
-                {(avgBudget >= data.PlatformAverageBudget ? "above" : "below")} platform avg (₱{data.PlatformAverageBudget:N0})
+                {(avgBudget >= data.PlatformAverageBudget ? "above" : "below")} platform avg (PHP {data.PlatformAverageBudget:N0})
             </span>
         </div>
     </div>
@@ -1665,18 +2766,18 @@ namespace Freelancing.Services
                 return $@"
             <tr>
                 <td>{me.Key}</td>
-                <td class='text-right'>₱{me.Value:N0}</td>
+                <td class='text-right'>PHP {me.Value:N0}</td>
                 <td class='text-right'>{monthProjects.Count}</td>
-                <td class='text-right'>₱{avgPerProject:N0}</td>
+                <td class='text-right'>PHP {avgPerProject:N0}</td>
             </tr>";
             }))}
         </tbody>
         <tfoot>
             <tr style='font-weight: bold; background-color: #F3F4F6;'>
                 <td>Total</td>
-                <td class='text-right'>₱{totalEarnings:N0}</td>
+                <td class='text-right'>PHP {totalEarnings:N0}</td>
                 <td class='text-right'>{data.CompletedBiddings.Count}</td>
-                <td class='text-right'>₱{avgProjectValue:N0}</td>
+                <td class='text-right'>PHP {avgProjectValue:N0}</td>
             </tr>
         </tfoot>
     </table>" : "<p>No earnings data available for this period.</p>")}
@@ -1688,7 +2789,7 @@ namespace Freelancing.Services
             <tr>
                 <th>Project Name</th>
                 <th>Client</th>
-                <th class='text-right'>Earnings (₱)</th>
+                <th class='text-right'>Earnings (PHP)</th>
                 <th>Completed Date</th>
             </tr>
         </thead>
@@ -1697,7 +2798,7 @@ namespace Freelancing.Services
             <tr>
                 <td>{b.Project.ProjectName}</td>
                 <td>{b.Project.User.FirstName} {b.Project.User.LastName}</td>
-                <td class='text-right'>₱{b.Budget:N0}</td>
+                <td class='text-right'>PHP {b.Budget:N0}</td>
                 <td>{b.BiddingAcceptedDate?.ToString("MMM dd, yyyy") ?? "N/A"}</td>
             </tr>"))}
         </tbody>
@@ -1719,15 +2820,15 @@ namespace Freelancing.Services
             if (totalEarnings > 100000)
             {
                 insightType = "insight-box success";
-                insights.Add($"<strong>Strong Earnings:</strong> Total earnings of <strong>₱{totalEarnings:N0}</strong> demonstrate excellent productivity and value delivery.");
+                insights.Add($"<strong>Strong Earnings:</strong> Total earnings of <strong>PHP {totalEarnings:N0}</strong> demonstrate excellent productivity and value delivery.");
             }
             else if (totalEarnings > 50000)
             {
-                insights.Add($"<strong>Solid Performance:</strong> Earned <strong>₱{totalEarnings:N0}</strong> in this period, showing consistent project completion.");
+                insights.Add($"<strong>Solid Performance:</strong> Earned <strong>PHP {totalEarnings:N0}</strong> in this period, showing consistent project completion.");
             }
             else if (totalEarnings > 0)
             {
-                insights.Add($"<strong>Building Momentum:</strong> Earned <strong>₱{totalEarnings:N0}</strong>. Focus on increasing project volume and rates.");
+                insights.Add($"<strong>Building Momentum:</strong> Earned <strong>PHP {totalEarnings:N0}</strong>. Focus on increasing project volume and rates.");
             }
 
             // Project value analysis
@@ -1737,11 +2838,11 @@ namespace Freelancing.Services
                 if (avgProjectValue > 20000)
                 {
                     insightType = "insight-box success";
-                    insights.Add($"<strong>High-Value Projects:</strong> Your average project value of <strong>₱{avgProjectValue:N0}</strong> positions you in the premium market segment.");
+                    insights.Add($"<strong>High-Value Projects:</strong> Your average project value of <strong>PHP {avgProjectValue:N0}</strong> positions you in the premium market segment.");
                 }
                 else if (avgProjectValue < 5000)
                 {
-                    insights.Add($"<strong>Growth Opportunity:</strong> Average project value is <strong>₱{avgProjectValue:N0}</strong>. Consider targeting higher-budget projects to increase earnings.");
+                    insights.Add($"<strong>Growth Opportunity:</strong> Average project value is <strong>PHP {avgProjectValue:N0}</strong>. Consider targeting higher-budget projects to increase earnings.");
                 }
             }
 
@@ -1829,7 +2930,7 @@ namespace Freelancing.Services
 
                 if (lowValueProjects > highValueProjects)
                 {
-                    recommendations.Add($"<strong>Raise Your Rates:</strong> You're completing many lower-value projects. Focus on projects worth ₱{(avgProjectValue * 1.5):N0}+ to maximize earnings per hour.");
+                    recommendations.Add($"<strong>Raise Your Rates:</strong> You're completing many lower-value projects. Focus on projects worth PHP {(avgProjectValue * 1.5):N0}+ to maximize earnings per hour.");
                 }
             }
 
@@ -1855,7 +2956,7 @@ namespace Freelancing.Services
             var totalEarnings = data.CompletedBiddings.Sum(b => b.Budget);
             if (totalEarnings < 50000)
             {
-                recommendations.Add("<strong>Scale Your Business:</strong> Set a goal to reach ₱50,000+ monthly. Focus on higher-value projects and improving your skill set.");
+                recommendations.Add("<strong>Scale Your Business:</strong> Set a goal to reach PHP 50,000+ monthly. Focus on higher-value projects and improving your skill set.");
             }
             else if (totalEarnings > 100000)
             {
